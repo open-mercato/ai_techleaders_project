@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
     "@mikro-orm/sql",
     "@mikro-orm/migrations",
   ],
+  experimental: {
+    // Production server stacks are minified to single-letter frames. The
+    // integration job turns this on so a 500 in a Server Component reports real
+    // file names. Must be set for the build as well as the run.
+    serverSourceMaps: process.env.NEXT_SERVER_SOURCE_MAPS === "1",
+  },
 };
 
 export default nextConfig;
