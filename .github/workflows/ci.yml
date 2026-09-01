@@ -105,6 +105,15 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Diagnose bundle
+        run: |
+          echo "--- node: $(node -v)"
+          echo "--- next.config.ts:"; cat next.config.ts
+          echo "--- MikroORM inlined into the server bundle?"
+          grep -rl "MetadataDiscovery" .next/server/ | head -5 || echo "  not inlined (external, as intended)"
+          echo "--- ssr chunks:"; ls .next/server/chunks/ssr/ || true
+          echo "--- swc binary:"; ls node_modules/@next/ || true
+
       # Docker is preinstalled on ubuntu-latest; testcontainers uses it to start
       # the ephemeral Postgres instance.
       - name: Run integration tests
