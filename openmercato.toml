@@ -1,0 +1,7 @@
+version = 2
+prepare = [
+  ["npm", "install", "--no-audit", "--no-fund"],
+]
+
+[preview]
+command = ["sh", "./scripts/preview.sh"]
