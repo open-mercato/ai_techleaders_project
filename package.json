@@ -1,27 +1,32 @@
 {
-  "name": "sandbox-next-seed",
+  "name": "devmentor",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+  "description": "DevMentor — monorepo root",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
   },
-  "dependencies": {
-    "next": "16.3.3",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+  "scripts": {
+    "dev": "npm run dev --workspace @devmentor/app --",
+    "build": "npm run build --workspace @devmentor/app",
+    "start": "npm run start --workspace @devmentor/app --",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:migration:create": "npm run migration:create --workspace @devmentor/db --",
+    "db:migrate": "npm run migration:up --workspace @devmentor/db",
+    "db:migrate:down": "npm run migration:down --workspace @devmentor/db",
+    "db:schema:update": "npm run schema:update --workspace @devmentor/db",
+    "db:seed": "npm run seed --workspace @devmentor/db",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
-    "tailwindcss": "^4",
     "typescript": "^5"
   }
 }

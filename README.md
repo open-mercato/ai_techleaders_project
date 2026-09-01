@@ -1,38 +1,109 @@
-This is a [Next.js](https://nextjs.org) TypeScript project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevMentor
 
-## Getting Started
+A platform connecting developers with experienced mentors. Built as an
+npm-workspaces monorepo on Next.js 16 + React 19 + TypeScript, with PostgreSQL via
+MikroORM v7, awilix for dependency injection, Tailwind CSS for public pages, and
+shadcn-ui for the admin surface.
 
-First, run the development server:
+> Working in this repo as a human or an AI agent? Read **[AGENTS.md](./AGENTS.md)**
+> first — it documents the stack, conventions, and gotchas in depth.
+
+## Getting started
 
 ```bash
+# 1. Install (links all workspaces)
+npm install
+
+# 2. Configure — copy the example and adjust if needed
+cp .env.example .env
+
+# 3. Start Postgres (defaults match .env)
+npm run db:up
+
+# 4. Create the schema and seed a sample mentor
+npm run db:migrate
+npm run db:seed
+
+# 5. Run the app
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates
-as you edit the file. Run `npm run typecheck` to validate the TypeScript project
-or `npm run build` for a production build.
+- <http://localhost:3000> — public landing page (Tailwind).
+- <http://localhost:3000/admin> — admin dashboard (shadcn-ui).
+- <http://localhost:3000/admin/users> — users list, read through the DI container.
+- <http://localhost:3000/api/health> — app + database health JSON.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app **builds and boots even with no database running**; DB-backed pages degrade
+to a visible "unavailable" state instead of crashing.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Next.js dev server |
+| `npm run build` / `npm run start` | Production build / serve |
+| `npm run typecheck` | `tsc --noEmit` across all packages |
+| `npm run lint` | ESLint, including dependency-direction rules |
+| `npm run db:up` / `npm run db:down` | Start / stop local Postgres (Docker) |
+| `npm run db:migration:create -- --name <x>` | Generate a migration from entity diff |
+| `npm run db:migrate` / `npm run db:migrate:down` | Apply / revert migrations |
+| `npm run db:seed` | Run the default seeder |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Monorepo packages
 
-## Deploy on Vercel
+The repo is an npm-workspaces monorepo under `packages/*` with a strictly one-way
+dependency graph (enforced by ESLint — a cycle fails `npm run lint`):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app ──> core ──> db
+ └────> ui
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Package | Name | Responsibility |
+| --- | --- | --- |
+| `packages/app` | `@devmentor/app` | Next.js host and **composition root** — the only package allowed to import all others. Contains routes, layouts, and API handlers. |
+| `packages/core` | `@devmentor/core` | Config (zod), logging (pino), the **awilix DI container**, and domain services. Depends on `db`; never touches React/Next/UI. |
+| `packages/db` | `@devmentor/db` | MikroORM configuration, entities, migrations, seeders. The **leaf** — the only package that imports `@mikro-orm/*`. |
+| `packages/ui` | `@devmentor/ui` | shadcn-ui components and Tailwind design tokens. Presentational only. |
+
+Packages are consumed as **TypeScript source** (no per-package build) and transpiled
+by Next.js via `transpilePackages`.
+
+### Dependency injection
+
+`@devmentor/core` builds a single awilix container (`PROXY` injection mode, a typed
+`Cradle` interface). Lifetimes:
+
+- **Singleton** — `env`, `logger`, `orm` (cached on `globalThis` to survive HMR).
+- **Scoped** — a forked `EntityManager` and the domain services that use it.
+
+Request handlers call `withScope(fn)`, which opens a scope with its own forked
+`EntityManager`, runs the callback, and disposes the scope. The admin users page is a
+worked example: `withScope((c) => c.userService.list())` → forked EM → repository →
+entity with a populated 1:1 relation.
+
+### Database
+
+- MikroORM v7 with the PostgreSQL driver, explicit connection pooling, and migrations
+  under `packages/db/migrations`.
+- Entities are defined with `defineEntity` (MikroORM v7 dropped decorators) and
+  registered as `globalThis` singletons so the same schema object is shared across
+  Next's RSC/SSR/route module graphs.
+- The domain model ships a placeholder `User` 1:1 `MentorProfile` to exercise
+  relations, repositories, and migrations end to end.
+
+### Frontend / backend split
+
+- **Public / marketing pages** (`/`) use plain Tailwind CSS v4 utilities.
+- **Admin pages** (`/admin/*`) use shadcn-ui components from `@devmentor/ui`. The
+  design tokens live in `packages/ui/src/tokens.css`; add components with
+  `npx shadcn@latest add <component>` run inside `packages/ui`.
+
+### Spec-driven development
+
+Nontrivial work is specified before it's built. Specs, autonomous-run logs, and
+lessons live under `.ai/` — see [AGENTS.md](./AGENTS.md) for the full workflow.

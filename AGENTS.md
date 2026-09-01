@@ -5,8 +5,92 @@ this repository.
 
 ## Project
 
-Next.js + TypeScript app. Standard scripts: `npm run dev`, `npm run build`,
-`npm run typecheck`, `npm run lint`.
+**DevMentor** — a platform connecting developers with mentors. It is an npm-workspaces
+monorepo built on the latest Next.js + TypeScript + React.
+
+### Tech stack
+
+| Concern            | Choice                                             |
+| ------------------ | -------------------------------------------------- |
+| Framework          | Next.js 16 (App Router, Turbopack) + React 19      |
+| Language           | TypeScript 5 (strict), ESM everywhere              |
+| Database           | PostgreSQL                                          |
+| ORM                | MikroORM v7 (PostgreSQL driver) — migrations + pool |
+| Dependency injection | awilix v13 (`PROXY` mode, typed `Cradle`)        |
+| Config validation  | zod                                                |
+| Logging            | pino                                               |
+| Frontend styling   | Tailwind CSS v4 (public/marketing pages)           |
+| Backend/admin UI   | shadcn-ui components (in `@devmentor/ui`)          |
+| Package manager    | npm workspaces (Node ≥ 20.9)                       |
+
+### Monorepo layout
+
+Everything lives under `packages/*`. The dependency graph is strictly one-way:
+
+```
+app ──> core ──> db
+ └────> ui
+
+packages/
+  app    @devmentor/app    Next.js host + composition root (the only package that
+                           may import every other package)
+  core   @devmentor/core   config (zod), logger (pino), awilix container, domain
+                           services. Knows about db; never imports react/next/ui.
+  db     @devmentor/db     MikroORM config, entities, migrations, seeders. The leaf —
+                           the only package that imports @mikro-orm/*. Knows nothing
+                           about the others.
+  ui     @devmentor/ui     shadcn-ui primitives + Tailwind design tokens.
+                           Presentational only — no core/db imports.
+```
+
+These boundaries are enforced by ESLint (`no-restricted-imports` in
+`eslint.config.mjs`); a cycle-introducing import fails `npm run lint`.
+
+### Scripts (run from the repo root)
+
+- `npm run dev` — start the Next.js app (`@devmentor/app`).
+- `npm run build` / `npm run start` — production build / serve (force `NODE_ENV=production`).
+- `npm run typecheck` — `tsc --noEmit` across all packages.
+- `npm run lint` — ESLint (includes the dependency-direction rules).
+- `npm run db:up` / `npm run db:down` — local Postgres via `docker-compose.yml`.
+- `npm run db:migration:create -- --name <x>` — generate a migration from entity diff.
+- `npm run db:migrate` / `npm run db:migrate:down` — apply / revert migrations.
+- `npm run db:seed` — run the default seeder.
+
+### Configuration
+
+- Copy `.env.example` to `.env`. `.env` is git-ignored; defaults match
+  `docker-compose.yml` (`devmentor` / `devmentor` / `devmentor`).
+- All env access funnels through zod schemas — `@devmentor/core` (`config/env.ts`) for
+  the app, `@devmentor/db` (`env.ts`) for the MikroORM CLI. **Nothing else reads
+  `process.env` directly.**
+
+### Conventions & gotchas (learned the hard way — see `.ai/lessons.md`)
+
+- **Packages ship TypeScript source**, not built JS. They are consumed via `exports`
+  → `./src/*` and compiled by Next's `transpilePackages`. There is no per-package
+  build step.
+- **Use extensionless relative imports** inside packages (`./foo`, not `./foo.js`).
+  Turbopack does not rewrite `.js`→`.ts` the way `tsc` does; extensionless works for
+  `tsc` (bundler), Turbopack, and `tsx` alike.
+- **MikroORM v7 has no decorators** in `@mikro-orm/core`. Define entities with
+  `defineEntity` + the `p` (`defineEntity.properties`) builders. For cross-entity
+  relations use a **per-property thunk** (`user: () => p.oneToOne(User)...`) so the
+  reference resolves lazily at discovery time (avoids circular-import + wrapping bugs).
+- **Entities are registered as `globalThis` singletons** (`entities/define.ts`) so the
+  same schema object is shared across Next's RSC/SSR/route module graphs. Without this,
+  queries pass a different schema instance than was discovered and `populate` breaks.
+- **`MikroORM.init()` does not connect in v7** — `getOrm()` calls `orm.connect()`
+  explicitly and does not cache a failed connection (so the app recovers if the DB
+  comes back). The ORM and awilix container are cached on `globalThis` to survive HMR.
+- **`em.persistAndFlush()` was removed** — use `em.persist(e); await em.flush()`.
+- Touch the DB only in **dynamic** routes (`export const dynamic = "force-dynamic"`)
+  and degrade gracefully; the app must build and boot with no database reachable.
+- **Public pages use Tailwind utilities; `/admin/*` pages use shadcn-ui components**
+  from `@devmentor/ui`. Add shadcn components with `npx shadcn@latest add <c>` run in
+  `packages/ui` (its `components.json` is committed).
+- Request-scoped work goes through `withScope(fn)` from `@devmentor/core`, which opens
+  an awilix scope with a forked `EntityManager` and disposes it afterward.
 
 ## Spec-Driven Development (SDD)
 
