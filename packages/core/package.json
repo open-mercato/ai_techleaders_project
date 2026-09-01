@@ -1,0 +1,20 @@
+{
+  "name": "@devmentor/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevMentor — configuration, logging, DI container and domain services",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./container": "./src/container/index.ts",
+    "./services": "./src/services/index.ts"
+  },
+  "dependencies": {
+    "@devmentor/db": "*",
+    "awilix": "^13.0.5",
+    "pino": "^10.3.1",
+    "zod": "^4.5.4"
+  }
+}

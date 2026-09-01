@@ -1,0 +1,25 @@
+{
+  "name": "@devmentor/app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DevMentor — Next.js host and composition root",
+  "scripts": {
+    "dev": "next dev",
+    "build": "NODE_ENV=production next build",
+    "start": "NODE_ENV=production next start"
+  },
+  "dependencies": {
+    "@devmentor/core": "*",
+    "@devmentor/db": "*",
+    "@devmentor/ui": "*",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4"
+  }
+}
