@@ -100,13 +100,18 @@ export async function setup(project: TestProject): Promise<void> {
     env: { ...process.env, DATABASE_URL: databaseUrl },
   });
 
-  // Buffered so a startup failure can be reported with its actual cause.
-  server.stdout.on("data", (chunk: Buffer) => {
-    serverLog += chunk.toString();
-  });
-  server.stderr.on("data", (chunk: Buffer) => {
-    serverLog += chunk.toString();
-  });
+  // Buffered so a startup failure can be reported with its actual cause, and
+  // echoed because a 500 thrown inside a Server Component is otherwise invisible
+  // to the test: the browser only ever sees a generic error page.
+  const relay = (chunk: Buffer) => {
+    const text = chunk.toString();
+    serverLog += text;
+    for (const line of text.split("\n")) {
+      if (line.trim()) console.log(`[app] ${line}`);
+    }
+  };
+  server.stdout.on("data", relay);
+  server.stderr.on("data", relay);
 
   await waitForReady(baseUrl);
   console.log("[integration] app is ready");
