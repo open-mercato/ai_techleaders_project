@@ -7,21 +7,41 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:migration:create": "tsx node_modules/@mikro-orm/cli/cli.js migration:create",
+    "db:migration:up": "tsx node_modules/@mikro-orm/cli/cli.js migration:up",
+    "browser:install": "agent-browser install --with-deps"
+  },
+  "mikro-orm": {
+    "configPaths": ["./mikro-orm.config.ts"]
   },
   "dependencies": {
+    "@mikro-orm/core": "^7.1.14",
+    "@mikro-orm/migrations": "^7.1.14",
+    "@mikro-orm/postgresql": "^7.1.14",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@mikro-orm/cli": "^7.1.14",
     "@tailwindcss/postcss": "^4",
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "agent-browser": "^0.36.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "testcontainers": "^12.1.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

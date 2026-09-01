@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# A new push to the same PR makes the previous run redundant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # No DATABASE_URL on purpose: the build must not reach the database.
+      # Pages that read it are marked `force-dynamic`, so this proves that holds.
+      - run: npm run build
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # Chrome for Testing is ~185MB; caching it saves that download per run.
+      - name: Cache agent-browser Chrome
+        uses: actions/cache@v6
+        with:
+          path: ~/.agent-browser
+          key: agent-browser-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: agent-browser-${{ runner.os }}-
+
+      # --with-deps installs the shared libraries Chrome needs on Linux; it needs
+      # sudo, which GitHub-hosted runners provide. It exits non-zero if any are
+      # missing, so a broken browser fails here rather than mid-test.
+      - name: Install browser
+        run: npm run browser:install
+
+      # `next start` needs a production build, so this must precede the tests.
+      - name: Build app
+        run: npm run build
+
+      # Docker is preinstalled on ubuntu-latest; testcontainers uses it to start
+      # the ephemeral Postgres instance.
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-screenshots
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
