@@ -1,0 +1,100 @@
+name: Pull request checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --include=optional
+      # A production build must remain independent of a reachable database.
+      - run: npm run build
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --include=optional
+      - run: npm run lint
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --include=optional
+      - run: npm run test:unit:coverage
+      - name: Upload unit coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-coverage-${{ github.run_id }}
+          path: coverage/unit/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --include=optional
+
+      - name: Cache agent-browser Chrome
+        uses: actions/cache@v5
+        with:
+          path: ~/.agent-browser
+          key: agent-browser-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            agent-browser-${{ runner.os }}-
+
+      - name: Install agent-browser Chrome and Linux dependencies
+        run: npm run test:browser:install:ci
+
+      # Testcontainers owns the ephemeral PostgreSQL instance. The integration
+      # global setup migrates/seeds it, builds and boots Next.js, waits for a
+      # database-ready health response, and cleans up every process/container.
+      - run: npm run test:integration
+
+      - name: Upload integration evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-evidence-${{ github.run_id }}
+          path: test-results/integration/
+          if-no-files-found: ignore
+          retention-days: 7
