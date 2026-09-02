@@ -8,6 +8,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./backend": "./src/backend/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./lib/utils": "./src/lib/utils.ts",
     "./components/*": "./src/components/ui/*.tsx"
@@ -17,7 +18,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.39.0",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.5.4"
   },
   "peerDependencies": {
     "react": "^19",

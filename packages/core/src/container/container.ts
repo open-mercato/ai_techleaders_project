@@ -9,7 +9,8 @@ import {
 import { getOrm } from '@devmentor/db';
 import { getEnv } from '../config/env';
 import { createLogger } from '../logger';
-import { UserService } from '../services/user.service';
+import { EventBus } from '../events/event-bus';
+import { UserService } from '../services/auth/user.service';
 import type { Cradle } from './cradle';
 
 /**
@@ -34,9 +35,16 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     env: asValue(getEnv()),
     logger: asFunction(createLogger).singleton(),
     orm: asValue(orm),
+    eventBus: asClass(EventBus).singleton(),
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),
+  });
+
+  // Default in-process subscribers. Concept side effects (send a message, invalidate
+  // a cache) register here; for now we just log so the event path is observable.
+  container.cradle.eventBus.on('auth.user.created', ({ userId }) => {
+    container.cradle.logger.info({ userId }, 'auth.user.created');
   });
 
   return container;

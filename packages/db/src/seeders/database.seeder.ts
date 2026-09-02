@@ -1,7 +1,7 @@
 import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
-import { User } from '../entities/user.entity';
-import { MentorProfile } from '../entities/mentor-profile.entity';
+import { User } from '../entities/auth/user.entity';
+import { MentorProfile } from '../entities/mentors/mentor-profile.entity';
 
 /**
  * Default seeder — creates one mentor so a fresh database has something to render on
