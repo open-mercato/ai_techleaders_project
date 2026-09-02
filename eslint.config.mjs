@@ -53,6 +53,8 @@ const eslintConfig = defineConfig([
     "**/.next/**",
     "out/**",
     "build/**",
+    "coverage/**",
+    "test-results/**",
     "**/next-env.d.ts",
     "packages/db/migrations/**",
   ]),
