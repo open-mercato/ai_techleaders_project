@@ -9,7 +9,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./container": "./src/container/index.ts",
-    "./services": "./src/services/index.ts"
+    "./services": "./src/services/index.ts",
+    "./http": "./src/http/index.ts",
+    "./events": "./src/events/index.ts",
+    "./validators/*": "./src/validators/*.ts"
   },
   "dependencies": {
     "@devmentor/db": "*",
