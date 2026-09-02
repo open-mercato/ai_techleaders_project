@@ -1,7 +1,7 @@
 import { defineEntity, type InferEntity } from '@mikro-orm/core';
-import { baseProperties } from './base.entity';
-import { defineSingletonEntity } from './define';
-import { User } from './user.entity';
+import { baseProperties } from '../base.entity';
+import { defineSingletonEntity } from '../define';
+import { User } from '../auth/user.entity';
 
 const p = defineEntity.properties;
 

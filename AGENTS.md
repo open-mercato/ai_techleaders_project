@@ -46,6 +46,57 @@ packages/
 These boundaries are enforced by ESLint (`no-restricted-imports` in
 `eslint.config.mjs`); a cycle-introducing import fails `npm run lint`.
 
+### Domain concept convention
+
+Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`,
+`availability`, `bookings`, `payments`, `messages`, `favorites`, `reviews`, ...) is a
+same-named sub-folder repeated across the layers that need it:
+
+- `packages/db/src/entities/<concept>/<name>.entity.ts`
+- `packages/core/src/services/<concept>/<name>.service.ts`
+- `packages/core/src/validators/<concept>/` (shared Zod schemas, when needed)
+- `packages/app/src/app/api/<concept>/route.ts` and the matching `page.tsx` under
+  the relevant persona route group
+
+Create a concept folder only when its first file is added — never scaffold empty
+ones. This is a directory convention, not a module runtime: there is no per-concept
+setup/ACL/auto-discovery. See `.ai/specs/2026-09-01-engineering-standards.md` for the
+full naming table and the payments-port/event-emitter patterns.
+
+Event IDs follow `concept.entity.action` (e.g. `bookings.booking.created`) and are
+emitted through the typed emitter in `packages/core/src/events`, registered on the
+`Cradle` — this is in-process only; there is no queue/worker in this project.
+
+### Reusable API & UI layer
+
+Every route and every page reuses two shared layers instead of re-implementing
+fetch/validation/auth/error-handling per feature:
+
+- `packages/core/src/http/` — `errors.ts` (typed `AppError` hierarchy),
+  `apiHandler.ts` (wraps a route: catches `AppError`s, maps to status + JSON
+  envelope, logs unexpected failures), `makeCrudRoute.ts` (schema + service in,
+  `{ GET, POST, PUT, DELETE }` out, for plain CRUD resources), `auth.ts`
+  (`requireSession`, `requireRole`, ownership assertions).
+- `packages/ui/src/backend/` — `api/apiCall.ts` (the only sanctioned `fetch()` call
+  site), `forms/CrudForm.tsx`, `tables/DataTable.tsx`,
+  `feedback/{LoadingMessage,ErrorMessage,EmptyState}.tsx`.
+
+New reusable components have one designated home each — never scattered ad hoc:
+
+1. Shadcn primitive → `ui/src/components/ui/` (via `npx shadcn@latest add`, never
+   hand-written).
+2. Generic, concept-agnostic panel pattern → `ui/src/backend/<category>/`.
+3. Component tied to one concept's domain shape → `ui/src/components/<concept>/`,
+   named after the same concept folder used in `db`/`core`.
+4. Used by exactly one page → colocate next to that `page.tsx` until a second
+   consumer appears.
+
+The API envelope (`{ ok, data }` / `{ ok, error }`) is a *shape convention*, not a
+shared type: `core/src/http` and `ui/src/backend/api` each declare their own matching
+type because `ui` must not import `core`. `/api/users` + `/admin/users/page.tsx` are
+the reference example every new concept copies. See
+`.ai/specs/2026-09-01-engineering-standards.md` for the full rationale.
+
 ### Scripts (run from the repo root)
 
 - `npm run dev` — start the Next.js app (`@devmentor/app`).
@@ -91,6 +142,13 @@ These boundaries are enforced by ESLint (`no-restricted-imports` in
   `packages/ui` (its `components.json` is committed).
 - Request-scoped work goes through `withScope(fn)` from `@devmentor/core`, which opens
   an awilix scope with a forked `EntityManager` and disposes it afterward.
+- **Never hand-roll fetch / validation / error-handling / CRUD.** Server routes use
+  `makeCrudRoute`/`apiHandler` (no bare `try/catch` + `NextResponse.json`); services
+  throw the typed `AppError`s and return DTOs, never build responses. Client pages
+  fetch through `apiCall`/`apiCallOrThrow` (never raw `fetch`), forms use `CrudForm`,
+  lists use `DataTable`, and loading/error/empty states use the `feedback/` components.
+- **Collection routes are non-dynamic**, so Next passes no `params` — CRUD helpers
+  guard `ctx.params` before reading it.
 
 ## Spec-Driven Development (SDD)
 
