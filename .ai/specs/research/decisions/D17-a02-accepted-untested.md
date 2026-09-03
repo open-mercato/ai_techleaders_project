@@ -1,0 +1,6 @@
+# D17 — A02 (a developer with an urgent blocker pays for a 25/50-minute text-only session) is accepted untested for the first iteration, with a check four weeks after ship
+- Date, owner: 2026-09-03, founder A (Oliwia) with founder B (Maciej). Recorded from the agent's recommendation on founder A's instruction to proceed with recommended answers; the founders confirm or supersede it. Answers Q08; raised by the skeptic pass.
+- Context and the options weighed: A02 is the assumption 1.0 itself rests on. Options: test it first (ten mentee interviews, two weeks of the founders' time before any code), or accept it untested and let the first four weeks of real bookings be the test.
+- Decision and why: accepted untested, because the first iteration is the cheapest test of A02 there is: one interview already says "within the hour, someone who has done this", and a paid booking is a stronger signal than a stated intention. Mentee interviews (A04, A07) still run in parallel as E00 tasks, but do not block Intake.
+- Consequences, and what would make us revisit it: if the fourth week after ship holds fewer than 3 paid sessions (D16's warning line), the founders stop feature work, interview the developers who visited a mentor page and did not book, and decide whether 1.0 continues as a text-session marketplace.
+- Status: active

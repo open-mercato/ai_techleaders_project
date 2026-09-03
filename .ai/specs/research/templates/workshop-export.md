@@ -1,0 +1,11 @@
+# Workshop — {date}, {who was in the room, by role}
+- Decision the session had to produce:
+- Decider:
+- Per stakeholder: expectation, definition of success, main worry:
+- Constraints and appetite (budget, deadline and its origin, legal, organisational):
+- Systems and data landscape:
+- As-is process: front stage, back stage, handoffs, pain points with frequency and cost:
+- Requested features → the problem behind each, its evidence, the outcome:
+- Parking lot:
+- Decisions taken (who, what, why):
+- Open questions, blocking or not:
