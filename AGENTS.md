@@ -99,6 +99,16 @@ the reference example every new concept copies. See
 
 ### Scripts (run from the repo root)
 
+- `npm run setup` — one-command installer: `npm install`, `.env` from `.env.example`,
+  PostgreSQL available, migrations, seed. **Idempotent** — every step reports itself as
+  `ran` or `skipped`, an existing `.env` is never overwritten, and the dev server is
+  deliberately not started (`npm run dev` never exits). **Docker is a fallback, not a
+  requirement**: setup TCP-probes the configured address (`DATABASE_URL`, else
+  `DB_HOST`/`DB_PORT`, environment before `.env`) and reuses any PostgreSQL already
+  listening; Compose is only used when nothing answers. Implementation in
+  `scripts/setup/` (plain Node ESM, `node:*` built-ins only, so it runs on a fresh
+  clone) — pure decisions in `steps.mjs`, all I/O behind the injectable effects in
+  `effects.mjs`, ordering in `run.mjs`.
 - `npm run dev` — start the Next.js app (`@devmentor/app`).
 - `npm run build` / `npm run start` — production build / serve (force `NODE_ENV=production`).
 - `npm run typecheck` — `tsc --noEmit` across all packages.

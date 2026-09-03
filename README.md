@@ -10,6 +10,68 @@ shadcn-ui for the admin surface.
 
 ## Getting started
 
+Requires **Node ≥ 24**. Docker is optional — see
+[Bring your own PostgreSQL](#bring-your-own-postgresql).
+
+```bash
+npm install
+npm run setup
+npm run dev
+```
+
+`npm run setup` does everything the manual steps below do: installs workspace
+dependencies, creates `.env` from `.env.example`, makes sure a PostgreSQL is running,
+applies migrations, and seeds a sample mentor.
+
+It is **idempotent** — run it as often as you like. Every step checks whether it is
+already done and reports itself as `ran` or `skipped`, so a second run only does the
+work that is actually outstanding:
+
+```text
+✔ Preflight (ran) — Node v24.10.0
+↷ Install dependencies (skipped) — node_modules is up to date with package-lock.json
+↷ Configure .env (skipped) — .env already exists and sets every documented variable
+✔ Start PostgreSQL (ran) — docker compose up -d postgres
+✔ Wait for PostgreSQL (ran) — container reports healthy
+✔ Apply migrations (ran) — npm run db:migrate
+✔ Seed sample data (ran) — npm run db:seed
+```
+
+Your existing `.env` is never overwritten. If it is missing a variable that
+`.env.example` documents, setup leaves the file alone and warns you which key to add.
+Setup deliberately stops short of starting the app — `npm run dev` never exits — and
+prints it as the next command instead.
+
+### Bring your own PostgreSQL
+
+**Docker is only a fallback.** Setup first checks whether anything is already
+listening at the address the app is configured to use, and reuses it if so — a
+container you started yourself, a native PostgreSQL install, or a managed remote
+database. Docker Compose is consulted only when nothing answers, and only then does
+its absence become an error.
+
+To point setup at an existing database, set `DATABASE_URL` (or the discrete `DB_*`
+variables) in your environment or in `.env`:
+
+```bash
+DATABASE_URL=postgres://user:password@db.example.com:5432/devmentor npm run setup
+```
+
+```text
+↷ Provision PostgreSQL (skipped) — reusing the PostgreSQL already accepting
+  connections on db.example.com:5432 (per DATABASE_URL from the environment) —
+  Docker not needed
+```
+
+Resolution order matches the Zod config modules: `DATABASE_URL` wins over
+`DB_HOST`/`DB_PORT`, and the real environment wins over `.env`. With no database
+reachable *and* no Docker, setup stops and names both remedies rather than failing
+with a stack trace.
+
+### Manual setup (alternative)
+
+The individual steps, if you would rather run them yourself or need to deviate:
+
 ```bash
 # 1. Install (links all workspaces)
 npm install
@@ -28,6 +90,10 @@ npm run db:seed
 npm run dev
 ```
 
+Note that step 4 races the container's startup on a cold `db:up`; wait for
+`docker compose ps` to report `healthy` before migrating. `npm run setup` handles that
+wait for you.
+
 Then open:
 
 - <http://localhost:3000> — public landing page (Tailwind).
@@ -42,6 +108,7 @@ to a visible "unavailable" state instead of crashing.
 
 | Command | Description |
 | --- | --- |
+| `npm run setup` | One-command install, configure, database up, migrate, and seed (idempotent; reuses an existing PostgreSQL, Docker only as fallback) |
 | `npm run dev` | Start the Next.js dev server |
 | `npm run build` / `npm run start` | Production build / serve |
 | `npm run typecheck` | `tsc --noEmit` across all packages |

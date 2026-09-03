@@ -52,6 +52,11 @@ export function createOrmConfig() {
       pathTs: resolve(packageRoot, 'src', 'seeders'),
       defaultSeeder: 'DatabaseSeeder',
       emit: 'ts',
+      // MikroORM's default glob (`!(*.d).{js,ts}`) imports *every* TS file in the
+      // seeder directory to build its class map — including the colocated
+      // `*.test.ts` files this repo requires, which then blow up `db:seed` inside
+      // the Vitest runner. Exclude them explicitly.
+      glob: '!(*.d|*.test).{js,ts}',
     },
   });
 }

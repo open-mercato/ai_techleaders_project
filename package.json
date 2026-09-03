@@ -10,6 +10,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "setup": "node scripts/setup/index.mjs",
     "dev": "npm run dev --workspace @devmentor/app --",
     "build": "npm run build --workspace @devmentor/app",
     "start": "npm run start --workspace @devmentor/app --",
