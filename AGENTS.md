@@ -21,7 +21,7 @@ monorepo built on the latest Next.js + TypeScript + React.
 | Logging            | pino                                               |
 | Frontend styling   | Tailwind CSS v4 (public/marketing pages)           |
 | Backend/admin UI   | shadcn-ui components (in `@devmentor/ui`)          |
-| Package manager    | npm workspaces (Node ≥ 20.9)                       |
+| Package manager    | npm workspaces (Node ≥ 24)                          |
 
 ### Monorepo layout
 
@@ -103,6 +103,12 @@ the reference example every new concept copies. See
 - `npm run build` / `npm run start` — production build / serve (force `NODE_ENV=production`).
 - `npm run typecheck` — `tsc --noEmit` across all packages.
 - `npm run lint` — ESLint (includes the dependency-direction rules).
+- `npm run test:unit` — run TypeScript unit tests with Vitest.
+- `npm run test:unit:coverage` — run unit tests and enforce per-file 100% coverage.
+- `npm run test:integration` — create ephemeral PostgreSQL with Testcontainers,
+  build/start the app, and run the agent-browser scenarios.
+- `npm run test:browser:install` — install agent-browser's Chrome runtime locally
+  (use `test:browser:install:ci` on Linux CI to install system dependencies too).
 - `npm run db:up` / `npm run db:down` — local Postgres via `docker-compose.yml`.
 - `npm run db:migration:create -- --name <x>` — generate a migration from entity diff.
 - `npm run db:migrate` / `npm run db:migrate:down` — apply / revert migrations.
@@ -149,6 +155,39 @@ the reference example every new concept copies. See
   lists use `DataTable`, and loading/error/empty states use the `feedback/` components.
 - **Collection routes are non-dynamic**, so Next passes no `params` — CRUD helpers
   guard `ctx.params` before reading it.
+
+## Testing requirements
+
+- **Every new feature must have unit tests covering 100% of its new or changed
+  production behavior:** statements, branches, functions, and lines, per file. A
+  feature is not complete and its spec must not move to `implemented/` until
+  `npm run test:unit:coverage` proves all four metrics are 100%.
+- Add each new or changed production file to `coverage.include` in
+  `vitest.config.mts` in the same change. Coverage that only measures files imported
+  by tests is bypassable and does not satisfy this rule. Do not narrow exclusions or
+  remove a file from the coverage scope to make the gate pass.
+- Unit tests live next to their source as `*.test.ts` / `*.test.tsx`. Test every
+  success, error, validation, authorization, and edge-case branch. Every bug fix
+  requires a regression test that fails without the fix.
+- Integration/browser tests **supplement but never replace unit tests** or the 100%
+  unit-coverage requirement. Add integration coverage whenever behavior crosses the
+  app/database/API/browser boundary.
+- Integration tests must own their data and infrastructure. Use Testcontainers with
+  random ports, apply migrations, create/seed prerequisites, and clean up browser
+  sessions, app processes, and containers on success and failure. Never depend on the
+  developer database, fixed ports, or shared/demo state.
+- Use the pinned local `agent-browser` executable for browser scenarios. Observe the
+  live accessibility tree first, assert semantic roles/text rather than guessed CSS,
+  capture screenshots at key assertions, and close each isolated session in
+  `finally`.
+- The integration harness under `tests/integration/` is the sole exception to the
+  direct-environment-access rule: `environment.ts` may inherit the parent process
+  environment only to pass ephemeral test configuration to migration/build/app child
+  processes. Application and package source must still use the zod config modules.
+
+GitHub Actions runs Build, Lint, Unit tests, and Integration tests independently on
+every pull request. A workflow result becomes merge-blocking only when the repository
+ruleset requires those four exact check names.
 
 ## Spec-Driven Development (SDD)
 

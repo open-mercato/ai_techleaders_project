@@ -46,10 +46,47 @@ to a visible "unavailable" state instead of crashing.
 | `npm run build` / `npm run start` | Production build / serve |
 | `npm run typecheck` | `tsc --noEmit` across all packages |
 | `npm run lint` | ESLint, including dependency-direction rules |
+| `npm run test:unit` | Run TypeScript unit tests with Vitest |
+| `npm run test:unit:coverage` | Run unit tests with per-file 100% coverage gates |
+| `npm run test:browser:install` | Install agent-browser's Chrome runtime locally |
+| `npm run test:integration` | Test an ephemeral PostgreSQL + production app with agent-browser |
 | `npm run db:up` / `npm run db:down` | Start / stop local Postgres (Docker) |
 | `npm run db:migration:create -- --name <x>` | Generate a migration from entity diff |
 | `npm run db:migrate` / `npm run db:migrate:down` | Apply / revert migrations |
 | `npm run db:seed` | Run the default seeder |
+
+## Testing and pull-request checks
+
+Every pull request runs four independent GitHub checks: **Build**, **Lint**, **Unit
+tests**, and **Integration tests**. Configure those exact names as required checks in
+the GitHub branch ruleset if merges must be blocked until they pass.
+
+The unit suite uses Vitest and V8 coverage:
+
+```bash
+npm run test:unit
+npm run test:unit:coverage
+```
+
+Coverage is enforced at 100% for statements, branches, functions, and lines on every
+file listed in `vitest.config.mts`. New features must add their production files to
+that explicit list and add adjacent unit tests in the same change.
+
+The integration suite requires Docker and agent-browser's Chrome runtime. Install the
+browser once, then run the suite:
+
+```bash
+npm run test:browser:install
+npm run test:integration
+```
+
+The suite creates a fresh PostgreSQL 17 Testcontainer on a random port, applies
+migrations, seeds prerequisites, builds and starts Next.js on another random port,
+waits for database readiness, then tests the home page and admin panel through the
+pinned `agent-browser` CLI. Screenshots and app logs go to `test-results/integration/`;
+the browser, app process, and container are stopped in teardown. POSIX and native
+PowerShell launchers are also available at `tests/integration/run.sh` and
+`tests/integration/run.ps1`.
 
 ## Architecture
 

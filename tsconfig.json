@@ -13,6 +13,9 @@
     "packages/app/next-env.d.ts",
     "packages/app/next.config.ts",
     "packages/app/.next/types/**/*.ts",
+    "tests/**/*.ts",
+    "vitest.config.mts",
+    "vitest.integration.config.mts",
     "*.mjs"
   ],
   "exclude": ["node_modules", "**/node_modules", "**/.next", "**/dist"]

@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "npm run dev --workspace @devmentor/app --",
@@ -15,6 +15,12 @@
     "start": "npm run start --workspace @devmentor/app --",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run --config vitest.config.mts",
+    "test:unit:coverage": "vitest run --config vitest.config.mts --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "test:browser:install": "agent-browser install",
+    "test:browser:install:ci": "agent-browser install --with-deps",
     "db:migration:create": "npm run migration:create --workspace @devmentor/db --",
     "db:migrate": "npm run migration:up --workspace @devmentor/db",
     "db:migrate:down": "npm run migration:down --workspace @devmentor/db",
@@ -24,9 +30,13 @@
     "db:down": "docker compose down"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@testcontainers/postgresql": "12.1.0",
+    "@types/node": "24.10.13",
+    "@vitest/coverage-v8": "4.1.11",
+    "agent-browser": "0.36.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.11"
   }
 }
