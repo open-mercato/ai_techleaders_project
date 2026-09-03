@@ -163,10 +163,13 @@ Every PR passes, in this order (the same list as `validation.commands` in
 
 1. `npm run typecheck`
 2. `npm run lint`
-3. `npm run test`
+3. `npm run test:unit:coverage`
 4. `npm run build`
 
-CI (`.github/workflows/ci.yml`) additionally runs `npm run test:unit:coverage` as the
+Step 3 is the coverage run rather than plain `npm run test`, so the gate proves the
+100% per-file requirement above locally instead of deferring it to CI.
+
+CI (`.github/workflows/ci.yml`) runs the same `npm run test:unit:coverage` as the
 "Unit tests" check and `npm run test:integration` as the "Integration tests" check. A
 PR that crosses the app, database, API, or browser boundary is expected to have run
 both locally (Docker plus `npm run test:browser:install`) before review.

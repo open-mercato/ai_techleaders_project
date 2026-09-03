@@ -152,8 +152,10 @@ Every PR passes the full validation gate before review sign-off, in this order:
 
 - `npm run typecheck`
 - `npm run lint`
-- `npm run test`
+- `npm run test:unit:coverage`
 - `npm run build`
+
+The test step is the coverage run, not plain `npm run test`: `AGENTS.md` requires 100% statement, branch, function, and line coverage per file for every new or changed production file, and only the coverage run enforces it. A gate that ran `npm run test` would pass locally on code that the CI "Unit tests" job then rejects.
 
 Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together.
 
