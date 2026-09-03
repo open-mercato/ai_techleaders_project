@@ -188,7 +188,7 @@ by the entry's owner. `SDLC.md` describes the mechanism.
    heading, and say who is affected and how they migrate.
 2. Update this file in the same PR when the surface itself changes shape.
 3. Update every in-repo consumer in the same PR; the validation gate
-   (`npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`) and the CI
+   (`npm run typecheck`, `npm run lint`, `npm run test:unit:coverage`, `npm run build`) and the CI
    integration check are the proof.
 4. Prefer expand-then-contract over a single cut for schema and export renames.
 5. Label the PR `risk-high` where `SDLC.md` says so (schema migrations, shared
