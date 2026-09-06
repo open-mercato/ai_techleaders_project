@@ -1,7 +1,7 @@
 # DevMentor — Platform Primitives
 
 Date: 2026-09-04
-Status: **active, standing reference** — see "Lifecycle" below
+Status: active — moves to `implemented/` when its E01 `SHIP` entries land
 Design authority: `.ai/specs/product-brief.md`, `.ai/specs/2026-09-01-engineering-standards.md`
 First consumer: `.ai/specs/2026-09-04-accounts-and-roles.md` (issue #7)
 
@@ -22,17 +22,14 @@ growth points for cross-cutting code.
 
 ## 📝 Lifecycle
 
-This document does **not** follow the normal spec lifecycle in `AGENTS.md`, and that is
-deliberate. It ships no code of its own: every `SHIP` entry is delivered inside a phase of the
-E01 spec, and every `DEFER` entry is delivered by the issue named in its catalogue row. It can
-therefore never move to `.ai/specs/implemented/`.
+This document follows the normal lifecycle in `AGENTS.md`. Its implemented scope is only the
+entries marked `SHIP`, delivered by E01. Once those entries are implemented and verified, this
+file moves to `.ai/specs/implemented/` and becomes immutable.
 
-It is the same kind of artifact as `.ai/specs/2026-09-01-engineering-standards.md` — a standing
-reference that stays `active` in `.ai/specs/` and is amended as entries land, rather than a
-capability spec that ships and retires. The rule that a spec is frozen once it moves to
-`implemented/` or `archive/` still binds: neither move ever happens here, so amendment stays
-legal. When a `DEFER` entry is built, the story's own spec is the design authority for it and
-this file's row is updated to point at that spec.
+Entries marked `DEFER` are non-binding design notes, not fixed interfaces or work owned by this
+spec. Each is re-designed by the future capability spec using its real requirements; that spec
+becomes the sole authority and does not amend this implemented document. This preserves useful
+context without creating a permanently mutable design authority.
 
 ## 📝 Problem Statement
 
@@ -82,9 +79,8 @@ against.
 
 So this document is deliberately two things:
 
-1. **A catalogue** — every primitive with its interface, its home, its rationale, and the
-   backlog evidence for it. Design work done once, that later stories read instead of
-   re-deriving.
+1. **A delivery catalogue** — E01 primitives have an interface, home, rationale, and real caller.
+   Deferred entries record only constraints and evidence; their sample shapes are not contracts.
 2. **A ship gate** — each entry is `SHIP` (E01 has a real *production call site*, not merely a
    plausible one) or `DEFER #n` with the issue that unblocks it. A deferred primitive is a
    paragraph in this file, not an empty folder in the tree.
@@ -160,8 +156,9 @@ And one new rule, from a failure mode review caught in the first draft:
 
 ## 📝 The catalogue
 
-`SHIP` = E01 has a real production call site. `DEFER #n` = the issue that first needs it; do
-not create the file before then. 28 entries: 16 `SHIP`, 12 `DEFER`.
+`SHIP` = E01 has a real production call site and this spec owns the contract. `DEFER #n` = a
+non-binding note for the issue that first needs it; do not create the file or treat the sketched
+shape as settled before then. 28 entries: 16 `SHIP`, 12 `DEFER`.
 
 ### Backend
 
@@ -194,22 +191,19 @@ E01's consumers: session expiry, verification-token expiry, rate-limit windows.
 #### B2 · Session & identity — `core/src/services/auth/session.service.ts` · **SHIP**
 
 ```ts
-issue(user: { id: string; role: Role; sessionVersion: number }): { cookie: string; expiresAt: Date }
-verify(cookieValue: string): SessionClaims | null    // stateless: signature + expiry only
+issue(user: { id: string; sessionVersion: number }): { cookie: string; expiresAt: Date }
+verify(cookieValue: string): SessionClaims | null    // stateless: signature + expiry only; no roles
 clear(): string                                       // the expiring Set-Cookie value
 ```
 
-Token format `v1.<base64url(payload)>.<base64url(hmac)>`, HMAC-SHA256 over the payload with
-`SESSION_SECRET` (≥ 32 bytes from `env.ts`), compared with `crypto.timingSafeEqual`. Payload
-`{ sub, role, sv, iat, exp }`, 24 h, no refresh flow.
+Token format is a standard JWT produced and verified by `jose`, restricted explicitly to HS256,
+using `SESSION_SECRET` (≥ 32 bytes from `env.ts`). Payload `{ sub, sv, iat, exp }`, 24 h, no
+refresh flow. Roles are deliberately absent: authorization always loads the current stored set.
 
-**Deviation from the standards spec, stated deliberately.** That spec says "JWT, HS256". This
-is a compact signed cookie: the same construction (HMAC-SHA256 over a base64url payload), no
-JWT header, no `alg` field, and therefore no algorithm-confusion surface. It uses `node:crypto`
-only, so it adds no dependency, which the same spec asks for (*"don't add a dependency for
-something 20 lines of local code covers"*). No cryptographic primitive is implemented — only a
-standard MAC-then-encode composition. If a third party ever needs to verify a DevMentor token,
-swap the implementation for `jose` behind this interface; no caller changes.
+**Why a library is warranted.** Authentication token parsing and verification are security-
+critical protocol work, not ordinary "20 lines of local code." `jose` supplies the standard
+format and validation behavior; verification fixes the accepted algorithm to HS256 so the JWT
+header cannot select a weaker algorithm.
 
 **Revocation — `sv` (session version).** A purely stateless token cannot be revoked: a copied
 cookie stays valid for its full 24 hours regardless of sign-out, an operator demotion would take
@@ -219,8 +213,9 @@ as `sv` in the payload. Bumping the column invalidates every outstanding session
 immediately, and covers sign-out-everywhere, demotion, and password change with one column.
 
 The cost is one indexed primary-key lookup, and it is paid only where it matters — see B3
-`requireLiveSession`. `verify()` itself stays pure and DB-free, so `readSession`'s signature
-(a `BACKWARD_COMPATIBILITY.md` §2 export) is unchanged.
+the canonical `requireSession(req, cradle)`. `verify()` itself stays pure and DB-free; changing
+the current stubbed `requireSession(req)` signature is a documented §2 breaking change made while
+there are no production consumers.
 
 **Key rotation.** `SESSION_SECRET_PREVIOUS` (optional) is accepted on *verify* only, never on
 issue. Rotating is then: set the new secret, move the old one to `_PREVIOUS`, deploy; existing
@@ -241,54 +236,48 @@ staging environment on a real hostname appears.
 | `requireSession(req)` | exists | — |
 | `requireRole(session, role)` | exists | #21, #25, #30, #31, #32 |
 | `assertOwnership(session, ownerId)` | exists | #22, #24, #27 |
-| `readSession(req)` — real implementation | **SHIP** | #12; today it returns `null` unconditionally |
-| `requireLiveSession(cradle, claims)` | **SHIP** | B2 revocation; returns the *stored* role and checks `sv` |
+| `requireSession(req, cradle)` | **SHIP (breaking replacement)** | canonical route path: verify JWT, check `sv`, return stored roles |
 | `requireCsrfHeader(req)` | **SHIP** | #14, #21, #24, #29, #31; `apiCall` already sends `x-devmentor-request`, nothing checks it |
 | `assertParty(session, party: { userIds: string[] })` | DEFER #26 | #26: the check is two-sided — the mentee's id **or** the mentor's user id |
 | `operatorReadException(session, reason: string)` | DEFER #32 | #32 calls the operator reading session text *"a scoping exception that must be explicit"*; #29 needs the same |
 | ~~`requireAnyRole`~~ | **dropped** | No issue needs it. Every "either of two roles" case in the backlog (#26, #27, #32) is a *party* check, which `assertParty` covers |
 
-`requireLiveSession` is the seam that makes `sv` real:
+`requireSession` is the only authorization entry point and makes `sv` real:
 
 ```ts
-requireLiveSession(cradle: Cradle, claims: SessionClaims): Promise<Session>
+requireSession(req: Request, cradle: Cradle): Promise<Session>
 // one findOne(User, { id: claims.sub }) → 401 if absent,
-// 401 if user.sessionVersion !== claims.sv, and returns { userId, role: user.role }
+// 401 if user.sessionVersion !== claims.sv, and returns { userId, roles: user.roles }
 ```
 
-It runs inside `withScope`, so it has an `em`. Every **mutating** route and every **layout
-guard** calls it; `readSession` alone (stateless, no DB) is enough for a purely presentational
-read. The stored role wins over the token's copy, which also removes the operator-demotion lag.
+It runs inside `withScope`, so it has an `em`. Every protected route and layout guard uses this
+live path. A cookie-only parser may exist internally for diagnostics, but it is not exported as
+an authorization API. Stored roles always win; the token contains no role copy.
 
 `operatorReadException` deserves a note: it does nothing `requireRole(session, 'operator')`
 does not, except be **greppable and separately testable**. Two paths in the backlog let the
 operator read data the party-scoping rules otherwise forbid. A named marker means an auditor
 finds every such path with one search, and a test can assert the set has not grown.
 
-#### B4 · Scoped list dispatch — `core/src/http/scoped-list.ts` · **DEFER #23**
-
-```ts
-scopedList<T>(session: Session, handlers: Partial<Record<Role, () => Promise<T>>>): Promise<T>
-```
-Picks the handler for `session.role`; **throws `ForbiddenError` for a role with no handler** —
-fail closed, per the standards spec.
+#### B4 · Scoped list authorization — concept-owned methods · **DEFER #23**
 
 The most repeated authorization requirement in the backlog is *"X sees only their own Y"* (#23,
 #26, #27, #28, #29, #32), and #23 states the rule that makes it safe: the scope comes from the
-session, **"never a `userId` parameter from the client"**. `scopedList` makes that structural —
-there is nowhere in the signature to put a client-supplied id.
+session, **"never a `userId` parameter from the client"**.
 
-**Why it is deferred despite E01 touching a list.** The obvious E01 consumer, `/api/users`, is
-not one. That route is built with `makeCrudRoute`, whose `resolve` is `(cradle: Cradle) =>
-CrudService` — it receives no `Request` and no `Session`, so there is nowhere to obtain the
-session `scopedList` needs. Wiring one in means changing `MakeCrudRouteOptions` or
-`CrudService`, both protected §2 exports with behaviour asserted by `makeCrudRoute.test.ts`, to
-serve a handler map with exactly one entry behind an `authorize` that already enforces the same
-role. #23 is the first genuine consumer, where `mentee → listForMentee` and
-`mentor → listForMentor` actually branch; the `makeCrudRoute` session seam is designed then,
-against a route that needs it, and listed as a §2 change in that PR.
+There is deliberately no role-dispatch helper. A user may hold multiple roles, so selecting one
+handler from a single role would be ambiguous and would conflate authorization with product
+context. The route for a mentee surface explicitly requires `mentee` and calls
+`listForMentee(session.userId)`; the mentor surface explicitly requires `mentor` and calls
+`listForMentor(session.userId)`. Missing membership throws `ForbiddenError` before the service
+call. The service never accepts an owner id supplied by the request body or query.
 
-E01 uses `authorize` with `requireRole` instead — one line, no contract change.
+**Why it is deferred despite E01 touching a list.** `/api/users` has one operator-only meaning,
+so its existing `makeCrudRoute.authorize(req, cradle)` hook can call the canonical live
+`requireSession(req, cradle)` and then `requireRole(session, 'operator')`. #23 is the first
+consumer needing two differently scoped list operations and owns their explicit route design.
+
+No `makeCrudRoute` contract change is required for E01.
 
 #### B5 · Purpose-bound tokens — `core/src/services/auth/token.service.ts` · **SHIP (partly)**
 
@@ -341,12 +330,12 @@ slot picker (#21, *"back to the same slot after sign-in"*). One validator, three
 #### B8 · Rate limiting — `core/src/http/rate-limit.ts` · **SHIP**
 
 ```ts
-consume(key: string, policy: { limit: number; windowMs: number }, now: Date): void  // throws on exceed
+consume(key: string, policy: { limit: number; windowMs: number }, now: Date): Promise<void>  // throws on exceed
 ```
-In-memory `Map`, per-IP **and** per-email key, cooldown, driven by the `Clock` (B1). The
-standards spec makes this a blocker on login/register and notes it needs a stronger backend
-before production traffic; counters reset on process restart. Both limitations are recorded here
-rather than rediscovered.
+PostgreSQL-backed fixed-window counters, per-IP **and** per-email key, cooldown, driven by the
+`Clock` (B1). The operation is atomic and shared by every app instance; expired windows are
+deleted opportunistically. This avoids presenting a process-local `Map` as production brute-force
+protection and avoids adding Redis solely for E01.
 
 #### B9 · Password hashing — `core/src/services/auth/password.service.ts` · **SHIP**
 
@@ -354,30 +343,19 @@ rather than rediscovered.
 spec adds, and the one place where "20 lines of local code" is emphatically the wrong answer.
 The `argon2id` upgrade path is already fixed by the standards spec.
 
-#### B10 · Transaction & find-or-create — `core/src/persistence/transaction.ts` · **SHIP**
-
-```ts
-withTransaction<T>(em: EntityManager, fn: (em: EntityManager) => Promise<T>): Promise<T>
-// maps a Postgres unique violation (23505) to ConflictError, so the pre-check
-// and the database constraint produce the same 409
-
-findOrCreate<T>(em, find: () => Promise<T | null>, create: () => Promise<T>): Promise<T>
-// on 23505 from create(), re-runs find() once and returns the winner
-```
+#### B10 · Transaction discipline — concept-owned in E01 · **SHIP (no shared helper)**
 
 Eight check-then-act sites are named in the backlog (#21 slot booking, #22 webhook confirm, #24
 cancel, #25 payout, #28 note version, #30 batch cap, #32 one-open-dispute), and #21 quotes the
 house rule verbatim: *"never split a check-then-write across two round-trips without a
 transaction"*.
 
-**E01 has one**, which is why the minimal form ships now: `findOrCreateFromGithub` looks up by
-`githubId`, then by verified email, then creates. Two concurrent callbacks — a double-clicked
-authorise, two tabs — race into a unique violation on `users.email` or `users.github_id`.
-
-`findOrCreate` exists because a 409 is the *wrong answer* for that race. A user who
-double-clicks "Sign in with GitHub" wants to be signed in, not shown a conflict; the loser of
-the race re-reads and proceeds with the winner's row. The bare `ConflictError` mapping is for
-races where conflict genuinely is the answer — booking the same slot twice (#21).
+**E01 has one:** `findOrCreateFromGithub` looks up by `githubId`, then by verified email, then
+creates inside `UserService`. Two concurrent callbacks may race into the unique constraints on
+`users.email` or `users.github_id`; the service handles only those named constraints, re-runs the
+corresponding lookup, and proceeds with the winner. Other unique violations are rethrown rather
+than hidden as business conflicts. A shared helper is extracted only after a second domain use
+proves identical recovery semantics.
 
 `afterCommit(fn)` — for #24's *"after commit, `paymentGateway.refund(...)`"* and post-commit
 event emission — is **DEFER #22**. E01 has no external call to sequence after a commit.
@@ -445,10 +423,13 @@ returns nothing. E01 establishes it with the two ports it actually needs.
 
 **Mailer — SHIP.**
 ```
-core/src/services/notifications/mailer.port.ts          interface Mailer { send({to, subject, text}) }
-core/src/services/notifications/adapters/log-mailer.ts  pino; the default everywhere
+core/src/services/notifications/mailer.port.ts           interface Mailer { send({to, subject, text}) }
+core/src/services/notifications/adapters/smtp-mailer.ts  real delivery; required in production
+core/src/services/notifications/adapters/log-mailer.ts   explicit local/integration composition only
 ```
-#13 needs email verification; #15, #23, #27 and #30 queue up behind it.
+#13 needs email verification; #15, #23, #27 and #30 queue up behind it. Missing SMTP
+configuration or delivery failure makes registration fail closed; the application never reports
+successful registration when it could not deliver the verification link.
 
 **GitHub identity — SHIP.**
 ```
@@ -461,10 +442,11 @@ The mock adapter is not a convenience — it is the *only* way E01's headline ac
 operator sign-in in `admin.integration.test.ts` can be exercised at all without calling GitHub
 from CI. The alternative an earlier draft assumed — an env-keyed "test mode" branch inside the
 callback route that mints a session for an arbitrary identity — is an authentication bypass
-living in production code. Behind a port it is instead a **registration decision in
-`container.ts`**: the mock is selected when `GITHUB_CLIENT_ID` is unset, exactly as #22 selects
-the mock payment gateway when `STRIPE_SECRET_KEY` is unset. Greppable, one place, and it fails
-closed in production because production sets the variable.
+living in production code. Behind a port it is instead an explicit **integration-harness
+composition decision**, never a fallback selected from missing credentials. The normal container
+registers only the real adapter and the route fails closed when credentials are absent. The harness
+selects it explicitly through its isolated test configuration; missing GitHub credentials in a
+normal runtime always make the route unavailable.
 
 **Payment gateway — DEFER #22.** Its full surface is already determined by four issues and is
 recorded here so it is designed once rather than grown ad hoc: `createCheckoutSession`,
@@ -569,21 +551,20 @@ The port must keep an accessible `link "Users"` in the tree or update the test i
 #### F3 · Page-level session & guards — `packages/app/src/lib/session.ts` · **SHIP**
 
 ```ts
-getPageSession(): Promise<Session | null>          // cookies() → sessionService.verify → requireLiveSession
+getPageSession(): Promise<Session | null>          // cookies() → JWT verify → live DB session
 requirePageSession(): Promise<Session>            // else redirect('/sign-in?returnTo=…')
-requirePageRole(role: Role): Promise<Session>     // wrong role → redirect to the caller's own home
-homeFor(role: Role): string                       // the single place role→landing is decided
+requirePageRole(role: Role): Promise<Session>     // missing role → redirect to the caller's default home
+homeFor(roles: readonly Role[]): string           // deterministic default; combined-role nav remains available
 ```
 
 Lives in `app`, not `core`, because `next/headers` and `redirect` are Next APIs the ESLint
 boundary forbids `core` from importing. Used by the `(mentee)`, `(mentor)` and `admin`
 layouts — *"nothing of the user's is rendered first"* (#12).
 
-**It does not call `readSession`.** `readSession(req: Request)` takes a `Request`, and
-`cookies()` yields a cookie store, not a request; synthesising a fake `Request` to bridge them
-would be a lie in the type system. Instead it reads the cookie value and calls
-`sessionService.verify(value)` directly inside `withScope`, then `requireLiveSession`.
-`readSession` keeps its exported signature (§2) and stays the route-side entry point.
+It does not synthesize a fake `Request` from `cookies()`. A shared internal operation accepts a
+cookie value plus the scoped cradle; the route-facing `requireSession(req, cradle)` and page
+helper both delegate to it. Both paths verify the JWT, check `session_version`, and return
+current stored roles.
 
 #### F4 · WorkflowAction — `ui/src/backend/actions/WorkflowAction.tsx` · **SHIP (minimal)**
 
@@ -678,22 +659,23 @@ exists (`CrudForm`, `DataTable`, `feedback/*`) or is a widening of it.
 | Session cookie tampered or expired | `verify` returns `null` → treated as signed out; nothing of the user's renders first | B2, F3 |
 | A user signs out, but the cookie was copied | `session_version` is bumped; the copy is dead on its next guarded request | B2, B3 |
 | `SESSION_SECRET` rotated | `SESSION_SECRET_PREVIOUS` keeps existing sessions valid for their remaining lifetime | B2 |
-| Two concurrent sign-ins create the same user | `findOrCreate` re-reads and both callers proceed with the same row — no 409 for a double-click | B10 |
+| Two concurrent sign-ins create the same user | `UserService` handles the expected identity constraint and re-reads the winner — no 409 for a double-click | B10 |
 | Upstream (GitHub, later Stripe) hangs | `AbortSignal.timeout` → typed `AppError`; the route fails closed rather than hanging | B20 |
-| A role has no handler in `scopedList` | `ForbiddenError` — fail closed, never fall through to "list everything" | B4 |
+| A user lacks the role required by a scoped route | `ForbiddenError` before the explicit concept-scoped service method is called | B4 |
 | `returnTo=//evil.example` | Rejected; falls back to the role home | B7 |
 | A browser navigates to a failing `GET` route | Redirect to a page that explains it — never a JSON envelope rendered as a page | Architecture |
-| Rate limiter restarts (in-memory) | Counters reset; documented as needing a shared backend before production traffic | B8 |
-| Mailer adapter throws | Logged and swallowed; the in-product record is the durable one | B14, B15 |
+| An app process restarts or another instance receives the next attempt | PostgreSQL-backed counters remain shared and enforce the same window | B8 |
+| Verification mail is unconfigured or delivery fails | Registration fails with retryable 503; no false success | B14 |
+| A later best-effort notification email fails | Logged; its in-product notification remains durable | B15 |
 | Integration harness serves plain HTTP with `NODE_ENV=production` | A `secure` cookie is accepted only because Chrome trusts loopback origins. Load-bearing: a harness serving from a non-loopback host would break sign-in in tests | B2 |
 
 ## 📝 Risks & Impact Review
 
 **Blast radius.** Everything marked SHIP is either new or replaces a stub. The exceptions:
 
-- `readSession` currently returns `null` for every request, so `requireSession` always throws.
-  Giving it a real implementation is the moment auth starts working; nothing today depends on
-  it denying.
+- `readSession` currently returns `null` and `requireSession` always throws. E01 replaces this
+  stub pair with the canonical live `requireSession(req, cradle)` while there are no production
+  consumers; the §2 signature change and every internal caller land together.
 - `requireCsrfHeader` on state-changing routes rejects any client that is not `apiCall`.
   `apiCall` already sends `x-devmentor-request` and is the only sanctioned fetch site, so the
   in-repo blast radius is zero — but it must land together with the routes it guards.
@@ -708,7 +690,7 @@ gate now reads "a real production call site", and a PR that creates `core/src/mo
 issue #18 is in scope should be sent back on `AGENTS.md`'s YAGNI rule alone.
 
 **Rollback.** Each SHIP item is additive and independently revertable except B2/B3, which ship
-together as Phase 1 of the E01 spec; reverting them returns `readSession` to its stub and every
+together as the auth slice of E01; reverting them returns auth to its stub and every
 guarded route to denying — the pre-change behaviour exactly.
 
 **Compatibility.** One breaking change, owned by the E01 spec: the `Role` union (§2 and §7)
@@ -733,7 +715,7 @@ But the library gets five things right that a from-scratch implementation forget
 written into this spec rather than left to be rediscovered:
 
 1. **No automatic account linking on email alone** — Auth.js raises `OAuthAccountNotLinked`.
-   E01 links only to a locally verified row (see its C3 fix).
+   E01 links only to a locally verified row (see its account-linking rule).
 2. **Revocable sessions** — B2's `session_version`.
 3. **Keyed secret rotation** — B2's `SESSION_SECRET_PREVIOUS`.
 4. **`__Host-` cookie prefixes** — weighed and deferred in B2, with the reason.
@@ -748,9 +730,10 @@ This spec ships **no phase of its own**. Every SHIP entry is delivered inside a 
 
 | Delivered in | Primitives |
 |---|---|
-| E01 Phase 1 (#12) | B1 Clock · B2 Session · B3 `readSession` + `requireLiveSession` · B5 stateless tokens · B6 Config gate · B7 return-to · B10 Transaction + findOrCreate · B14 GitHub identity port · B20 Outbound policy · F1 Surfaces · F2 AppShell · F3 Page guards · F4 WorkflowAction |
-| E01 Phase 2 (#13) | B8 Rate limit · B9 Password · B14 Mailer port + log adapter · F5 shadcn input/label + `password` field |
-| E01 Phase 3 (#14) | B3 `requireCsrfHeader` · F7 `expectAbsent` |
+| E01 auth slice (#12) | B1 Clock · B2 Session · B3 canonical live session + CSRF · B5 stateless tokens · B6 Config gate · B7 return-to · B10 concept-owned identity transaction · B14 GitHub identity port · B20 Outbound policy · F3 page guards · F4 minimal sign-out action |
+| E01 shell slice (#12) | F1 Surfaces · F2 AppShell and combined-role navigation |
+| E01 Slice 4 (#13) | B8 PostgreSQL rate limit · B9 Password · B14 SMTP + explicit test mailer adapters · F5 shadcn input/label + `password` field |
+| E01 Slice 5 (#14) | F7 `expectAbsent` and completion of all surface guards |
 
 Deferred entries are delivered by the issue named in their catalogue row:
 
@@ -761,7 +744,7 @@ Deferred entries are delivered by the issue named in their catalogue row:
 #20 mentor list          B18 List query
 #21 booking              B11 Transitions
 #22 Stripe Checkout      B13 Webhook inbox  B14 payment port  B17 Sweeps  B10 afterCommit
-#23 booking notified     B4 scopedList (+ the makeCrudRoute session seam)  B15 Notifications
+#23 booking notified     B4 explicit scoped list routes  B15 Notifications
 #24 cancellation         F4 confirm variant
 #25 fee split            F6 Status panel
 #26 text session         B3 assertParty
