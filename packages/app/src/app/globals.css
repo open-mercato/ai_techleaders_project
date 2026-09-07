@@ -11,8 +11,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: var(--dm-font-family);
+  --font-mono: var(--dm-font-mono);
 }
 
 body {

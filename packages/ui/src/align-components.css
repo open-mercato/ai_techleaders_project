@@ -1,0 +1,79 @@
+/* Shared Align UI styles, sourced from Buttons [1.1] and Text Input [1.1]. */
+.dm-button {
+  display: inline-flex; position: relative; flex-shrink: 0; align-items: center; justify-content: center;
+  box-sizing: border-box; border: 1px solid transparent;
+  font-family: var(--dm-font-family); font-size: 14px; font-weight: 500; line-height: 20px;
+  letter-spacing: -0.006em; font-feature-settings: 'ss11' 1, 'calt' 0, 'liga' 0;
+  white-space: nowrap; text-decoration: none; cursor: pointer; outline: none;
+  transition: background-color 120ms, color 120ms, border-color 120ms, box-shadow 120ms;
+}
+.dm-button-md { height: 40px; gap: 4px; padding: 9px; border-radius: var(--dm-radius-10); }
+.dm-button-sm { height: 36px; gap: 4px; padding: 7px; border-radius: var(--dm-radius-8); }
+.dm-button-xs { height: 32px; gap: 2px; padding: 5px; border-radius: var(--dm-radius-8); }
+.dm-button-xxs { height: 28px; gap: 2px; padding: 3px 5px; border-radius: var(--dm-radius-8); }
+.dm-button-label { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding-inline: 4px; }
+.dm-button-icon-slot { display: inline-flex; width: 20px; height: 20px; align-items: center; justify-content: center; flex-shrink: 0; }
+.dm-button :where(svg, img) { width: 20px; height: 20px; flex-shrink: 0; }
+.dm-button-icon { aspect-ratio: 1; }
+.dm-button-icon.dm-button-md { width: 40px; }
+.dm-button-icon.dm-button-sm { width: 36px; }
+.dm-button-icon.dm-button-xs { width: 32px; }
+.dm-button-icon.dm-button-xxs { width: 28px; }
+
+.dm-button-primary {
+  --dm-action-base: var(--dm-primary-base); --dm-action-hover: var(--dm-primary-dark);
+  --dm-action-tint: var(--dm-alpha-primary-alpha-10); --dm-action-stroke: var(--dm-primary-base);
+  --dm-action-label: var(--dm-primary-base); --dm-action-on-fill: var(--dm-static-static-white);
+  --dm-action-focus: var(--dm-alpha-primary-alpha-10);
+}
+.dm-button-neutral {
+  --dm-action-base: var(--dm-bg-surface-800); --dm-action-hover: var(--dm-bg-strong-950);
+  --dm-action-tint: var(--dm-bg-weak-50); --dm-action-stroke: var(--dm-stroke-soft-200);
+  --dm-action-label: var(--dm-text-sub-600); --dm-action-on-fill: var(--dm-text-white-0);
+  --dm-action-focus: var(--dm-focus-neutral);
+}
+.dm-button-error {
+  --dm-action-base: var(--dm-state-error-base); --dm-action-hover: var(--dm-red-700);
+  --dm-action-tint: var(--dm-alpha-red-alpha-10); --dm-action-stroke: var(--dm-state-error-base);
+  --dm-action-label: var(--dm-state-error-base); --dm-action-on-fill: var(--dm-static-static-white);
+  --dm-action-focus: var(--dm-alpha-red-alpha-10);
+}
+.dm-button-filled { color: var(--dm-action-on-fill); background: var(--dm-action-base); }
+.dm-button-stroke { color: var(--dm-action-label); background: var(--dm-bg-white-0); border-color: var(--dm-action-stroke); }
+.dm-button-lighter { color: var(--dm-action-label); background: var(--dm-action-tint); }
+.dm-button-ghost { color: var(--dm-action-label); background: transparent; }
+.dm-button-neutral.dm-button-stroke { box-shadow: var(--dm-shadow-xs); }
+.dm-button-filled:hover { background: var(--dm-action-hover); }
+.dm-button-stroke:hover, .dm-button-ghost:hover { background: var(--dm-action-tint); border-color: transparent; box-shadow: none; }
+.dm-button-lighter:hover { background: var(--dm-bg-white-0); border-color: var(--dm-action-stroke); }
+.dm-button-neutral:is(.dm-button-stroke, .dm-button-lighter, .dm-button-ghost):hover { color: var(--dm-text-strong-950); }
+.dm-button-neutral.dm-button-lighter:hover { box-shadow: var(--dm-shadow-xs); }
+.dm-button.dm-button:focus-visible { box-shadow: 0 0 0 2px var(--dm-bg-white-0), 0 0 0 4px var(--dm-action-focus); }
+.dm-button-filled:focus-visible { background: var(--dm-action-base); }
+.dm-button:is(.dm-button-stroke, .dm-button-lighter, .dm-button-ghost):focus-visible { background: var(--dm-bg-white-0); border-color: var(--dm-action-stroke); }
+.dm-button-neutral:is(.dm-button-stroke, .dm-button-lighter, .dm-button-ghost):focus-visible { color: var(--dm-text-strong-950); border-color: var(--dm-stroke-strong-950); }
+.dm-button-link { text-underline-offset: 4px; }
+.dm-button-link:hover { text-decoration: underline; }
+.dm-button:disabled { pointer-events: none; cursor: default; background: var(--dm-bg-weak-25); color: var(--dm-text-disabled-300); border-color: transparent; box-shadow: none; opacity: 1; }
+
+.dm-form { display: flex; flex-direction: column; gap: 16px; font-family: var(--dm-font-family); }
+.dm-field { display: flex; flex-direction: column; gap: 4px; }
+.dm-field-label { color: var(--dm-text-strong-950); font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: -0.006em; }
+.dm-input {
+  box-sizing: border-box; width: 100%; height: 40px; border: 1px solid var(--dm-stroke-soft-200);
+  border-radius: var(--dm-radius-10); padding: 9px 11px; background: var(--dm-bg-white-0); color: var(--dm-text-strong-950);
+  font: 400 14px/20px var(--dm-font-family); letter-spacing: -0.006em; font-feature-settings: 'ss11' 1, 'calt' 0, 'liga' 0;
+  box-shadow: var(--dm-shadow-xs); outline: none; transition: background-color 120ms, border-color 120ms, box-shadow 120ms;
+}
+.dm-input::placeholder { color: var(--dm-text-soft-400); opacity: 1; }
+.dm-input:hover { border-color: transparent; background: var(--dm-bg-weak-50); box-shadow: none; }
+.dm-input:focus-visible { border-color: var(--dm-stroke-strong-950); background: var(--dm-bg-white-0); box-shadow: 0 0 0 2px var(--dm-bg-white-0), 0 0 0 4px var(--dm-focus-neutral); }
+.dm-input:disabled { background: var(--dm-bg-weak-50); color: var(--dm-text-disabled-300); border-color: transparent; box-shadow: none; }
+.dm-field:has(.dm-field-error) .dm-input { border-color: var(--dm-state-error-base); box-shadow: none; }
+.dm-field:has(.dm-field-error) .dm-input:focus-visible { box-shadow: 0 0 0 2px var(--dm-bg-white-0), 0 0 0 4px var(--dm-alpha-red-alpha-10); }
+.dm-textarea { height: auto; min-height: 96px; resize: vertical; }
+.dm-checkbox { width: 16px; height: 16px; accent-color: var(--dm-primary-base); }
+.dm-field-error { color: var(--dm-state-error-base); font-size: 12px; line-height: 16px; }
+.dm-form-error { color: var(--dm-state-error-base); font-size: 14px; line-height: 20px; }
+.dm-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .dm-button, .dm-input { transition: none; } }

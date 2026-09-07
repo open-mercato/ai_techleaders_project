@@ -1,0 +1,64 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design system/What is missing" />
+
+# Available UI and remaining work
+
+<p className="ds-doc-lead">Which backlog items have reusable UI, and what still needs implementation in the product.</p>
+
+Updated 7 September 2026. "Available" means package UI code with stories and tests. The corresponding GitHub issue, server flow or payment integration may still be incomplete.
+
+## Available in the design system
+
+| Layer | Delivered |
+| --- | --- |
+| Foundations | Semantic colors; Blue and Green in light/dark; Inter for UI and DM Mono for the wordmark/code; typography, spacing, radii, shadows, motion, icons and responsive rules |
+| Actions and fields | Button, Input, Textarea, Label, Checkbox, RadioGroup, Switch, Select and FormField |
+| Display and navigation | Card, Badge, Avatar, Separator, Tabs, Accordion, Breadcrumb and Pagination |
+| Overlays | Dialog, AlertDialog, Popover, Tooltip and DropdownMenu with keyboard behavior |
+| Feedback | Alert, Progress, Skeleton, LoadingMessage, ErrorMessage and EmptyState with recovery/action slots |
+| Shared patterns | CrudForm validation, saving and right-aligned secondary/primary actions; DataTable labeling, pagination and horizontal scrolling; AppShell and full-width AuthLayout actions |
+| Mentor feedback | Optional rating aggregates, written reviews and empty state, accessible review form, and technology chips with decorative icons |
+| Handoff | Searchable component gallery, props and state examples, usage/accessibility guidance, contribution and change conventions |
+
+Forms have unique field IDs, associated errors, root validation messages and required-field semantics. They prevent repeated submissions while saving. Tables put wide content in a named, keyboard-focusable scrolling region. Card titles support the heading level their page needs.
+
+## Coverage of the product backlog
+
+| Area | Available UI | Still required in the product |
+| --- | --- | --- |
+| [Accounts and roles: 12 to 14](https://github.com/open-mercato/ai_techleaders_project/issues/12) | Full-width neutral GitHub and primary email sign-in, separate back navigation, verification and expired-link states, access status, responsive workspace and additive-role examples | Authentication, sessions, email delivery and server-side authorization |
+| [Invitations: 15](https://github.com/open-mercato/ai_techleaders_project/issues/15) | Invalid/expired/used invitation feedback, invitation batches and acceptance guidance | Token validation, delivery and invitation lifecycle |
+| [Mentor profile: 16](https://github.com/open-mercato/ai_techleaders_project/issues/16) | Identity/fallback, profile card, technology icons, work links, completeness and profile-edit composition | Profile persistence, permissions and share behavior |
+| Mentor ratings and reviews: user request, 7 September 2026 | Average/count, individual feedback, empty state and a validated 1 to 5 star review form with a submission callback; fictional Storybook data | Server-enforced completed-session eligibility, authentication, review storage, moderation and publication policy; no review backend is implemented |
+| [Availability: 17](https://github.com/open-mercato/ai_techleaders_project/issues/17) / [prices: 18](https://github.com/open-mercato/ai_techleaders_project/issues/18) | Timezone-aware slot presentation, date/time form, booked/empty/conflicting slots, 25/50-minute selection and price/bounds forms | Timezone conversion, authoritative price bounds, ownership and slot locking |
+| [Directory: 20](https://github.com/open-mercato/ai_techleaders_project/issues/20) | Mentor directory with stack filter and empty results | Query, pagination and data access |
+| [Booking: 21](https://github.com/open-mercato/ai_techleaders_project/issues/21) / [payment: 22](https://github.com/open-mercato/ai_techleaders_project/issues/22) | Interactive selection-to-summary composition; conflict, minimum-notice, expired-hold, pending, failed and confirmed states | Atomic reservation, Checkout handoff, webhooks and agreed hold/abandonment rules |
+| [My sessions: 23](https://github.com/open-mercato/ai_techleaders_project/issues/23) | Upcoming/past session cards, counterpart identity and read/unread notifications | Queries, notification delivery and read-state persistence |
+| [Text session: 26](https://github.com/open-mercato/ai_techleaders_project/issues/26) / [answer: 27](https://github.com/open-mercato/ai_techleaders_project/issues/27) | Session header, not-started/open/ended states, own and received messages, keyboard-scrollable history, delivery feedback, composer slot and written answers after completion | Q18 channel decision, transport, time enforcement and answer-editing policy |
+| [Private notes: 28 to 29](https://github.com/open-mercato/ai_techleaders_project/issues/28) | Draft, review, approval/decline, required decline comment, version history and local form recovery examples | Private storage, ownership, review workflow and version persistence |
+| [Connect: 19](https://github.com/open-mercato/ai_techleaders_project/issues/19) / [payouts: 24](https://github.com/open-mercato/ai_techleaders_project/issues/24) | Connect requirements, payout and blocked/retry states | Q19 first-iteration payout decision and payment-provider integration |
+| [Cancellation: 25](https://github.com/open-mercato/ai_techleaders_project/issues/25) / [refunds: 33 to 34](https://github.com/open-mercato/ai_techleaders_project/issues/33) | Cancellation consequences, refund status and recovery copy | Authoritative policy, payment effects and idempotent processing |
+| [Operator: 30 to 32](https://github.com/open-mercato/ai_techleaders_project/issues/30) | Invitations, metrics, fee/price settings and dispute-detail compositions | Operator permissions, reporting, audit records and protected mutations |
+
+[PR 39](https://github.com/open-mercato/ai_techleaders_project/pull/39) was merged on 6 September 2026. It supplied platform specifications. The local AppShell follows its slot-based API and remains presentational.
+
+## Before using this in the product
+
+1. Review the visual identity on real screens. The team needs to choose a default from the supported Blue and Green themes and assign design and engineering owners.
+2. Connect each screen to the shared API layer. Stories use local data and MSW examples; the server must validate data, enforce permissions and handle business transitions.
+3. Decide the Q18 conversation channel, Q19 payouts, Checkout hold/abandonment rules and answer-editing policy. The catalogue shows the relevant UI states, but these policies are still open.
+4. Test authenticated flows with persisted data and review accessibility on every completed page. Unit coverage and sampled keyboard, contrast and responsive checks cover the library, not the full application.
+5. Assign an owner, review token/API changes and record migration notes before wider use. External publication and synchronization require explicit approval.
+
+Accessibility follow-up: the open Select popup needs a screen-reader review in its host page. Its browser keyboard scenario passes, but a standalone automated scan flags focusable content inside the hidden preview background. That finding remains documented for review.
+
+The design system includes mentor ratings and reviews,
+as requested on 7 September 2026. Demo feedback is fictional. No real reviews
+have been published, and there is no production review service.
+
+Video, subscriptions, public session notes and unrelated dashboard widgets remain
+outside the current design-system scope. A public mentor review is distinct from
+a private session note.
+
+Read [Usage and accessibility](?path=/docs/design-system-usage-and-accessibility--docs) and [Contributing](?path=/docs/design-system-contributing--docs), or explore the [component gallery](?path=/story/design-system-components--gallery).

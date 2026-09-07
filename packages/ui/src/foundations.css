@@ -1,0 +1,64 @@
+@import '@fontsource/dm-mono/500.css';
+
+:root {
+  --dm-font-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
+  --dm-space-0: 0px; --dm-space-2: 2px; --dm-space-4: 4px;
+  --dm-space-6: 6px; --dm-space-8: 8px; --dm-space-10: 10px;
+  --dm-space-12: 12px; --dm-space-14: 14px; --dm-space-16: 16px;
+  --dm-space-24: 24px; --dm-space-32: 32px; --dm-space-40: 40px; --dm-space-48: 48px;
+  --dm-radius-0: 0px; --dm-radius-2: 2px; --dm-radius-4: 4px; --dm-radius-6: 6px;
+  --dm-radius-8: 8px; --dm-radius-10: 10px; --dm-radius-12: 12px; --dm-radius-16: 16px;
+  --dm-radius-20: 20px; --dm-radius-24: 24px; --dm-radius-28: 28px; --dm-radius-full: 999px;
+  --dm-text-xs: 12px; --dm-line-xs: 16px;
+  --dm-text-sm: 14px; --dm-line-sm: 20px;
+  --dm-text-md: 16px; --dm-line-md: 24px;
+  --dm-text-lg: 18px; --dm-line-lg: 24px;
+  --dm-title-sm: 20px; --dm-title-line-sm: 28px;
+  --dm-title-md: 24px; --dm-title-line-md: 32px;
+  --dm-title-lg: 32px; --dm-title-line-lg: 40px;
+  --dm-title-xl: 40px; --dm-title-line-xl: 48px;
+  --dm-title-display: 56px; --dm-title-line-display: 64px;
+  --dm-duration-fast: 120ms; --dm-duration-base: 180ms; --dm-duration-slow: 240ms;
+  --dm-ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --dm-shadow-popover: 0 12px 24px -8px rgb(10 13 20 / 12%), 0 2px 4px rgb(10 13 20 / 4%);
+  --dm-shadow-modal: 0 24px 48px -12px rgb(10 13 20 / 20%);
+  --dm-content-max: 1200px;
+  --dm-space-text-gap: var(--dm-space-8);
+  --dm-space-prose-gap: var(--dm-space-16);
+  --dm-space-panel-gap: var(--dm-space-24);
+  --dm-space-component-gap: var(--dm-space-32);
+  --dm-space-section-gap: var(--dm-space-48);
+  --dm-space-page-gutter: var(--dm-space-48);
+  --dm-reading-width: 65ch;
+  /* Action contrast is independent from decorative brand swatches. */
+  --dm-action-primary-fill: #335cff;
+  --dm-action-primary-hover: #2547d0;
+  --dm-action-primary-label: #2547d0;
+  --dm-action-error-fill: #d02533;
+  --dm-action-error-hover: #a41926;
+  --dm-action-error-label: #d02533;
+}
+.dark { --dm-action-primary-label: #4d82ff; --dm-action-error-label: #ff6875; }
+[data-align-accent="green"] { --dm-action-primary-fill: #1a7544; --dm-action-primary-hover: #0b4627; --dm-action-primary-label: #1a7544; }
+.dark[data-align-accent="green"], .dark [data-align-accent="green"] { --dm-action-primary-label: #3ee089; }
+.dm-button-primary { --dm-action-base: var(--dm-action-primary-fill); --dm-action-hover: var(--dm-action-primary-hover); --dm-action-label: var(--dm-action-primary-label); }
+.dm-button-error { --dm-action-base: var(--dm-action-error-fill); --dm-action-hover: var(--dm-action-error-hover); --dm-action-label: var(--dm-action-error-label); }
+.dm-button.dm-button:focus-visible { outline: 2px solid var(--dm-action-label); outline-offset: 2px; }
+.dm-product-links a, .dm-app-nav a[aria-current="page"] { color: var(--dm-action-primary-label); }
+.dm-prose { font: 400 var(--dm-text-md)/var(--dm-line-md) var(--dm-font-family); max-width: 65ch; overflow-wrap: anywhere; }
+.dm-code { font-family: var(--dm-font-mono); font-weight: 500; }
+.dm-numeric { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  :root { --dm-duration-fast: 0ms; --dm-duration-base: 0ms; --dm-duration-slow: 0ms; }
+  [data-slot] { animation-duration: 0s !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
+}
+/* Placeholder text still needs to be readable; disabled content has separate roles. */
+.dm-input::placeholder { color: var(--dm-text-sub-600); opacity: 1; }
+.dm-select-trigger[data-placeholder] { color: var(--dm-text-sub-600); }
+.dm-select-item[data-state="checked"], .dm-badge-primary, .dm-badge-link,
+.dm-tabs-trigger[data-state="active"] { color: var(--dm-action-primary-label); }
+.dm-field-error, .dm-form-error { color: var(--dm-action-error-label); }
+.dm-input:focus-visible, .dm-select-trigger:focus-visible,
+.dm-checkbox-control:focus-visible, .dm-radio-control:focus-visible, .dm-switch:focus-visible {
+  outline: 2px solid var(--dm-action-primary-label); outline-offset: 2px;
+}

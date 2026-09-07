@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "../../node_modules/.cache/tsconfig.ui.tsbuildinfo"
+    "tsBuildInfoFile": "../../node_modules/.cache/tsconfig.ui.tsbuildinfo",
+    "paths": {
+      "@devmentor/ui/components/*": ["./src/components/ui/*"],
+      "@devmentor/ui/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules"]

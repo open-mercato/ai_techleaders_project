@@ -1,0 +1,14 @@
+/* Compatibility names used only by the prototype review toolbar and comments. */
+:root, .dark {
+ --font-geist-sans:var(--dm-font-family); --font-geist-mono:var(--dm-font-mono);
+ --font-size-overline:var(--dm-text-xs); --radius-sm:var(--dm-radius-6);
+ --radius-md:var(--dm-radius-8); --radius-lg:var(--dm-radius-12); --radius-xl:var(--dm-radius-16);
+ --primary-hover:var(--dm-action-primary-hover); --accent-indigo:var(--dm-action-primary-fill);
+ --accent-indigo-foreground:var(--dm-static-static-white);
+ --shadow-xs:var(--dm-shadow-xs); --shadow-sm:var(--dm-shadow-xs);
+ --shadow-md:var(--dm-shadow-popover); --shadow-xl:var(--dm-shadow-modal);
+ --shadow-focus:0 0 0 2px var(--dm-bg-white-0),0 0 0 4px var(--dm-action-primary-label);
+ --status-success-icon:var(--dm-state-success-dark); --status-warning-icon:var(--dm-state-warning-dark);
+ --status-warning-border:var(--dm-state-warning-base); --status-warning-bg:var(--dm-state-warning-lighter); --status-warning-text:var(--dm-state-warning-dark);
+ --z-index-sticky:100; --z-index-dropdown:200; --z-index-overlay:300; --z-index-modal:400; --z-index-toast:500; --z-index-top:600;
+}

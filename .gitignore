@@ -24,6 +24,8 @@
 # production
 /build
 **/dist/
+**/storybook-static/
+**/debug-storybook.log
 
 # misc
 .DS_Store
@@ -55,3 +57,6 @@ yarn-error.log*
 
 # per-developer Claude Code settings
 .claude/settings.local.json
+
+# generated local Storybook prototype
+packages/ui/.storybook/public/prototypes/

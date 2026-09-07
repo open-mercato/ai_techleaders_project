@@ -1,0 +1,12 @@
+/* Documentation-only frozen states, derived from src/align-components.css.
+   Regenerate these selectors when the shared hover/focus rules change. */
+.dm-button-filled[data-preview-state="hover"] { background: var(--dm-action-hover); }
+.dm-button-stroke[data-preview-state="hover"], .dm-button-ghost[data-preview-state="hover"] { background: var(--dm-action-tint); border-color: transparent; box-shadow: none; }
+.dm-button-lighter[data-preview-state="hover"] { background: var(--dm-bg-white-0); border-color: var(--dm-action-stroke); }
+.dm-button-neutral:is(.dm-button-stroke, .dm-button-lighter, .dm-button-ghost)[data-preview-state="hover"] { color: var(--dm-text-strong-950); }
+.dm-button-neutral.dm-button-lighter[data-preview-state="hover"] { box-shadow: var(--dm-shadow-xs); }
+.dm-button.dm-button[data-preview-state="focus"] { box-shadow: 0 0 0 2px var(--dm-bg-white-0), 0 0 0 4px var(--dm-action-focus); outline: 2px solid var(--dm-action-label); outline-offset: 2px; }
+.dm-button-filled[data-preview-state="focus"] { background: var(--dm-action-base); }
+.dm-button:is(.dm-button-stroke, .dm-button-lighter, .dm-button-ghost)[data-preview-state="focus"] { background: var(--dm-bg-white-0); border-color: var(--dm-action-stroke); }
+.dm-button-neutral:is(.dm-button-stroke, .dm-button-lighter, .dm-button-ghost)[data-preview-state="focus"] { color: var(--dm-text-strong-950); border-color: var(--dm-stroke-strong-950); }
+.dm-button-link[data-preview-state="hover"] { text-decoration: underline; }

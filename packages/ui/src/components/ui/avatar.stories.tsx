@@ -1,0 +1,11 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from './avatar';
+const portrait = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" fill="%23EBF1FF"/%3E%3Ccircle cx="40" cy="30" r="14" fill="%23476CFF"/%3E%3Cpath d="M12 80v-8a28 28 0 0 1 56 0v8" fill="%23476CFF"/%3E%3C/svg%3E';
+const meta = { title: 'Primitives/Avatar', component: Avatar, tags: ['autodocs'], args: { children: <AvatarFallback>AL</AvatarFallback>, 'aria-label': 'Alex Laurent' }, parameters: { docs: { description: { component: 'A person’s image or initials. Default size is 40 pixels; compact and large sizes are 32 and 48 pixels. Presence requires its own accessible label.' } } } } satisfies Meta<typeof Avatar>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+export const Initials: Story = {};
+export const Image: Story = { args: { children: <><AvatarImage src={portrait} alt="Example profile illustration" /><AvatarFallback>AL</AvatarFallback></> } };
+export const Available: Story = { args: { children: <><AvatarFallback>AL</AvatarFallback><AvatarBadge aria-label="Available for sessions" /></> } };
+export const Sizes: Story = { render: () => <div className="flex items-center gap-4">{(['sm','default','lg'] as const).map(size => <Avatar key={size} size={size} aria-label="Alex Laurent"><AvatarFallback>AL</AvatarFallback></Avatar>)}</div> };
+export const Group: Story = { render: () => <AvatarGroup aria-label="Mentors in this workspace"><Avatar aria-label="Alex Laurent"><AvatarFallback>AL</AvatarFallback></Avatar><Avatar aria-label="Sam Rivera"><AvatarFallback>SR</AvatarFallback></Avatar><Avatar aria-label="Maya Chen"><AvatarFallback>MC</AvatarFallback></Avatar><AvatarGroupCount aria-label="3 more mentors">+3</AvatarGroupCount></AvatarGroup> };

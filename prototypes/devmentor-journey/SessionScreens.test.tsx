@@ -1,0 +1,60 @@
+import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { apiCall } from '../../packages/ui/src/backend/api/apiCall';
+import { SessionScreens } from './SessionScreens';
+
+vi.mock('../../packages/ui/src/backend/api/apiCall', () => ({ apiCall: vi.fn() }));
+beforeEach(() => {
+  vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0));
+  vi.stubGlobal('cancelAnimationFrame', vi.fn());
+  vi.mocked(apiCall).mockReset();
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+function session() {
+  const { container } = render(<SessionScreens duration={25} startsAt="2026-09-10T10:00:00Z" dateLabel="10 September" timeLabel="12:00" timeZone="Europe/Warsaw" slots={[]} sessionPrice={180} prices={{ 25: 180, 50: 320 }} submittedReview={null} onReviewSubmit={vi.fn()} onPricesChange={vi.fn()} onSlotAdded={vi.fn()} />);
+  const room = container.querySelector<HTMLElement>('#s7')!;
+  room.classList.add('is-current');
+  return { room: within(room), workspace: within(container.querySelector<HTMLElement>('#s6')!) };
+}
+
+it('keeps the first input event while tracking a draft and clears/refocuses only after a successful send', async () => {
+  const { room } = session();
+  vi.mocked(apiCall).mockResolvedValue({ ok: true, data: { message: 'Keep the adapter.\nTest both paths.' } });
+  const input = room.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message to Alex' });
+  fireEvent.input(input, { target: { value: 'Keep the adapter.\nTest both paths.' } });
+  expect(input.value).toBe('Keep the adapter.\nTest both paths.');
+  expect(room.getByRole<HTMLButtonElement>('button', { name: 'Preview session end' }).disabled).toBe(true);
+  fireEvent.click(room.getByRole('button', { name: 'Send message' }));
+  await waitFor(() => expect(room.getAllByRole('listitem')).toHaveLength(3));
+  const cleared = room.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message to Alex' });
+  expect(cleared.value).toBe('');
+  expect(document.activeElement).toBe(cleared);
+  expect(room.getByRole<HTMLButtonElement>('button', { name: 'Preview session end' }).disabled).toBe(false);
+});
+
+it('keeps a draft after a failed send; clearing the draft permits demo completion', async () => {
+  const { room } = session();
+  vi.mocked(apiCall).mockResolvedValue({ ok: false, error: { code: 'UNAVAILABLE', message: 'Connection lost. Try again.' } });
+  const input = room.getByRole<HTMLTextAreaElement>('textbox', { name: 'Message to Alex' });
+  fireEvent.change(input, { target: { value: 'Keep my draft.' } });
+  fireEvent.click(room.getByRole('button', { name: 'Send message' }));
+  await waitFor(() => expect(room.getByRole('alert').textContent).toContain('Connection lost'));
+  expect(input.value).toBe('Keep my draft.');
+  expect(room.getAllByRole('listitem')).toHaveLength(2);
+  expect(room.getByRole<HTMLButtonElement>('button', { name: 'Preview session end' }).disabled).toBe(true);
+  fireEvent.change(input, { target: { value: '' } });
+  expect(room.getByRole<HTMLButtonElement>('button', { name: 'Preview session end' }).disabled).toBe(false);
+});
+
+it('offers the written answer only after completion and does not restart the session from My sessions', () => {
+  const { room, workspace } = session();
+  expect(room.queryByRole('button', { name: 'Read the written answer' })).toBeNull();
+  fireEvent.click(room.getByRole('button', { name: 'Preview session end' }));
+  expect(room.queryByRole('textbox')).toBeNull();
+  expect(room.getByRole('button', { name: 'Read the written answer' })).toBeTruthy();
+  expect(workspace.getByRole('heading', { name: 'Your completed session' })).toBeTruthy();
+  fireEvent.click(workspace.getByRole('button', { name: 'View conversation' }));
+  expect(room.queryByRole('textbox')).toBeNull();
+  expect(room.getByRole('button', { name: 'Read the written answer' })).toBeTruthy();
+});
