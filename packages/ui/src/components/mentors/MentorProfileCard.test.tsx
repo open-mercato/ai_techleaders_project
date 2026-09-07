@@ -10,7 +10,9 @@ it('shows optional review aggregates and technology icons on the profile', () =>
   render(<MentorProfileCard {...profile} status="published" rating={{ average: 14 / 3, reviewCount: 3 }} />);
   expect(screen.getByText('4.7')).toBeTruthy();
   expect(screen.getByText('(3 reviews)')).toBeTruthy();
-  expect(screen.getByText('TS').getAttribute('aria-hidden')).toBe('true');
+  const technologyIcon = screen.getByText('TypeScript').previousElementSibling!;
+  expect(technologyIcon.getAttribute('data-technology')).toBe('typescript');
+  expect(technologyIcon.getAttribute('aria-hidden')).toBe('true');
 });
 
 it('renders identity with a fallback or supplied avatar without exposing decoration', () => {

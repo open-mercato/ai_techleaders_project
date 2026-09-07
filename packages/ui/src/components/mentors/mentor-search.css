@@ -1,0 +1,73 @@
+.dm-mentor-search {
+  display: grid;
+  gap: var(--dm-space-component-gap);
+  min-width: 0;
+  color: var(--dm-text-strong-950);
+  font-family: var(--dm-font-family);
+  overflow-wrap: anywhere;
+  container-type: inline-size;
+}
+.dm-mentor-search :where(h2, h3, p, ul) { margin: 0; }
+.dm-mentor-search-heading { display: grid; gap: 16px; }
+.dm-mentor-search-heading .dm-mentor-search-eyebrow { color: var(--dm-action-primary-label); font: 14px/20px var(--dm-font-mono); }
+.dm-mentor-search-heading h2 { font-size: clamp(32px, 5cqi, 48px); line-height: 1.15; letter-spacing: -.035em; font-weight: 600; }
+.dm-mentor-search-heading > p:last-child { max-width: 60ch; font-size: 16px; line-height: 28px; color: var(--dm-text-sub-600); }
+.dm-mentor-search-controls { display: grid; gap: 24px; padding: 32px; border: 1px solid var(--dm-stroke-soft-200); border-radius: 16px; background: var(--dm-bg-white-0); }
+.dm-mentor-search-query-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); gap: 24px; align-items: start; }
+.dm-mentor-search-toggle.dm-button { display: none; }
+.dm-mentor-search-filter-group { display: contents; }
+.dm-mentor-search-input { position: relative; }
+.dm-mentor-search-input > svg { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; color: var(--dm-action-primary-label); pointer-events: none; }
+.dm-mentor-search-input .dm-input { min-height: 64px; padding: 16px 24px 16px 64px; border-radius: 12px; font-size: 18px; line-height: 28px; background: var(--dm-bg-weak-50); }
+.dm-mentor-search-stacks { grid-column: 1 / -1; min-width: 0; padding: 0; margin: 0; border: 0; }
+.dm-mentor-search-stacks legend { padding: 0 0 8px; font-size: 14px; line-height: 20px; font-weight: 500; }
+.dm-mentor-search-stacks > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.dm-mentor-search-stacks .dm-button { min-height: 44px; border-radius: 999px; padding-inline: 16px; }
+.dm-mentor-search-stacks .dm-button[aria-pressed="true"] { border-color: var(--dm-primary-base); color: var(--dm-action-primary-label); background: var(--dm-alpha-primary-alpha-10); }
+.dm-mentor-search-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; max-width: 720px; }
+.dm-mentor-search-select { display: block; width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--dm-stroke-soft-200); border-radius: 10px; padding: 8px 16px; font: 14px/24px var(--dm-font-family); color: var(--dm-text-strong-950); background: var(--dm-bg-white-0); }
+.dm-mentor-search-select:focus-visible { outline: 2px solid var(--dm-primary-base); outline-offset: 3px; }
+.dm-mentor-search-applied { display: flex; flex-wrap: wrap; gap: 8px; }
+.dm-mentor-search-applied .dm-button { max-width: 100%; min-height: 44px; height: auto; white-space: normal; }
+.dm-mentor-search-applied .dm-button-label { min-width: 0; }
+.dm-mentor-search-results-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; }
+.dm-mentor-search-results-heading > p { font-size: 16px; line-height: 24px; color: var(--dm-text-sub-600); }
+.dm-mentor-search-results-heading > p strong { color: var(--dm-text-strong-950); }
+.dm-mentor-search-results-heading > .dm-field { display: flex; flex-direction: row; align-items: center; gap: 16px; }
+.dm-mentor-search-results-heading .dm-field-label { flex-shrink: 0; }
+.dm-mentor-search-results-heading select { width: auto; }
+.dm-mentor-search-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 0; list-style: none; }
+.dm-mentor-search-results > li { min-width: 0; display: flex; }
+.dm-mentor-search-card { display: flex; flex-direction: column; gap: 24px; width: 100%; min-width: 0; padding: 32px; border: 1px solid var(--dm-stroke-soft-200); border-radius: 16px; background: var(--dm-bg-white-0); }
+.dm-mentor-search-card > header { display: flex; gap: 16px; align-items: center; }
+.dm-mentor-search-card > header > div { min-width: 0; display: grid; gap: 8px; }
+.dm-mentor-search-card h3 { font-size: 20px; line-height: 28px; letter-spacing: -.02em; font-weight: 600; }
+.dm-mentor-search-card > header p { font-size: 14px; line-height: 22px; color: var(--dm-text-sub-600); }
+.dm-mentor-search-avatar { display: grid; place-items: center; flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: var(--dm-alpha-primary-alpha-10); color: var(--dm-action-primary-label); font: 20px/28px var(--dm-font-mono); }
+.dm-mentor-search-introduction { max-width: 65ch; font-size: 16px; line-height: 28px; }
+.dm-mentor-search-card .dm-technology-chips { min-height: 28px; }
+.dm-mentor-search-meta { display: grid; gap: 12px; margin-top: auto; color: var(--dm-text-sub-600); font-size: 14px; line-height: 24px; }
+.dm-mentor-search-meta p { display: flex; gap: 8px; align-items: flex-start; }
+.dm-mentor-search-meta svg { flex-shrink: 0; width: 16px; height: 24px; }
+.dm-mentor-search-card footer { display: grid; gap: 24px; padding-top: 24px; border-top: 1px solid var(--dm-stroke-soft-200); }
+.dm-mentor-search-card footer > .dm-button { justify-self: end; min-height: 44px; }
+.dm-mentor-search-empty { padding: 64px 32px; border: 1px dashed var(--dm-stroke-sub-300); border-radius: 16px; }
+@container (max-width: 800px) {
+  .dm-mentor-search-query-row { grid-template-columns: minmax(0, 1fr); }
+  .dm-mentor-search-toggle.dm-button { display: inline-flex; justify-self: start; min-height: 44px; }
+  .dm-mentor-search-filter-group { display: grid; gap: 24px; }
+  .dm-mentor-search-filter-group[data-open="false"] { display: none; }
+  .dm-mentor-search-results { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 480px) {
+  .dm-mentor-search-controls, .dm-mentor-search-card { padding: 24px; }
+  .dm-mentor-search-filters { grid-template-columns: minmax(0, 1fr); }
+  .dm-mentor-search-input .dm-input { min-height: 56px; padding-left: 48px; padding-right: 16px; font-size: 16px; }
+  .dm-mentor-search-input > svg { left: 16px; width: 20px; height: 20px; }
+  .dm-mentor-search-results-heading > .dm-field { width: 100%; align-items: stretch; flex-direction: column; gap: 8px; }
+  .dm-mentor-search-results-heading select { width: 100%; }
+  .dm-mentor-search-card > header { align-items: flex-start; }
+  .dm-mentor-search-avatar { width: 48px; height: 48px; font-size: 16px; }
+  .dm-mentor-search-card footer > .dm-button { width: 100%; }
+  .dm-mentor-search-empty { padding: 48px 24px; }
+}

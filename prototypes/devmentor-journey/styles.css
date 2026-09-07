@@ -124,6 +124,9 @@ body.proto-focus .frame { border-radius:0; }
 .frame .dm-product-status[data-tone="information"] { color:var(--dm-text-strong-950); }
 
 /* Review engine bridge: component geometry and readable roles follow the DS. */
+/* Portalled product dialogs block the whole page, including review controls. */
+.dm-dialog-overlay,.dm-alert-dialog-overlay { z-index:var(--z-index-product-overlay); }
+.dm-dialog-content,.dm-alert-dialog-content { z-index:var(--z-index-product-modal); }
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:7px 11px; min-height:32px; border:1px solid transparent; border-radius:var(--dm-radius-8); cursor:pointer; text-decoration:none; font-size:12px; line-height:16px; font-weight:500; }
 .btn svg { width:16px; height:16px; }
 .btn-primary { background:var(--dm-action-primary-fill); color:var(--dm-static-static-white); }

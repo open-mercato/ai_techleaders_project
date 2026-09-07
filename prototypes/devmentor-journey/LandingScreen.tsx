@@ -7,16 +7,16 @@ import './landing.css';
 
 export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
   const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
-  return <Screen id="s17" title="Home" description="See how text mentoring works, read a mentor's profile and choose a session." refs={['#16', '#18', '#27', 'M01', 'M04']}
-    note="Local homepage with an original generated illustration. Alex Laurent and all reviews are fictional. This prototype covers text sessions. It does not include a mentor directory, freelance hiring or public mentor registration.">
+  return <Screen id="s17" title="Home" description="See how text mentoring works, find a mentor and choose a session." refs={['#16', '#18', '#27', 'M01', 'M04']}
+    note="Local homepage with an original generated illustration. All mentors and reviews are fictional. The catalogue supports local search and profile previews; Alex Laurent has the complete booking flow. Freelance hiring and public mentor registration are outside this prototype.">
     <PublicPage className="proto-landing-page" navigation={<>
       <Button className="home-section-nav" intent="neutral" appearance="ghost" onClick={() => scrollToSection('landing-how-title')}>How it works</Button>
       <Button className="home-section-nav" intent="neutral" appearance="ghost" onClick={() => scrollToSection('home-mentor-title')}>Meet a mentor</Button>
       <Button intent="neutral" appearance="ghost" onClick={() => navigate('s12')}>Sign in</Button>
-      <Button onClick={() => navigate('s1')}>Find your mentor<ArrowRight aria-hidden="true" /></Button>
+      <Button onClick={() => navigate('s19')}>Find your mentor<ArrowRight aria-hidden="true" /></Button>
     </>} footer={<div className="home-footer-inner">
       <div><span className="home-footer-wordmark">DevMentor<span aria-hidden="true">✦</span></span><p>Discuss your code with a mentor.<br />Keep the explanation for later.</p></div>
-      <nav aria-label="Footer navigation"><button onClick={() => navigate('s1')}>Mentor profile</button><button onClick={() => scrollToSection('landing-how-title')}>How it works</button><button onClick={() => navigate('s12')}>Sign in</button></nav>
+      <nav aria-label="Footer navigation"><button onClick={() => navigate('s19')}>Find a mentor</button><button onClick={() => scrollToSection('landing-how-title')}>How it works</button><button onClick={() => navigate('s12')}>Sign in</button></nav>
       <div className="home-footer-detail"><span>1:1 text mentoring</span><span>Written answers and private session notes</span></div>
     </div>}>
       <div className="proto-landing">
@@ -25,7 +25,7 @@ export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
             <p className="home-eyebrow">Developer mentoring</p>
             <h1 id="landing-title">Work through your code<br /><span>with a mentor.</span></h1>
             <p className="landing-lead">Discuss a problem in your code with another developer.<br className="home-wide-break" /> Your mentor writes up the answer so you can use it later.</p>
-            <div className="home-hero-actions"><Button onClick={() => navigate('s1')}>Find your mentor<ArrowRight aria-hidden="true" /></Button></div>
+            <div className="home-hero-actions"><Button onClick={() => navigate('s19')}>Find your mentor<ArrowRight aria-hidden="true" /></Button></div>
             <div className="dm-fact-chips home-hero-facts" role="group" aria-label="Session format"><Badge variant="outline"><MessageSquare aria-hidden="true" />1:1 text sessions</Badge><Badge variant="outline"><Clock3 aria-hidden="true" />25 or 50 minutes</Badge><Badge variant="outline"><FileText aria-hidden="true" />Written answer included</Badge></div>
             <img className="home-hero-art" src={developerIllustration} width={1536} height={1024} alt="" fetchPriority="high" />
           </div>
@@ -64,7 +64,7 @@ export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
           <li><span className="home-step-number" aria-hidden="true">02</span><h3>Choose a time</h3><p>Pick 25 or 50 minutes, check the price and reserve your session.</p></li>
           <li><span className="home-step-number" aria-hidden="true">03</span><h3>Discuss your code</h3><p>Explain the problem in text. Your mentor writes up the answer and what to try next.</p></li>
         </ol></section>
-        <section className="home-closing" aria-labelledby="home-closing-title"><div className="home-container"><p className="home-eyebrow">Get help with your code</p><h2 id="home-closing-title">Find a mentor for the problem<br />you are working on.</h2><div><Button onClick={() => navigate('s1')}>Find your mentor<ArrowRight aria-hidden="true" /></Button><Button intent="neutral" appearance="stroke" onClick={() => navigate('s12')}>Already have an account? Sign in</Button></div></div></section>
+        <section className="home-closing" aria-labelledby="home-closing-title"><div className="home-container"><p className="home-eyebrow">Get help with your code</p><h2 id="home-closing-title">Find a mentor for the problem<br />you are working on.</h2><div><Button onClick={() => navigate('s19')}>Find your mentor<ArrowRight aria-hidden="true" /></Button><Button intent="neutral" appearance="stroke" onClick={() => navigate('s12')}>Already have an account? Sign in</Button></div></div></section>
       </div>
     </PublicPage>
   </Screen>;

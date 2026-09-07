@@ -32,7 +32,7 @@ Forms have unique field IDs, associated errors, root validation messages and req
 | [Mentor profile: 16](https://github.com/open-mercato/ai_techleaders_project/issues/16) | Identity/fallback, profile card, technology icons, work links, completeness and profile-edit composition | Profile persistence, permissions and share behavior |
 | Mentor ratings and reviews: user request, 7 September 2026 | Average/count, individual feedback, empty state and a validated 1 to 5 star review form with a submission callback; fictional Storybook data | Server-enforced completed-session eligibility, authentication, review storage, moderation and publication policy; no review backend is implemented |
 | [Availability: 17](https://github.com/open-mercato/ai_techleaders_project/issues/17) / [prices: 18](https://github.com/open-mercato/ai_techleaders_project/issues/18) | Timezone-aware slot presentation, date/time form, booked/empty/conflicting slots, 25/50-minute selection and price/bounds forms | Timezone conversion, authoritative price bounds, ownership and slot locking |
-| [Directory: 20](https://github.com/open-mercato/ai_techleaders_project/issues/20) | Mentor directory with stack filter and empty results | Query, pagination and data access |
+| [Directory: 20](https://github.com/open-mercato/ai_techleaders_project/issues/20) | Search by name, technology and topic; stack, price and availability filters; sorting, removable filters and empty results; local catalogue and profile previews | Server query, pagination, authoritative availability and data access |
 | [Booking: 21](https://github.com/open-mercato/ai_techleaders_project/issues/21) / [payment: 22](https://github.com/open-mercato/ai_techleaders_project/issues/22) | Interactive selection-to-summary composition; conflict, minimum-notice, expired-hold, pending, failed and confirmed states | Atomic reservation, Checkout handoff, webhooks and agreed hold/abandonment rules |
 | [My sessions: 23](https://github.com/open-mercato/ai_techleaders_project/issues/23) | Upcoming/past session cards, counterpart identity and read/unread notifications | Queries, notification delivery and read-state persistence |
 | [Text session: 26](https://github.com/open-mercato/ai_techleaders_project/issues/26) / [answer: 27](https://github.com/open-mercato/ai_techleaders_project/issues/27) | Session header, not-started/open/ended states, own and received messages, keyboard-scrollable history, delivery feedback, composer slot and written answers after completion | Q18 channel decision, transport, time enforcement and answer-editing policy |
@@ -56,6 +56,11 @@ Accessibility follow-up: the open Select popup needs a screen-reader review in i
 The design system includes mentor ratings and reviews,
 as requested on 7 September 2026. Demo feedback is fictional. No real reviews
 have been published, and there is no production review service.
+
+The searchable mentor catalogue is a local design extension requested on
+7 September 2026. It goes beyond the original no-search brief in R13/D21 and
+issue #20. It filters supplied data; production search, data access and the
+release decision still need implementation and agreement.
 
 Video, subscriptions, public session notes and unrelated dashboard widgets remain
 outside the current design-system scope. A public mentor review is distinct from

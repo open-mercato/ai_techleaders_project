@@ -27,7 +27,7 @@ export const LongContent: Story = { args: { name: 'Alexandra Kowalska-Laurent', 
 export const WithRating: Story = { args: { rating: { average: 14 / 3, reviewCount: 3 } }, parameters: { docs: { description: { story: 'Fictional demo average: ratings 5, 4 and 5 produce 4.7 from three reviews. Omit rating for legacy profiles, or use reviewCount: 0 for an explicit unrated state.' } } } };
 export const Reviews: Story = { render: () => <div className="dm-product-panel"><p className="dm-product-caption">Fictional demo reviews. These are not real customer testimonials.</p><MentorRatingSummary average={14 / 3} reviewCount={3} /><MentorReviews reviews={demoReviews} /></div> };
 export const NoReviews: Story = { render: () => <div className="dm-product-panel"><MentorRatingSummary average={0} reviewCount={0} /><MentorReviews reviews={[]} /></div> };
-export const TechnologyIcons: Story = { render: () => <TechnologyChips stacks={['TypeScript', 'React', 'API design', 'Python', 'PostgreSQL']} />, parameters: { docs: { description: { story: 'Technology chips pair a text label with a decorative icon. Screen readers use the text; unknown technologies use a code symbol.' } } } };
+export const TechnologyIcons: Story = { render: () => <TechnologyChips stacks={['TypeScript', 'React', 'Python', 'Django', 'Docker', 'Go', 'Next.js', 'Node.js', 'PostgreSQL', 'API design', 'Other technology']} />, parameters: { docs: { description: { story: 'Technology chips and catalogue filters share local SVG marks. Labels stay visible, and decorative icons are hidden from screen readers. Unknown technologies use a code symbol.' } } } };
 
 function ReviewFormExample({ fail = false }: { fail?: boolean }) {
   const [saved, setSaved] = useState(false);

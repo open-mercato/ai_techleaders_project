@@ -13,7 +13,7 @@ export function Screen({ id, title, description, refs, children, note }: { id:st
 }
 
 export function PublicPage({ children, back, className, navigation, footer }: { children:ReactNode; back?:string; className?:string; navigation?:ReactNode; footer?:ReactNode }) {
-  return <div className={['proto-public',className].filter(Boolean).join(' ')}><header className="proto-public-header"><button className="proto-wordmark" onClick={()=>navigate('s17')}>DevMentor<span aria-hidden="true">✦</span></button><nav aria-label="Main navigation">{navigation??<><Button intent="neutral" appearance="ghost" onClick={()=>navigate('s6')}>My sessions</Button><Button intent="neutral" appearance="stroke" onClick={()=>navigate('s12')}>Sign in</Button></>}</nav></header>
+  return <div className={['proto-public',className].filter(Boolean).join(' ')}><header className="proto-public-header"><button className="proto-wordmark" onClick={()=>navigate('s17')}>DevMentor<span aria-hidden="true">✦</span></button><nav aria-label="Main navigation">{navigation??<><Button intent="neutral" appearance="ghost" onClick={()=>navigate('s19')}>Mentors</Button><Button intent="neutral" appearance="ghost" onClick={()=>navigate('s6')}>My sessions</Button><Button intent="neutral" appearance="stroke" onClick={()=>navigate('s12')}>Sign in</Button></>}</nav></header>
     <main className="proto-public-main">{back && <Button size="sm" intent="neutral" appearance="ghost" onClick={()=>navigate(back)}><ArrowLeft aria-hidden="true" />Back</Button>}{children}</main>
     <footer className="proto-public-footer">{footer??<><span>Get coding help from a mentor.</span><span className="dm-meta-group"><span>Text sessions</span><span>Written answers</span><span>Private notes</span></span></>}</footer></div>;
 }

@@ -11,4 +11,6 @@
  --status-success-icon:var(--dm-state-success-dark); --status-warning-icon:var(--dm-state-warning-dark);
  --status-warning-border:var(--dm-state-warning-base); --status-warning-bg:var(--dm-state-warning-lighter); --status-warning-text:var(--dm-state-warning-dark);
  --z-index-sticky:100; --z-index-dropdown:200; --z-index-overlay:300; --z-index-modal:400; --z-index-toast:500; --z-index-top:600;
+ --z-index-product-overlay:calc(var(--z-index-top) + 100);
+ --z-index-product-modal:calc(var(--z-index-product-overlay) + 1);
 }

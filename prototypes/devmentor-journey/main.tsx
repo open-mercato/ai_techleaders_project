@@ -10,8 +10,10 @@ import { BookingScreens } from './BookingScreens';
 import { SessionScreens } from './SessionScreens';
 import { LandingScreen } from './LandingScreen';
 import { MentorProfileScreen } from './MentorProfileScreen';
+import { MentorCatalogueScreen } from './MentorCatalogueScreen';
+import { getPrototypeMentors } from './mentors';
 import { INITIAL_REVIEWS } from './reviews';
-import { dateLabel, INITIAL_SLOTS, timeLabel, type Slot } from './flow';
+import { dateLabel, DEMO_NOW, INITIAL_SLOTS, timeLabel, type Slot } from './flow';
 import { getSignInDestination, navigate } from './navigation';
 import './styles.css';
 import './comments.js';
@@ -20,6 +22,7 @@ import './prototype.js';
 declare global { interface Window { __DEVMENTOR_PROTOTYPE_START__:()=>boolean } }
 const screens = [
  ['s17','Home'],
+ ['s19','Mentor catalogue'],
  ['s1','Mentor profile'],['s3','Choose a session'],['s12','Sign in'],['s4','Booking summary'],
  ['s14','Demo checkout'],['s5','Payment recovery'],['s13','Slot conflict / expiry'],['s6','My sessions'],
  ['s7','Text session'],['s8','Written answer'],['s9','Review private note'],['s10','Request changes'],
@@ -73,6 +76,7 @@ function Prototype() {
   <header className="doc-toolbar"><div className="proto-review-brand"><strong>DevMentor</strong><span>Prototype</span></div><label className="proto-screen-select"><span className="sr-only">Preview screen</span><select value={screen} onChange={event=>navigate(event.target.value)}>{screens.map(([id,title])=><option key={id} value={id}>{title}</option>)}</select></label><span className="proto-local-badge">Local demo</span><Button size="xs" intent="neutral" appearance="ghost" aria-expanded={review} onClick={()=>setReview(!review)}><SlidersHorizontal aria-hidden="true" />Review tools</Button><button id="theme-toggle" type="button" className="btn btn-outline btn-sm" aria-label={dark?'Use light theme':'Use dark theme'} onClick={()=>setDark(!dark)}>{dark?<Sun size={16}/>:<Moon size={16}/>}</button><nav className="screen-nav" aria-label="Review screen map">{screens.map(([id,title])=><a href={`#${id}`} key={id} aria-current={id===screen?'page':undefined}>{title}</a>)}</nav></header>
   <div className="doc"><header className="doc-head"><p className="proto-eyebrow">DevMentor Design System: clickable flow</p><h1>Booking, sessions and mentor feedback</h1><p>This demo uses fictional data and simulates sign-in and payments locally. Demo clock: 10 September 2026, 08:00 UTC. Review comments stay in this browser until exported.</p></header>
    <LandingScreen reviews={mentorReviews}/>
+   <MentorCatalogueScreen mentors={getPrototypeMentors(prices,mentorReviews,slots)} now={new Date(DEMO_NOW).toISOString()}/>
    <MentorProfileScreen prices={prices} reviews={mentorReviews}/>
    <BookingScreens slots={slots} selected={selected} duration={duration} prices={prices} timeZone={timeZone} signedIn={signedIn} continuingBooking={signInDestination==='s4'} onSelect={setSelectedId} onDuration={setDuration} onTimeZone={setTimeZone} onSignIn={()=>{setSignedIn(true);navigate(signInDestination);}} onOutcome={outcome} conflict={conflict}/>
    <SessionScreens duration={confirmed?.duration??25} sessionPrice={confirmed?.price??180} slots={slots} startsAt={session.start} dateLabel={dateLabel(session.start,timeZone)} timeLabel={timeLabel(session.start,timeZone)} timeZone={timeZone} prices={prices} submittedReview={submittedReview} onReviewSubmit={submitMentorReview} onPricesChange={setPrices} onSlotAdded={startsAt=>setSlots(current=>current.some(s=>s.start===startsAt)?current:[...current,{id:`added-${startsAt}`,start:startsAt}])}/>

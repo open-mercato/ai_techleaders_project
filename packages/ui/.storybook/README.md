@@ -24,6 +24,9 @@ components and local mocks. Open it at
 - Shared CrudForm with right-aligned secondary/primary actions, FormField, DataTable,
   feedback and workspace/auth layouts with full-width sign-in actions.
 - Product patterns for the project backlog, built from reusable package components.
+- Mentor search with technology, price and availability filters, sorting, result
+  counts and empty states. The local prototype includes a catalogue of fictional
+  mentors and profile previews.
 - Text conversations with own/received messages, delivery states, keyboard-scrollable
   history and written answers after session completion.
 - Usage/accessibility, contribution and delivery coverage documentation.

@@ -1,9 +1,9 @@
 # DevMentor prototype
 
 A standalone React prototype using the shared `@devmentor/ui` components, tokens,
-fonts and icons. Eighteen screens cover the homepage, mentor profile, booking,
-mentee and mentor workspaces, text session, written answer, private notes and
-mentor reviews.
+fonts and icons. Nineteen screens cover the homepage, mentor catalogue and
+profiles, booking, mentee and mentor workspaces, text session, written answer,
+private notes and mentor reviews.
 
 ## Run locally
 
@@ -28,8 +28,15 @@ the HTTP server; opening source HTML with
 
 ## Walk through the prototype
 
-Start at the homepage, open the mentor profile, choose a time and session length,
-sign in, review the booking and select a demo payment result. Failure keeps the
+Start at the homepage and choose **Find your mentor** to open the catalogue.
+Search the six fictional mentors by name, technology or help topic. Combine a
+technology, price and availability filter; sort by the next published time or
+25-minute price. Applied filters can be removed separately or cleared together.
+Each profile action opens details for that mentor. Closing the profile returns
+focus to its card and keeps the current search and filters.
+
+Alex Laurent's profile preview also opens his full profile. Choose a time and
+session length, sign in, review the booking and select a demo payment result. Failure keeps the
 selection, a conflict blocks the occupied time, and an expired hold clears the
 selection. Standalone sign-in opens My sessions; signing in during booking returns
 to the selected booking summary.
@@ -51,8 +58,9 @@ visited during this visit. Reload resets sample business data.
 document. The theme control switches the whole prototype between light and dark.
 
 Comments stay in the current browser under
-`om-prototype-comments:v2:devmentor-journey`. Screen IDs remain `s1` through `s18`;
-the homepage is `s17`. Existing comments may need **Re-anchor** after layout edits.
+`om-prototype-comments:v2:devmentor-journey`. The original screen IDs `s1` through
+`s18` are unchanged; the homepage is `s17` and the catalogue is `s19`. Existing
+comments may need **Re-anchor** after layout edits.
 **Export Markdown** downloads a readable report. **Export for repository**
 downloads the operation log; to include reviewed comments in a build, replace
 `comments.js` with that export and rebuild. Preserve operation IDs and deletion
@@ -68,11 +76,16 @@ other reviewers. The checked-in comment log starts empty.
 - GitHub/email sign-in, payment outcomes, messages and form saves are simulated.
   The local mock worker handles `/prototype-api/devmentor-journey/save`. No real
   accounts, charges, message delivery or database writes are created.
-- Session prices start at PLN 180 for 25 minutes and PLN 320 for 50 minutes.
+- Alex's session prices start at PLN 180 for 25 minutes and PLN 320 for 50 minutes.
   Allowed ranges of PLN 90–600 and PLN 180–1,200 are sample operator settings.
+- The catalogue filters fictional records in memory. It does not call a search
+  service or save preferences across reloads. Every card has its own profile
+  preview; only Alex has the full booking flow. His catalogue prices, reviews and
+  times follow the current sample settings. The other five profiles have fixed
+  sample biographies, rating summaries and availability.
 - The final session channel and payout policy remain product decisions. The
-  prototype does not implement a mentor directory, public notes, payout processing,
-  review moderation or authoritative review eligibility.
+  prototype does not implement a production mentor directory, public notes, payout
+  processing, review moderation or authoritative review eligibility.
 - Copy and sample data are in English. Production localization and service
   integrations are separate work.
 
