@@ -2,7 +2,8 @@
 import { createRef } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockTopLayerSelectors } from './overlay.test-helpers';
 import { Checkbox } from './checkbox';
 import { Input } from './input';
 import { Label } from './label';
@@ -11,13 +12,21 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSepa
 import { Switch } from './switch';
 import { Textarea } from './textarea';
 
+let topLayerSelectors: ReturnType<typeof mockTopLayerSelectors>;
+beforeEach(() => { topLayerSelectors = mockTopLayerSelectors(); });
 beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
   Element.prototype.hasPointerCapture = vi.fn(() => false);
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
 });
-afterEach(cleanup);
+afterEach(() => {
+  try {
+    cleanup();
+  } finally {
+    topLayerSelectors.mockRestore();
+  }
+});
 
 describe('text controls', () => {
   it('retains native type, change events, labels, ref and density semantics', () => {

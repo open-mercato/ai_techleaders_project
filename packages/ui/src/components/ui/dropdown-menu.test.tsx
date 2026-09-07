@@ -65,9 +65,8 @@ describe('DropdownMenu', () => {
     expect(document.querySelector('[role="menuitemradio"]')?.getAttribute('aria-checked')).toBe('false');
   });
 
-  it('supports a portalled submenu and inset labels', () => {
-    // Inspect composition synchronously, before layout work that jsdom cannot model.
-    dom.renderSync(<DropdownMenu defaultOpen><DropdownMenuTrigger>Actions</DropdownMenuTrigger><DropdownMenuContent avoidCollisions={false}>
+  it('supports a portalled submenu and inset labels', async () => {
+    await dom.render(<DropdownMenu defaultOpen><DropdownMenuTrigger>Actions</DropdownMenuTrigger><DropdownMenuContent avoidCollisions={false}>
       <DropdownMenuLabel inset>Display</DropdownMenuLabel>
       <DropdownMenuSub open><DropdownMenuSubTrigger inset>Time zone</DropdownMenuSubTrigger><DropdownMenuPortal><DropdownMenuSubContent avoidCollisions={false} className="custom"><DropdownMenuItem>Europe/Warsaw</DropdownMenuItem></DropdownMenuSubContent></DropdownMenuPortal></DropdownMenuSub>
     </DropdownMenuContent></DropdownMenu>);
@@ -76,6 +75,6 @@ describe('DropdownMenu', () => {
     expect(slot('dropdown-menu-label').dataset.inset).toBe('true');
     expect(slot('dropdown-menu-sub-content').className).toContain('dm-dropdown-menu-sub-content custom');
     expect(document.querySelectorAll('[role="menu"]')).toHaveLength(2);
-    dom.renderSync(null);
+    await dom.render(null);
   });
 });

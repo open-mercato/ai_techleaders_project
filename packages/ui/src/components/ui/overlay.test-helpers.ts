@@ -1,11 +1,23 @@
 // Test-only DOM harness shared by overlay regression tests.
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach } from 'vitest';
+import { afterEach, beforeAll, beforeEach, vi } from 'vitest';
+
+export function mockTopLayerSelectors() {
+  // jsdom 26 / nwsapi 2.2.27 recurse through Element.matches for native top-layer
+  // states. Radix portals in these tests never enter that layer. Keep all other
+  // selectors and the real Floating UI geometry/positioning code intact.
+  const matches = Element.prototype.matches;
+  return vi.spyOn(Element.prototype, 'matches').mockImplementation(function (this: Element, selector) {
+    if (selector === ':popover-open' || selector === ':modal' || selector === ':fullscreen') return false;
+    return matches.call(this, selector);
+  });
+}
 
 export function overlayHarness() {
   let host: HTMLDivElement;
   let root: Root;
+  let topLayerSelectors: ReturnType<typeof mockTopLayerSelectors>;
   beforeAll(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     Object.assign(HTMLElement.prototype, {
@@ -21,16 +33,20 @@ export function overlayHarness() {
     };
   });
   beforeEach(() => {
+    topLayerSelectors = mockTopLayerSelectors();
     host = document.createElement('div');
     document.body.append(host);
     root = createRoot(host);
   });
   afterEach(async () => {
-    await act(async () => root.unmount());
-    host.remove();
+    try {
+      await act(async () => root.unmount());
+    } finally {
+      host.remove();
+      topLayerSelectors.mockRestore();
+    }
   });
   return {
-    renderSync(node: ReactNode) { act(() => root.render(node)); },
     async render(node: ReactNode) { await act(async () => root.render(node)); },
     async click(element: Element) {
       await act(async () => (element as HTMLElement).click());
