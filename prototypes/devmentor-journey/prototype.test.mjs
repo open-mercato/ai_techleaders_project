@@ -268,3 +268,23 @@ test('comment anchors use the associated native input label', t => {
   env.d.querySelector('#text-input').click();
   assert.equal(env.d.querySelector('.anno-thread.active .anno-anchor').textContent, 'Email address');
 });
+
+
+test('changing a live screen link uses navigation events without losing review state', t => {
+  const env = environment(t);
+  env.init();
+  const changes = [];
+  env.d.addEventListener('devmentor:screen-change', event => changes.push(event.detail));
+  const before = env.snapshot();
+  env.w.history.replaceState(null, '', '#s1');
+  env.w.dispatchEvent(new env.w.HashChangeEvent('hashchange'));
+  assert.equal(env.d.querySelector('.screen.is-current').id, 's1');
+  assert.equal(env.d.activeElement.textContent, 'First screen');
+  assert.deepEqual(changes, ['s1']);
+  env.w.dispatchEvent(new env.w.HashChangeEvent('hashchange'));
+  assert.deepEqual(changes, ['s1']);
+  env.w.history.replaceState(null, '', '#missing');
+  env.w.dispatchEvent(new env.w.HashChangeEvent('hashchange'));
+  assert.equal(env.d.querySelector('.screen.is-current').id, 's1');
+  assert.deepEqual(env.snapshot(), before);
+});

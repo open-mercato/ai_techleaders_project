@@ -23,6 +23,8 @@ export default defineConfig({
         'packages/ui/src/backend/shell/AuthLayout.tsx',
         'packages/ui/src/backend/tables/DataTable.tsx',
         'packages/ui/src/components/auth/AccessStatus.tsx',
+        'packages/ui/src/components/auth/AccountForm.tsx',
+        'packages/ui/src/components/auth/AuthFeedback.tsx',
         'packages/ui/src/components/availability/AvailabilityPicker.tsx',
         'packages/ui/src/components/bookings/BookingSummary.tsx',
         'packages/ui/src/components/disputes/DisputeDetail.tsx',

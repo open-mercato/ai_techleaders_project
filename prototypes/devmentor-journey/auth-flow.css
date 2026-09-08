@@ -1,0 +1,19 @@
+.proto-auth-controls { padding:28px max(24px,calc((100vw - 1200px)/2)); background:var(--card); border-bottom:1px solid var(--border); display:grid; gap:24px; }
+.proto-auth-controls h2 { font-weight:600; font-size:18px; margin:0 0 8px; }
+.proto-auth-controls p { max-width:78ch; line-height:1.7; margin:0; color:var(--muted-foreground); }
+.proto-auth-controls details { border:1px solid var(--border); border-radius:12px; padding:16px 20px; }
+.proto-auth-controls summary { cursor:pointer; font-weight:600; }
+.proto-auth-controls details p,.proto-auth-controls ul { margin-top:16px; }
+.proto-auth-controls li { display:flex; flex-wrap:wrap; gap:8px 20px; padding:6px 0; overflow-wrap:anywhere; }
+.proto-auth-control-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.proto-auth-control-grid label { display:grid; gap:8px; font-weight:500; }
+.proto-auth-control-grid select { padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--background); width:100%; min-width:0; }
+.proto-auth-control-grid .proto-auth-checkbox { display:flex; align-items:center; gap:10px; }
+.proto-email-preview { padding:28px; display:grid; gap:20px; }
+.proto-email-preview h2 { font-size:20px; line-height:28px; font-weight:600; }
+.proto-email-preview .proto-eyebrow { display:flex; align-items:center; gap:8px; }
+.proto-email-preview svg { width:18px; height:18px; }
+.proto-auth-footer { justify-content:flex-end; }
+.proto-access-gate { padding:48px 24px; max-width:620px; margin:auto; }
+.proto-workspace-notice { margin-bottom:32px; }
+@media(max-width:700px) { .proto-auth-control-grid { grid-template-columns:1fr; } .proto-email-preview { padding:24px 20px; } .proto-auth-footer > button { flex:1 1 100%; } }

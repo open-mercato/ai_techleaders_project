@@ -11,8 +11,8 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-function session() {
-  const { container } = render(<SessionScreens duration={25} startsAt="2026-09-10T10:00:00Z" dateLabel="10 September" timeLabel="12:00" timeZone="Europe/Warsaw" slots={[]} sessionPrice={180} prices={{ 25: 180, 50: 320 }} submittedReview={null} onReviewSubmit={vi.fn()} onPricesChange={vi.fn()} onSlotAdded={vi.fn()} />);
+function session(hasBooking = true) {
+  const { container } = render(<SessionScreens hasBooking={hasBooking} duration={25} startsAt="2026-09-10T10:00:00Z" dateLabel="10 September" timeLabel="12:00" timeZone="Europe/Warsaw" slots={[]} sessionPrice={180} prices={{ 25: 180, 50: 320 }} submittedReview={null} onReviewSubmit={vi.fn()} onPricesChange={vi.fn()} onSlotAdded={vi.fn()} />);
   const room = container.querySelector<HTMLElement>('#s7')!;
   room.classList.add('is-current');
   return { room: within(room), workspace: within(container.querySelector<HTMLElement>('#s6')!) };
@@ -57,4 +57,19 @@ it('offers the written answer only after completion and does not restart the ses
   fireEvent.click(workspace.getByRole('button', { name: 'View conversation' }));
   expect(room.queryByRole('textbox')).toBeNull();
   expect(room.getByRole('button', { name: 'Read the written answer' })).toBeTruthy();
+});
+
+
+it('shows a fresh workspace without confirmed-payment claims and links to the mentor catalogue', () => {
+  const { workspace } = session(false);
+  expect(workspace.getByRole('heading', { name: 'My sessions', level: 1 })).toBeTruthy();
+  expect(workspace.getByText('No sessions yet')).toBeTruthy();
+  expect(workspace.queryByText(/Payment confirmed/)).toBeNull();
+  expect(workspace.queryByRole('button', { name: 'Open text session' })).toBeNull();
+  const navigate = vi.fn();
+  document.addEventListener('devmentor:navigate', navigate);
+  try {
+    fireEvent.click(workspace.getByRole('button', { name: 'Find a mentor' }));
+    expect(navigate.mock.calls[0][0].detail).toBe('s19');
+  } finally { document.removeEventListener('devmentor:navigate', navigate); }
 });

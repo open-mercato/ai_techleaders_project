@@ -6,5 +6,12 @@ export default defineConfig({
     { find: '@devmentor/ui/backend', replacement: fileURLToPath(new URL('../../packages/ui/src/backend/index.ts', import.meta.url)) },
     { find: '@devmentor/ui', replacement: fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)) },
   ] },
-  test: { environment: 'jsdom', include: ['prototypes/devmentor-journey/*.test.tsx'] },
+  test: {
+    environment: 'jsdom', include: ['prototypes/devmentor-journey/*.test.tsx'],
+    coverage: {
+      provider: 'v8', enabled: true, reportsDirectory: 'coverage/prototype',
+      include: ['prototypes/devmentor-journey/auth-model.ts', 'prototypes/devmentor-journey/auth-runtime.ts'],
+      thresholds: { perFile: true, statements: 100, branches: 100, functions: 100, lines: 100 },
+    },
+  },
 });

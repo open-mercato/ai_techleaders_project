@@ -47,6 +47,36 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('CrudForm', () => {
+  it('reports pending request transitions without announcing client validation as a submission', async () => {
+    const onSubmittingChange = vi.fn();
+    render(<CrudForm schema={z.object({ name: z.string().min(1, 'Enter a name.') })}
+      fields={textFields} endpoint="/api/profile" onSubmittingChange={onSubmittingChange} />);
+    submitForm();
+    expect(onSubmittingChange).not.toHaveBeenCalled();
+    fireEvent.change(input('Name'), { target: { value: 'Ada' } });
+    submitForm();
+    await waitFor(() => expect(onSubmittingChange.mock.calls).toEqual([[true], [false]]));
+    request.mockRejectedValueOnce(new Error('Connection interrupted'));
+    submitForm();
+    await screen.findByRole('alert');
+    expect(onSubmittingChange.mock.calls).toEqual([[true], [false], [true], [false]]);
+  });
+
+  it('keeps field guidance associated with its control before and after validation and supplies autocomplete', () => {
+    render(<CrudForm schema={z.object({ password: z.string().min(12, 'This password is too short.') })}
+      fields={[{ name: 'password', label: 'Password', type: 'password', autoComplete: 'new-password', description: 'Use at least 12 characters.' }]}
+      endpoint="/api/register" />);
+    const password = input('Password');
+    expect(password.autocomplete).toBe('new-password');
+    const descriptionId = password.getAttribute('aria-describedby')!;
+    expect(document.getElementById(descriptionId)?.textContent).toBe('Use at least 12 characters.');
+    submitForm();
+    const references = password.getAttribute('aria-describedby')!.split(' ');
+    expect(references[0]).toBe(descriptionId);
+    expect(references.map(id => document.getElementById(id)?.textContent)).toEqual(['Use at least 12 characters.', 'This password is too short.']);
+    expect(document.activeElement).toBe(password);
+  });
+
   it('focuses the first invalid control after submit without stealing focus while editing', () => {
     render(<CrudForm schema={z.object({ name: z.string().min(1, 'Enter your name.'), email: z.email('Enter a valid email.') })}
       fields={[{ name: 'name', label: 'Name' }, { name: 'email', label: 'Email', type: 'email' }]} endpoint="/api/profile" />);

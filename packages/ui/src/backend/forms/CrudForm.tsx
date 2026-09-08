@@ -16,6 +16,9 @@ export interface CrudField {
   label: string;
   type?: CrudFieldType;
   placeholder?: string;
+  /** Persistent helper text associated with the field, including when it has errors. */
+  description?: string;
+  autoComplete?: string;
   /** Marks a required control; the schema remains the validation authority. */
   required?: boolean;
   /** Options for `select` fields. */
@@ -34,6 +37,8 @@ export interface CrudFormProps<T> {
   submitLabel?: string;
   onSuccess?: (data: unknown) => void;
   onCancel?: () => void;
+  /** Lets a composition disable competing actions while this request is pending. */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
 function flattenZodError(error: z.ZodError): FieldErrors {
@@ -68,6 +73,7 @@ export function CrudForm<T>({
   submitLabel = 'Save',
   onSuccess,
   onCancel,
+  onSubmittingChange,
 }: CrudFormProps<T>) {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -117,6 +123,7 @@ export function CrudForm<T>({
     pending.current = true;
     setSubmitting(true);
     try {
+      onSubmittingChange?.(true);
       const result = await apiCall(endpoint, { method, body: parsed.data });
       if (result.ok) {
         onSuccess?.(result.data);
@@ -133,8 +140,9 @@ export function CrudForm<T>({
     } finally {
       pending.current = false;
       setSubmitting(false);
+      onSubmittingChange?.(false);
     }
-  }, [endpoint, fields, method, onSuccess, schema, values]);
+  }, [endpoint, fields, method, onSuccess, onSubmittingChange, schema, values]);
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLFormElement>) => {
@@ -166,14 +174,16 @@ export function CrudForm<T>({
         const value = values[field.name];
         const id = `${formId}-${field.name}`;
         const errorId = `${id}-errors`;
+        const descriptionId = `${id}-description`;
         const inputProps = {
           id,
           name: field.name,
           disabled: submitting,
           required: field.required,
+          autoComplete: field.autoComplete,
           'aria-required': Boolean(field.required),
           'aria-invalid': Boolean(errors?.length),
-          'aria-describedby': errors?.length ? errorId : undefined,
+          'aria-describedby': [field.description && descriptionId, errors?.length && errorId].filter(Boolean).join(' ') || undefined,
         };
         return (
           <div key={field.name} className="dm-field">
@@ -233,6 +243,8 @@ export function CrudForm<T>({
                 }
               />
             )}
+
+            {field.description && <p id={descriptionId} className="dm-field-description">{field.description}</p>}
 
             {errors?.length ? (
               <div id={errorId} role="alert">

@@ -25,6 +25,7 @@ import { navigate } from './navigation';
 import { DEMO_NOW, money, timeLabel as formatTime, type Slot } from './flow';
 
 export interface SessionScreensProps {
+  hasBooking?: boolean;
   duration: 25 | 50;
   startsAt: string;
   dateLabel: string;
@@ -72,7 +73,7 @@ function slotLabel(startsAt: string, timeZone: string) {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone }).format(new Date(startsAt));
 }
 
-export function SessionScreens({ duration, startsAt, dateLabel, timeLabel, timeZone, slots, sessionPrice, prices, onPricesChange, onSlotAdded, submittedReview, onReviewSubmit }: SessionScreensProps) {
+export function SessionScreens({ hasBooking = true, duration, startsAt, dateLabel, timeLabel, timeZone, slots, sessionPrice, prices, onPricesChange, onSlotAdded, submittedReview, onReviewSubmit }: SessionScreensProps) {
   const [sentMessages, setSentMessages] = useState<string[]>([]);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [hasMessageDraft, setHasMessageDraft] = useState(false);
@@ -160,13 +161,15 @@ export function SessionScreens({ duration, startsAt, dateLabel, timeLabel, timeZ
   }
 
   return <>
-    <Screen id="s6" title="6. Your booking is confirmed" description="The mentee can see their confirmed text session in My sessions." refs={['#22', '#23']}>
+    <Screen id="s6" title="My sessions" description="New accounts start with an empty workspace; confirmed sessions appear here." refs={['#22', '#23']}>
       <Workspace>
+        {!hasBooking ? <div className="dm-product-stack"><h1 className="dm-product-heading">My sessions</h1><EmptyState title="No sessions yet" description="Find a mentor and choose a time for your first session." action={<Button onClick={() => navigate('s19')}>Find a mentor</Button>}/></div> : <>
         <div className="dm-product-stack">
           <header><span className="dm-product-eyebrow">Your workspace</span><h1 className="dm-product-heading">{sessionEnded ? 'Your completed session' : 'Your upcoming session'}</h1><p className="dm-product-muted">{sessionEnded ? 'Your conversation and written answer are available below.' : 'Payment confirmed. Your time with Alex is reserved.'}</p></header>
           <SessionCard title="Make your TypeScript result easier to use" participant={mentor} startsAt={startsAt} dateLabel={`${dateLabel}, ${timeLabel}`} timeZone={timeZone} duration={duration} state={sessionEnded ? 'ended' : 'upcoming'} actions={<Button onClick={() => navigate('s7')}>{sessionEnded ? 'View conversation' : 'Open text session'}</Button>} />
           <p className="dm-product-caption">You and Alex can find this session in your workspaces. Session fee: {money(sessionPrice)}.</p>
         </div>
+      </>}
       </Workspace>
     </Screen>
 

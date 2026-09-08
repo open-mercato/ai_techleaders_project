@@ -1,0 +1,21 @@
+.dm-account-form { display: grid; gap: var(--dm-space-panel-gap); min-width: 0; font-family: var(--dm-font-family); }
+.dm-account-form .dm-button { min-height: 44px; height: auto; white-space: normal; }
+.dm-account-provider, .dm-account-email .dm-form-actions, .dm-account-email .dm-form-actions .dm-button { width: 100%; }
+.dm-account-divider { display: flex; align-items: center; gap: var(--dm-space-12); color: var(--dm-text-sub-600); font-size: var(--dm-text-xs); line-height: var(--dm-line-xs); }
+.dm-account-divider::before, .dm-account-divider::after { content: ''; height: 1px; background: var(--border); flex: 1; }
+.dm-account-email { min-width: 0; margin: 0; padding: 0; border: 0; }
+.dm-account-legend { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.dm-account-email .dm-form { gap: var(--dm-space-panel-gap); }
+.dm-account-email .dm-field { gap: var(--dm-space-8); }
+.dm-field-description { color: var(--dm-text-sub-600); font-size: var(--dm-text-xs); line-height: var(--dm-line-xs); margin: 0; }
+.dm-account-email-unavailable { margin: 0 0 var(--dm-space-panel-gap); color: var(--dm-text-sub-600); font-size: var(--dm-text-sm); line-height: 24px; }
+.dm-account-email:disabled .dm-input { opacity: .55; cursor: not-allowed; }
+.dm-account-email:disabled .dm-form-actions .dm-button { opacity: .55; cursor: not-allowed; }
+.dm-account-switch { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0 var(--dm-space-8); margin: 0; color: var(--dm-text-sub-600); font-size: var(--dm-text-sm); }
+.dm-account-switch .dm-button { width: auto; padding-inline: var(--dm-space-8); }
+.dm-auth-feedback { padding: var(--dm-space-16); gap: var(--dm-space-8); font-size: var(--dm-text-sm); line-height: 24px; overflow-wrap: anywhere; }
+.dm-auth-feedback .dm-alert-title { font-weight: 600; }
+.dm-auth-feedback .dm-alert-description { gap: var(--dm-space-8); }
+.dm-auth-feedback-detail { font-weight: 500; }
+.dm-auth-feedback-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: var(--dm-space-8); margin-top: var(--dm-space-8); }
+.dm-auth-feedback-actions .dm-button { min-height: 44px; height: auto; max-width: 100%; white-space: normal; }

@@ -1,22 +1,27 @@
 import { ArrowRight, Check, Clock3, CodeXml, FileText, LockKeyhole, MessageSquare } from 'lucide-react';
 import { Badge, Button, Card, MentorRatingSummary, TechnologyChips, type MentorReview } from '@devmentor/ui';
 import { PublicPage, Screen } from './Frame';
+import { useAuth } from './auth-context';
+import { homeFor } from './auth-model';
 import { navigate, scrollToSection } from './navigation';
 import developerIllustration from './assets/developer-mentoring.png';
 import './landing.css';
 
 export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
+  const auth = useAuth();
+  const accountScreen = auth?.user ? homeFor(auth.user.roles) : 's12';
+  const accountLabel = auth?.user ? 'My workspace' : 'Sign in';
   const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
   return <Screen id="s17" title="Home" description="See how text mentoring works, find a mentor and choose a session." refs={['#16', '#18', '#27', 'M01', 'M04']}
     note="Local homepage with an original generated illustration. All mentors and reviews are fictional. The catalogue supports local search and profile previews; Alex Laurent has the complete booking flow. Freelance hiring and public mentor registration are outside this prototype.">
     <PublicPage className="proto-landing-page" navigation={<>
       <Button className="home-section-nav" intent="neutral" appearance="ghost" onClick={() => scrollToSection('landing-how-title')}>How it works</Button>
       <Button className="home-section-nav" intent="neutral" appearance="ghost" onClick={() => scrollToSection('home-mentor-title')}>Meet a mentor</Button>
-      <Button intent="neutral" appearance="ghost" onClick={() => navigate('s12')}>Sign in</Button>
+      <Button intent="neutral" appearance="ghost" onClick={() => navigate(accountScreen)}>{accountLabel}</Button>
       <Button onClick={() => navigate('s19')}>Find your mentor<ArrowRight aria-hidden="true" /></Button>
     </>} footer={<div className="home-footer-inner">
       <div><span className="home-footer-wordmark">DevMentor<span aria-hidden="true">✦</span></span><p>Discuss your code with a mentor.<br />Keep the explanation for later.</p></div>
-      <nav aria-label="Footer navigation"><button onClick={() => navigate('s19')}>Find a mentor</button><button onClick={() => scrollToSection('landing-how-title')}>How it works</button><button onClick={() => navigate('s12')}>Sign in</button></nav>
+      <nav aria-label="Footer navigation"><button onClick={() => navigate('s19')}>Find a mentor</button><button onClick={() => scrollToSection('landing-how-title')}>How it works</button><button onClick={() => navigate(accountScreen)}>{accountLabel}</button></nav>
       <div className="home-footer-detail"><span>1:1 text mentoring</span><span>Written answers and private session notes</span></div>
     </div>}>
       <div className="proto-landing">
@@ -64,7 +69,7 @@ export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
           <li><span className="home-step-number" aria-hidden="true">02</span><h3>Choose a time</h3><p>Pick 25 or 50 minutes, check the price and reserve your session.</p></li>
           <li><span className="home-step-number" aria-hidden="true">03</span><h3>Discuss your code</h3><p>Explain the problem in text. Your mentor writes up the answer and what to try next.</p></li>
         </ol></section>
-        <section className="home-closing" aria-labelledby="home-closing-title"><div className="home-container"><p className="home-eyebrow">Get help with your code</p><h2 id="home-closing-title">Find a mentor for the problem<br />you are working on.</h2><div><Button onClick={() => navigate('s19')}>Find your mentor<ArrowRight aria-hidden="true" /></Button><Button intent="neutral" appearance="stroke" onClick={() => navigate('s12')}>Already have an account? Sign in</Button></div></div></section>
+        <section className="home-closing" aria-labelledby="home-closing-title"><div className="home-container"><p className="home-eyebrow">Get help with your code</p><h2 id="home-closing-title">Find a mentor for the problem<br />you are working on.</h2><div><Button onClick={() => navigate('s19')}>Find your mentor<ArrowRight aria-hidden="true" /></Button><Button intent="neutral" appearance="stroke" onClick={() => navigate(accountScreen)}>{auth?.user ? 'Open my workspace' : 'Already have an account? Sign in'}</Button></div></div></section>
       </div>
     </PublicPage>
   </Screen>;

@@ -6,7 +6,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 <p className="ds-doc-lead">Which backlog items have reusable UI, and what still needs implementation in the product.</p>
 
-Updated 7 September 2026. "Available" means package UI code with stories and tests. The corresponding GitHub issue, server flow or payment integration may still be incomplete.
+Updated 8 September 2026. "Available" means package UI code with stories and tests. The corresponding GitHub issue, server flow or payment integration may still be incomplete.
 
 ## Available in the design system
 
@@ -18,6 +18,7 @@ Updated 7 September 2026. "Available" means package UI code with stories and tes
 | Overlays | Dialog, AlertDialog, Popover, Tooltip and DropdownMenu with keyboard behavior |
 | Feedback | Alert, Progress, Skeleton, LoadingMessage, ErrorMessage and EmptyState with recovery/action slots |
 | Shared patterns | CrudForm validation, saving and right-aligned secondary/primary actions; DataTable labeling, pagination and horizontal scrolling; AppShell and full-width AuthLayout actions |
+| Account flows | AccountForm for sign-in and registration; AuthFeedback for verification, sign-in failures, retry and access states; connected E01 prototype |
 | Mentor feedback | Optional rating aggregates, written reviews and empty state, accessible review form, and technology chips with decorative icons |
 | Handoff | Searchable component gallery, props and state examples, usage/accessibility guidance, contribution and change conventions |
 
@@ -27,7 +28,7 @@ Forms have unique field IDs, associated errors, root validation messages and req
 
 | Area | Available UI | Still required in the product |
 | --- | --- | --- |
-| [Accounts and roles: 12 to 14](https://github.com/open-mercato/ai_techleaders_project/issues/12) | Full-width neutral GitHub and primary email sign-in, separate back navigation, verification and expired-link states, access status, responsive workspace and additive-role examples | Authentication, sessions, email delivery and server-side authorization |
+| [Accounts and roles: 12 to 14](https://github.com/open-mercato/ai_techleaders_project/issues/12) | Connected GitHub/email sign-in, registration, inbox and verification; retry, conflict and expiry feedback; role homes, combined navigation, operator users, access denial and sign-out | Real OAuth, credentials, sessions, email delivery, rate limiting and server-side authorization. [See E01 coverage and review paths](?path=/docs/design-system-e01-accounts-and-roles--docs). |
 | [Invitations: 15](https://github.com/open-mercato/ai_techleaders_project/issues/15) | Invalid/expired/used invitation feedback, invitation batches and acceptance guidance | Token validation, delivery and invitation lifecycle |
 | [Mentor profile: 16](https://github.com/open-mercato/ai_techleaders_project/issues/16) | Identity/fallback, profile card, technology icons, work links, completeness and profile-edit composition | Profile persistence, permissions and share behavior |
 | Mentor ratings and reviews: user request, 7 September 2026 | Average/count, individual feedback, empty state and a validated 1 to 5 star review form with a submission callback; fictional Storybook data | Server-enforced completed-session eligibility, authentication, review storage, moderation and publication policy; no review backend is implemented |

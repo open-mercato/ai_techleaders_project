@@ -776,6 +776,10 @@
     document.addEventListener('devmentor:navigate', function (event) {
       if (typeof event.detail === 'string') goTo(event.detail);
     });
+    window.addEventListener('hashchange', function () {
+      var linkedScreen = screenFor(hashScreenId(window.location.hash));
+      if (linkedScreen && !linkedScreen.classList.contains('is-current')) goTo(linkedScreen.id);
+    });
     window.addEventListener('resize', renderPins);
     window.addEventListener('scroll', renderPins, true);
     window.addEventListener('keydown', function (event) {
