@@ -1,0 +1,12 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, userEvent, within } from 'storybook/test';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './accordion';
+const items = <><AccordionItem value="format"><AccordionTrigger>How is my answer delivered?</AccordionTrigger><AccordionContent>Your mentor replies in writing, with explanations and links you can revisit after the session.</AccordionContent></AccordionItem><AccordionItem value="privacy"><AccordionTrigger>Who can see my session?</AccordionTrigger><AccordionContent>The developer and mentor can access their session content. Notes remain private to the mentor.</AccordionContent></AccordionItem><AccordionItem value="unavailable" disabled><AccordionTrigger>Unavailable topic</AccordionTrigger><AccordionContent>This topic is unavailable.</AccordionContent></AccordionItem></>;
+const meta = { title: 'Primitives/Accordion', component: Accordion, tags: ['autodocs'], args: { type: 'single', collapsible: true, children: items }, decorators: [Story => <div className="w-full max-w-lg"><Story /></div>], parameters: { docs: { description: { component: 'Expandable supporting information with a 48-pixel closed row, 10-pixel corners and plus/minus affordances. Content height adapts to its text.' } } } } satisfies Meta<typeof Accordion>;
+export default meta;
+type Story = StoryObj<typeof Accordion>;
+const single = { type: 'single', collapsible: true, children: items } as const;
+export const Closed: Story = { args: single };
+export const Expanded: Story = { args: { ...single, defaultValue: 'format' } };
+export const Multiple: Story = { args: { type: 'multiple', children: items, defaultValue: ['format','privacy'] } };
+export const Toggle: Story = { args: single, play: async ({canvasElement}) => { const canvas=within(canvasElement); await userEvent.click(canvas.getByRole('button',{name:'How is my answer delivered?'})); await expect(canvas.getByRole('region')).toHaveTextContent('replies in writing'); } };

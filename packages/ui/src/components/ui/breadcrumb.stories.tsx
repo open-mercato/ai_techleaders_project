@@ -1,0 +1,10 @@
+import { useState } from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, BreadcrumbEllipsis } from './breadcrumb';
+function SessionLocation() { const [page,setPage]=useState('Session'); return <div className="grid gap-4"><Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink href="#workspace" onClick={event=>{event.preventDefault();setPage('Workspace');}}>Workspace</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink href="#sessions" onClick={event=>{event.preventDefault();setPage('Sessions');}}>Sessions</BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{page}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb><p className="text-sm" role="status">Current view: {page}</p></div>; }
+const meta = { title: 'Primitives/Breadcrumb', component: Breadcrumb, tags: ['autodocs'], parameters: { docs: { description: { component: 'The page’s location in a hierarchy. Parent items navigate; the current page is marked with aria-current. Decorative separators are hidden from assistive technology.' } } }, render: () => <SessionLocation /> } satisfies Meta<typeof Breadcrumb>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+export const Session: Story = {};
+function CollapsedLocation() { const [expanded,setExpanded]=useState(false); return <Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink asChild><button type="button" onClick={()=>setExpanded(value=>!value)} aria-label={expanded?'Collapse parent pages':'Show parent pages'}><BreadcrumbEllipsis /></button></BreadcrumbLink></BreadcrumbItem>{expanded&&<><BreadcrumbSeparator /><BreadcrumbItem>Workspace</BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem>Sessions</BreadcrumbItem></>}<BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>Written answer</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>; }
+export const Collapsed: Story = { render: () => <CollapsedLocation /> };

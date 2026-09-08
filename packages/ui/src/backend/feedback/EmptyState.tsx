@@ -6,22 +6,28 @@ export function EmptyState({
   title,
   description,
   action,
+  icon,
+  tone = 'neutral',
   className,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  icon?: ReactNode;
+  tone?: 'neutral' | 'info' | 'success' | 'warning' | 'error';
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-2 rounded-lg border border-dashed border-border p-8 text-center',
+        'dm-empty-state',
         className,
       )}
+      data-tone={tone}
     >
-      <p className="text-sm font-medium text-foreground">{title}</p>
-      {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      {icon ? <span className="dm-empty-icon" aria-hidden="true">{icon}</span> : null}
+      <p className="dm-empty-title">{title}</p>
+      {description ? <p className="dm-empty-description">{description}</p> : null}
       {action}
     </div>
   );

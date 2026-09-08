@@ -1,0 +1,195 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { Badge } from '../src/components/ui/badge';
+
+<Meta title="Design system/Usage and accessibility" />
+
+# Usage and accessibility
+
+Show the current state and the action a person can take. Keep related fields
+together and give each task one primary action. Add a component to the library
+when it meets a recurring product need and its props and behavior are stable.
+
+## Keyboard and focus
+
+| Family | Expected behavior |
+| --- | --- |
+| Button and links | Tab to reach; Enter activates, Space activates buttons. Links navigate. |
+| Checkbox and switch | Space toggles. A visible label explains the setting. |
+| Radio group | Arrow keys move between options; one value is selected. |
+| Select | Open with keyboard, navigate options, Escape closes and returns focus. |
+| Tabs | Arrow keys move through tabs; content belongs to the selected tab. |
+| Menu | Arrow keys navigate items; Escape closes; trigger regains focus. |
+| Dialog | Focus moves inside, Tab stays inside, Escape or an explicit close action exits. |
+| Data table | A named scroll region allows wide tables to scroll with a keyboard. |
+
+Dialogs need a title, appropriate initial focus and a return target. For destructive
+confirmation, make the safe action easy to find. Do not replace modal behavior with
+an opaque visual overlay. [W3C modal-dialog guidance](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).
+
+## Forms and feedback
+
+Use `FormField` for standalone controls and `CrudForm` for schema-driven forms.
+Keep labels visible; placeholders provide an example, not the only name. Connect
+helper text and errors to the control. Required fields indicate the requirement in
+text and semantics.
+
+Preserve entered values on failure. Explain what the person can change. A pending
+request prevents another submission, and success appears after a confirmed result. Use
+an alert for actionable errors and a status for nonurgent progress. Status messages
+should be available without moving focus. [W3C status-message guidance](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html).
+
+### Form actions
+
+Align footer actions to the right. Put Cancel or another secondary action first,
+then the primary submit action. Keep this order in the DOM and on screen, including
+when buttons wrap on mobile. Use a neutral style for the secondary action. A
+destructive action stays separate from the normal save action.
+
+`CrudForm` renders its cancel action before submit and applies the shared
+`dm-form-actions` layout. Use the same order in custom form and dialog footers.
+[Open the form examples](?path=/docs/backend-forms-crudform--docs).
+
+### Sign-in actions
+
+Provider and submit buttons span the field width. GitHub is a neutral alternative;
+the email form's submit button is primary. Keep back navigation below the form,
+centered and separate from both sign-in methods.
+
+Use `AuthLayout` for this composition. The application supplies the authentication
+actions and the back destination. [Open the sign-in examples](?path=/docs/backend-layout-authlayout--docs).
+
+## Color, motion and content
+
+Use Inter Variable for interface text, controls and headings. The DevMentor
+wordmark uses DM Mono (`--dm-font-mono`) for its programming-font style. Use DM Mono
+for code and identifiers too. Keep the wordmark readable in both themes.
+
+Normal text needs at least 4.5:1 contrast; large text needs at least 3:1, subject to
+the defined exceptions. Measure the final foreground/background pair in every
+supported theme. A state name always accompanies color. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html).
+
+Respect reduced-motion preferences. Loading retains readable copy when animation
+is removed. Keep icon-only actions named and favor at least 44px touch targets in
+product layouts, using compact primitives only where space and separation permit.
+
+Use sentence case and concrete verbs: "Choose a time", "Save profile", "Request
+changes". Avoid "Oops", unexplained codes and promises about payments that have not
+been verified. Give dates a timezone and prices a currency. Display unavailable
+metrics as unavailable, never as a made-up zero.
+
+Describe what happened or what the person can do. Use direct, specific language;
+skip slogans and generic promises. Keep useful validation and recovery
+instructions, product facts and the current UI language when editing copy.
+
+## Responsive compositions
+
+### Spacing
+
+Use 8px between a heading and its description, 16px between paragraphs,
+24px between groups inside a panel, 32px between components, and 48 to 64px
+between major page sections. Panels use 32px padding on desktop and 24px on mobile.
+Use the semantic `--dm-space-*-gap` tokens to keep these gaps consistent.
+Long prose uses a 65ch reading width and 16px/28px typography. Interface labels,
+table data and controls retain the compact DS type scale. Separate page cards
+with hairline borders and spacing; reserve elevation for overlays.
+
+### Fact and technology chips
+
+Use one noninteractive, neutral chip per short fact when it makes comparison
+easier. For example, allowed prices become `25 min: PLN 90–600` and
+`50 min: PLN 180–1,200`, with 8px between chips and wrapping on small screens.
+Retain the units and currency in each chip. Keep explanations and validation
+messages as prose. A fact chip is not a filter; selectable chips need actual
+controls, and semantic colors describe real statuses.
+
+Technology chips pair a recognizable icon with the visible label. Use the shared
+`TechnologyChips` component for TypeScript, React, API design and other topics.
+Icons are decorative; unfamiliar technologies retain their name and use a neutral
+code symbol.
+
+<p className="dm-fact-chips" role="group" aria-label="Allowed session prices">
+  <Badge variant="outline">25 min: PLN 90–600</Badge>
+  <Badge variant="outline">50 min: PLN 180–1,200</Badge>
+</p>
+
+Separate metadata with spacing, new lines or individual chips. Do not join facts
+with middle dots, bullet dots or standalone periods. Labels may use a colon;
+normal sentence punctuation is fine.
+
+### Homepage feature chips
+
+Give homepage feature chips 12px vertical and 16px horizontal padding, 14px
+semibold blue text, and 18px decorative icons. Leave 12px between chips and let
+them wrap on small screens. Use `--dm-action-primary-label` on a neutral surface
+and check text contrast in both themes.
+
+Keep the label visible and hide the icon from assistive technology. These chips
+describe session features and are not buttons or filters. Reserve this blue
+emphasis for homepage features; comparable metadata stays neutral, and status
+colors continue to describe actual states.
+
+### Check the complete screen
+
+Review desktop and compact containers, long names, translated-length copy and
+empty data. Reading order should match keyboard order. Keep session summary and
+consequences before a confirmation action. Let fields and cards fill available
+space; contain horizontal scrolling within tables and code blocks.
+
+## Mentor ratings and written reviews
+
+Mentor ratings and reviews are part of the design system,
+as requested on 7 September 2026. Use `MentorRatingSummary` for an average and review
+count, `MentorReviews` for individual feedback, and `MentorReviewForm` after an
+eligible completed session. A zero count reads "No reviews yet"; it is not a
+zero-star score.
+
+State ratings as "out of 5" in accessible text. Keep review authors, dates and
+written feedback readable, with 24/32px grouping and a comfortable reading width.
+The form uses native star radio controls, a required written review, associated
+errors and pending feedback. Failed submissions retain the rating and text.
+
+Storybook reviews are fictional demo feedback. The displayed average must match
+the supplied ratings: 5, 4 and 5 produce 4.7 from three reviews. These examples do
+not establish real customer satisfaction or verified-session claims. The host
+must enforce eligibility, authentication, storage and publication; production
+moderation and review policy are still to be defined. The review form validates
+the rating and text, then calls the supplied submission callback. It does not
+store or publish reviews itself. Public reviews remain separate from private
+session notes.
+
+## Text conversations
+
+Lead with the transcript and place the composer near the latest message. Keep
+authors visible: the current person's messages sit on the right and include
+"You"; received messages sit on the left. The application supplies `isOwn` to
+`SessionTranscript`. Do not infer ownership from a name or rely on color alone.
+
+Message history must remain reachable by keyboard. Preserve its reading position
+when new messages arrive, retain drafts after a failed send, and keep delivery
+feedback next to its message. Do not add presence or read receipts without data
+from the application.
+
+Before a session starts, explain when messaging becomes available. After it ends,
+replace the composer with an ended-session message and show the written answer
+when it is posted. Reading an answer must not end an active session. Label any
+story time or completion controls as demo controls, separate from product
+actions.
+
+The examples use fictional messages. Transport, timing and the Q18 channel
+decision belong to the product integration. [Open the transcript and answer
+examples](?path=/docs/product-written-answer-and-transcript--docs), including
+[delivery states](?path=/story/product-written-answer-and-transcript--delivery-states)
+and a [completed conversation](?path=/story/product-written-answer-and-transcript--text-transcript).
+
+## Product rules carried by the UI
+
+- Sessions are text only, for 25 or 50 minutes.
+- Availability and booking eligibility come from authoritative application data.
+- Checkout return does not establish payment success.
+- Private-note approval does not publish the note.
+- Mentor reviews require a completed session; the host determines eligibility.
+- Roles are additive; the application supplies authorized navigation and actions.
+- The conversation channel and first-iteration payout policy remain product decisions.
+
+These rules describe component presentation. Service-side validation, authorization,
+payment verification and persistence belong to the application feature.

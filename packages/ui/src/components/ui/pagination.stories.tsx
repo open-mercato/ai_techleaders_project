@@ -1,0 +1,10 @@
+import { useState } from 'react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from './pagination';
+function SessionPages({initialPage=1}:{initialPage?:number}) { const [page,setPage]=useState(initialPage); return <div className="grid gap-4"><p role="status" className="text-center text-sm">Sessions: page {page} of 5</p><Pagination><PaginationContent><PaginationItem><PaginationPrevious href={`#page-${page-1}`} disabled={page===1} onClick={event=>{event.preventDefault();setPage(page-1);}} /></PaginationItem>{[1,2,3,4,5].map(value=><PaginationItem key={value}><PaginationLink href={`#page-${value}`} isActive={value===page} aria-label={`Page ${value}`} onClick={event=>{event.preventDefault();setPage(value);}}>{value}</PaginationLink></PaginationItem>)}<PaginationItem><PaginationNext href={`#page-${page+1}`} disabled={page===5} onClick={event=>{event.preventDefault();setPage(page+1);}} /></PaginationItem></PaginationContent></Pagination></div>; }
+const meta = { title: 'Primitives/Pagination', component: Pagination, tags: ['autodocs'], parameters: { docs: { description: { component: '32-pixel page links with an explicit current page. Disabled boundary actions remove their destination and leave keyboard navigation. The application owns data loading and page changes.' } } }, render: () => <SessionPages /> } satisfies Meta<typeof Pagination>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+export const FirstPage: Story = {};
+export const LastPage: Story = { render: () => <SessionPages initialPage={5} /> };
+export const Ellipsis: Story = { render: () => <Pagination><PaginationContent><PaginationItem><PaginationLink isActive aria-label="Page 1">1</PaginationLink></PaginationItem><PaginationItem><PaginationEllipsis /></PaginationItem><PaginationItem><span className="px-2 text-sm">20 pages</span></PaginationItem></PaginationContent></Pagination> };

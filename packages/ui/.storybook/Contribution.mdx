@@ -1,0 +1,76 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design system/Contributing" />
+
+# Contributing
+
+The shared package is `@devmentor/ui`. Its CSS contract is `@devmentor/ui/tokens.css`.
+Use the root exports for primitives and product components, and `@devmentor/ui/backend`
+for forms, tables, feedback and layout. The package is presentational and imports no
+domain service, database or application router.
+
+## Add or change a component
+
+1. Identify the screen that needs it and check whether the catalogue already has a suitable component.
+2. Describe the problem, approach and acceptance criteria before implementing a nontrivial change.
+3. Add a base primitive through the project’s shadcn CLI configuration; adapt its
+   tokens and geometry without replacing its accessible interaction model.
+4. Place generic panel patterns in `backend/` and product-specific compositions in
+   the matching `components/<concept>/` folder. A component used by one page stays
+   next to that page until a second consumer appears.
+5. Add stories with realistic content, the states the component supports, and keyboard interactions.
+6. Add tests beside the source and explicitly include changed production files in
+   the coverage configuration. The repository requires 100% statements, branches,
+   functions and lines per file.
+7. Check types, lint, both builds and the changed interactions in a real browser.
+   Run the prototype typecheck and tests when changing its screens.
+
+## Component documentation
+
+Document the component's purpose, parts, props, variants, disabled/pending/error
+states, keyboard behavior, responsive layout and content limits. Link its product issue.
+State whether an example uses mocked data or needs an application callback.
+
+## Token changes
+
+`tokens.css` maps semantic roles onto the theme variables. Numeric foundations live
+in `foundations.css`; component sheets consume those roles. Change a role once and
+review representative forms, overlays, tables and product compositions in light
+and dark. Keep primitive colors separate from action and status semantics.
+
+Before changing a default style, provide a component example and measured
+contrast results.
+
+## Ownership and release
+
+Identify the proposer, design reviewer and engineering reviewer for each change.
+Release notes explain what changed, who is affected and how to
+migrate. Prefer adding props and keep existing aliases until their documented
+deprecation period ends.
+
+Use semantic versioning for a future published package: patch for compatible fixes,
+minor for new compatible features, major for breaking public APIs. This workspace
+package remains private. Publication, deployment, commits pushed to a remote and
+changes to external design services require explicit user approval.
+
+## Local commands
+
+```sh
+npm run storybook
+npm run typecheck
+npm run typecheck:storybook
+npm run typecheck:prototype
+npm run lint
+npm run test:unit:coverage
+npm run test:prototype
+npm run build
+npm run build-storybook
+```
+
+`storybook` and `build-storybook` build the prototype first. The source in
+`prototypes/devmentor-journey/` is a separate runnable preview using shared
+components and local mocks. The Storybook build includes its preview files.
+CI checks Storybook and the prototype alongside the application.
+
+Browser and integration tests supplement unit coverage. Cross-boundary features
+use the project’s isolated integration harness; do not depend on a developer database.
