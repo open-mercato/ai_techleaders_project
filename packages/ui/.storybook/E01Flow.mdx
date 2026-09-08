@@ -1,0 +1,96 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design system/E01 accounts and roles" />
+
+# E01 accounts and roles
+
+Walk through sign-in, email registration and role access in the
+[connected prototype](/prototypes/devmentor-journey/index.html#s12).
+This page maps the UI to the Accounts and Roles specification dated
+4 September 2026 and stories #12, #13 and #14. The prototype simulates account
+state during the current visit. It does not create real accounts or establish
+production authorization.
+
+## Journey coverage
+
+| Story | Success path | Failure and recovery |
+| --- | --- | --- |
+| [#12 GitHub sign-in](https://github.com/open-mercato/ai_techleaders_project/issues/12) | Sign-in (`s12`) opens the labelled GitHub response demo (`s23`). A successful result opens the account's role home or its permitted continuation. | Cancellation, an invalid sign-in request, an unavailable provider, an unverified GitHub primary email and an unverified local account each explain the next action. A refused attempt does not sign the person in. |
+| [#13 Email and password](https://github.com/open-mercato/ai_techleaders_project/issues/13) | Registration (`s20`) leads to check-inbox (`s21`), email verification (`s22`) and the account home. Existing verified accounts use sign-in (`s12`). | Field validation, incorrect credentials, an existing account, a GitHub-only account, an unverified email, service or mail failure and a cooldown have recovery states. Invalid or expired verification links offer another email; reusing a verified link succeeds. |
+| [#14 Roles and access](https://github.com/open-mercato/ai_techleaders_project/issues/14) | Mentee (`s6`), mentor (`s11`) and operator (`s24`) homes expose the navigation for the account's combined roles. Operators can open Users (`s25`). | Signed-out or expired sessions lead to sign-in. Wrong-role and revoked-operator states withhold protected content and offer a permitted destination. Sign-out returns to the public homepage. |
+
+The default home follows operator, then mentor, then mentee priority. It does not
+remove navigation for the person's other roles. There is no product action for
+granting mentor or operator access.
+
+## Review the connected states
+
+Choose **Auth scenarios** in the review toolbar to open **Authentication demo
+controls**. Expand **Demo email accounts and password** for the fictional
+credentials. **Next request result** selects a failure for one request, and
+**Verification link** selects a valid, expired or invalid link. **Preview
+GitHub-only release** disables the email form while leaving GitHub available.
+
+The GitHub response preview (`s23`) has separate **GitHub demo account** and
+**GitHub response** selectors. Session expiry and operator eligibility controls
+stay in the review panel, separate from product navigation.
+
+| Review | What to check |
+| --- | --- |
+| Registration and verification | Enter a display name, valid email and password with at least 12 characters and at most 72 bytes. Registration alone grants no session. Choose Open verification link in the demo inbox, then Open my workspace. A newly registered mentee sees No sessions yet. |
+| Retry after a failure | Under Next request result, select Service unavailable or Email delivery failed. Confirm the feedback explains a retry and the form retains its entries. The failure is consumed once; the next valid submission can succeed. |
+| A reused or expired email link | Complete verification, reopen Check your inbox from the screen picker and open the valid link again. For an expired or invalid link, choose Request a new verification link. This returns to registration with the email filled in. Enter the name and password again, submit, set Verification link to Valid and open the replacement link. |
+| Return to a booking | Choose Alex's time and session length before signing in. Successful sign-in returns to that selection. A refused attempt keeps it available for retry. |
+| Combined roles | Use Taylor's mentee/mentor account or Sam's mentor/operator account. Check its default home and every permitted navigation link. |
+| Live operator access | Sign in as Sam, open Operator home and choose Remove Sam's operator access. The user list becomes unavailable and the mentor role remains. Try Operator users through the screen picker, then choose Restore Sam's operator access and open Users again. |
+| Expiry and sign-out | Choose Expire demo session while signed in. Protected content becomes unavailable until sign-in succeeds again. Sign out from a signed-in workspace to return to the public homepage. |
+
+The screen picker keeps the existing screen IDs. Opening a protected screen
+through review navigation still uses the current demo account's access state.
+
+## Shared components
+
+[AccountForm](?path=/docs/product-account-form--docs) composes the shared `CrudForm` with labelled fields, registration
+and sign-in modes, a GitHub action and submission feedback. The host supplies its
+schema, endpoint and success callback. [AuthFeedback](?path=/docs/product-authentication-feedback--docs) presents the confirmed
+result, optional detail and recovery actions supplied by the host.
+
+| Component examples | States to review |
+| --- | --- |
+| [Sign-in](?path=/story/product-account-form--sign-in) and [registration](?path=/story/product-account-form--registration) | Field labels, password guidance, mode changes, provider order and full-width actions |
+| [Client validation](?path=/story/product-account-form--client-validation), [submitting](?path=/story/product-account-form--submitting) and [service failure](?path=/story/product-account-form--service-unavailable) | Associated errors, disabled repeat submission and retained entries |
+| [Check inbox](?path=/story/product-authentication-feedback--check-inbox), [verified](?path=/story/product-authentication-feedback--verified) and [expired link](?path=/story/product-authentication-feedback--verification-expired) | Verification status, destination detail and recovery actions |
+| [GitHub cancellation](?path=/story/product-authentication-feedback--git-hub-cancelled) and [account conflict](?path=/story/product-authentication-feedback--git-hub-account) | A clear result and the correct sign-in method |
+| [Expired session](?path=/story/product-authentication-feedback--session-expired) and [revoked operator access](?path=/story/product-authentication-feedback--operator-revoked) | Explanation and an available next destination |
+
+Feedback-story buttons demonstrate host-supplied action slots. The prototype
+connects those actions to the full journey.
+
+Both compose with `AuthLayout`. Provider and email actions fill the field width.
+The neutral GitHub action comes first, followed by the primary email submit
+action; back navigation stays separate. These styles follow the current
+[usage guidelines](?path=/docs/design-system-usage-and-accessibility--docs).
+
+The existing [AccessStatus](?path=/docs/product-account-access--docs) examples remain available for invitation and account
+status compositions. `AppShell` accepts authorized navigation from its host; it
+does not decide permissions.
+
+## Production work still required
+
+The prototype uses fictional accounts and a local mock API. Its failure controls
+advance scenarios manually; a rate-limit example does not run a real cooldown.
+Requesting a replacement verification email repeats registration for the pending
+address. OAuth exchange,
+password hashing, email delivery, signed cookies, token validation, rate limiting,
+database persistence and server-side role checks remain application work. Demo
+expiry, account linking and operator eligibility illustrate their visible
+outcomes; they are not security controls.
+
+The production implementation must also verify concurrent callbacks, request
+forgery protection, session revocation and secret rotation, transport failures,
+and the operator allowlist on each protected request. These obligations cannot
+be proved by a clickable prototype or component stories.
+
+Password reset and invitation acceptance are outside E01. Invitation feedback
+already has separate DS examples; this flow does not implement invitation
+delivery, acceptance or mentor-role assignment.

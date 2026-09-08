@@ -1,0 +1,101 @@
+.mentor-profile-page .proto-public-main { padding-top:48px; }
+.mentor-profile-layout { display:grid; grid-template-columns:minmax(0,1fr) 352px; column-gap:64px; row-gap:48px; align-items:start; }
+.mentor-profile-layout :where(h1,h2,h3,p,ul,ol,dl,dd) { margin:0; }
+.mentor-profile-layout :where(ul,ol) { padding:0; list-style:none; }
+.mentor-profile-layout > * { min-width:0; }
+.mentor-profile-header { display:grid; gap:24px; grid-column:1; grid-row:1; }
+.mentor-profile-identity { display:flex; align-items:flex-start; gap:24px; }
+.mentor-profile-avatar { display:grid; place-items:center; width:72px; height:72px; flex:0 0 72px; border-radius:var(--dm-radius-16); border:1px solid var(--border); background:var(--muted); color:var(--dm-text-sub-600); font:500 24px/32px var(--dm-font-mono); }
+.mentor-profile-identity > div { display:grid; gap:8px; min-width:0; }
+.mentor-profile-eyebrow { color:var(--muted-foreground); font-size:12px; line-height:16px; font-weight:500; }
+.mentor-profile-header h1 { font-size:40px; line-height:48px; font-weight:550; letter-spacing:-.04em; }
+.mentor-profile-role { color:var(--dm-text-sub-600); font-size:16px; line-height:24px; }
+.mentor-profile-intro { max-width:60ch; font-size:18px; line-height:28px; color:var(--foreground); }
+.mentor-profile-context { display:flex; flex-wrap:wrap; gap:16px 32px; padding-top:24px; border-top:1px solid var(--border); }
+.mentor-profile-context > div { display:grid; gap:8px; }
+.mentor-profile-context dt { display:flex; align-items:center; gap:8px; font-size:12px; line-height:16px; color:var(--muted-foreground); }
+.mentor-profile-context dt svg { width:16px; height:16px; }
+.mentor-profile-context dd { font-size:14px; line-height:20px; }
+.mentor-profile-booking { grid-column:2; grid-row:1 / span 2; position:sticky; top:96px; }
+.mentor-profile-page .mentor-booking-card { display:flex; flex-direction:column; gap:24px; padding:32px; border:1px solid var(--border); border-radius:var(--dm-radius-16); background:var(--dm-bg-weak-25); box-shadow:none; }
+.mentor-booking-intro { display:grid; gap:16px; }
+.mentor-booking-intro h2 { font-size:28px; line-height:36px; font-weight:500; letter-spacing:-.035em; }
+.mentor-booking-intro > p:last-child { font-size:14px; line-height:24px; color:var(--muted-foreground); }
+.mentor-profile-prices { display:grid; }
+.mentor-profile-prices > div { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding-block:24px; border-top:1px solid var(--border); }
+.mentor-profile-prices > div:last-child { border-bottom:1px solid var(--border); }
+.mentor-profile-prices dt { display:grid; gap:4px; }
+.mentor-profile-prices dt strong { font-size:14px; line-height:20px; font-weight:500; }
+.mentor-profile-prices dt span { font-size:12px; line-height:16px; color:var(--muted-foreground); }
+.mentor-profile-prices dd { font:500 24px/32px var(--dm-font-mono); font-variant-numeric:tabular-nums; letter-spacing:-.04em; }
+.mentor-profile-availability { display:grid; gap:8px; }
+.mentor-profile-availability > p { display:flex; align-items:center; gap:8px; color:var(--muted-foreground); font-size:12px; line-height:20px; }
+.mentor-profile-availability svg { width:16px; height:16px; }
+.mentor-profile-availability .dm-fact-chips { margin:0; }
+.mentor-profile-book-button { width:100%; min-height:44px; white-space:normal; }
+.mentor-booking-hint { font-size:12px; line-height:20px; color:var(--muted-foreground); }
+.mentor-profile-included { display:grid; gap:16px; padding-top:24px!important; border-top:1px solid var(--border); }
+.mentor-profile-included li { display:flex; align-items:flex-start; gap:8px; color:var(--dm-text-sub-600); font-size:12px; line-height:20px; }
+.mentor-profile-included svg { width:16px; height:20px; flex-shrink:0; }
+.mentor-profile-content { display:grid; gap:48px; grid-column:1; grid-row:2; }
+.mentor-profile-section { display:grid; gap:24px; padding-top:48px; border-top:1px solid var(--border); }
+.mentor-profile-section h2,.mentor-profile-feedback .dm-product-heading { font-size:24px; line-height:32px; font-weight:500; letter-spacing:-.025em; }
+.mentor-profile-prose { display:grid; gap:16px; }
+.mentor-profile-prose p,.mentor-profile-specialties p,.mentor-profile-approach p,.mentor-profile-work > p { max-width:65ch; color:var(--dm-text-sub-600); font-size:16px; line-height:28px; }
+.mentor-profile-specialties { display:grid; gap:32px; }
+.mentor-profile-specialties li { display:flex; align-items:flex-start; gap:16px; }
+.mentor-profile-specialties li > div { display:grid; gap:8px; min-width:0; }
+.mentor-profile-specialties svg { width:20px; height:24px; flex-shrink:0; color:var(--dm-action-primary-label); }
+.mentor-profile-specialties h3,.mentor-profile-approach h3 { font-size:16px; line-height:24px; font-weight:500; }
+.mentor-profile-section-heading { display:grid; gap:8px; }
+.mentor-profile-section-heading > p { color:var(--muted-foreground); font-size:14px; line-height:24px; }
+.mentor-profile-page .mentor-profile-work { display:grid; gap:24px; padding:32px; border:1px solid var(--border); border-radius:var(--dm-radius-12); box-shadow:none; }
+.mentor-profile-work-label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:var(--muted-foreground); font-size:12px; line-height:20px; }
+.mentor-profile-work-label > svg { width:16px; height:20px; flex-shrink:0; }
+.mentor-profile-work-label .dm-badge { margin-left:auto; }
+.mentor-profile-work h3 { font-size:20px; line-height:28px; font-weight:500; letter-spacing:-.025em; }
+.mentor-profile-code { display:grid; gap:8px; padding:16px; border:1px solid var(--border); border-radius:var(--dm-radius-8); background:var(--muted); }
+.mentor-profile-code-label { color:var(--muted-foreground); font-size:12px; line-height:16px; }
+.mentor-profile-code code { font:400 12px/24px var(--dm-font-mono); overflow-wrap:anywhere; }
+.mentor-profile-work > .dm-button { justify-self:start; max-width:100%; min-height:44px; white-space:normal; text-align:left; }
+.mentor-profile-approach { display:grid; gap:32px; }
+.mentor-profile-approach li { display:grid; grid-template-columns:32px minmax(0,1fr); gap:16px; }
+.mentor-profile-approach li > span { color:var(--muted-foreground); font:400 14px/24px var(--dm-font-mono); }
+.mentor-profile-approach li > div { display:grid; gap:8px; }
+.mentor-profile-feedback { display:grid; gap:24px; padding-top:48px; border-top:1px solid var(--border); }
+.mentor-profile-feedback .dm-mentor-reviews { gap:32px; }
+.mentor-profile-feedback .dm-mentor-review-text { font-size:16px; line-height:28px; }
+.mentor-profile-demo-label { color:var(--muted-foreground); font-size:12px; line-height:20px; }
+@media(max-width:1100px) {
+  .mentor-profile-layout { grid-template-columns:minmax(0,1fr) 320px; column-gap:32px; }
+  .mentor-profile-page .mentor-booking-card { padding:24px; }
+  .mentor-profile-identity { gap:16px; }
+  .mentor-profile-header h1 { font-size:32px; line-height:40px; }
+}
+@media(max-width:840px) {
+  .mentor-profile-layout { grid-template-columns:minmax(0,1fr); gap:48px; }
+  .mentor-profile-header { grid-column:1; grid-row:1; }
+  .mentor-profile-booking { grid-column:1; grid-row:2; position:static; }
+  .mentor-profile-content { grid-column:1; grid-row:3; }
+  .mentor-profile-page .mentor-booking-card { padding:32px; }
+  .mentor-profile-prices { grid-template-columns:repeat(2,minmax(0,1fr)); gap:32px; }
+  .mentor-profile-prices > div { align-items:flex-start; flex-direction:column; border-bottom:1px solid var(--border); }
+}
+@media(max-width:560px) {
+  .mentor-profile-page .proto-public-main { padding-top:32px; }
+  .mentor-profile-identity { align-items:flex-start; }
+  .mentor-profile-avatar { width:56px; height:56px; flex-basis:56px; border-radius:var(--dm-radius-12); font-size:20px; line-height:28px; }
+  .mentor-profile-eyebrow { font-size:11px; line-height:16px; }
+  .mentor-profile-header h1 { font-size:28px; line-height:36px; }
+  .mentor-profile-role { font-size:14px; line-height:24px; }
+  .mentor-profile-intro { font-size:16px; line-height:28px; }
+  .mentor-profile-context { gap:24px; }
+  .mentor-profile-page .mentor-booking-card,.mentor-profile-page .mentor-profile-work { padding:24px; }
+  .mentor-profile-prices { grid-template-columns:minmax(0,1fr); gap:0; }
+  .mentor-profile-prices > div { flex-direction:row; align-items:center; border-bottom:0; }
+  .mentor-profile-prices > div:last-child { border-bottom:1px solid var(--border); }
+  .mentor-profile-section,.mentor-profile-feedback { padding-top:32px; }
+  .mentor-profile-content { gap:32px; }
+  .mentor-profile-specialties li { gap:8px; }
+  .mentor-profile-approach li { grid-template-columns:24px minmax(0,1fr); gap:8px; }
+}

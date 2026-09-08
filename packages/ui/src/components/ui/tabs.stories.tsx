@@ -1,0 +1,11 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, userEvent, within } from 'storybook/test';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+const panels = <><TabsList aria-label="Session history"><TabsTrigger value="upcoming">Upcoming</TabsTrigger><TabsTrigger value="past">Past</TabsTrigger><TabsTrigger value="unavailable" disabled>Archived</TabsTrigger></TabsList><TabsContent value="upcoming">Your next session is on September 8 at 14:30.</TabsContent><TabsContent value="past">Your completed sessions and written answers appear here.</TabsContent></>;
+const meta = { title: 'Primitives/Tabs', component: Tabs, tags: ['autodocs'], args: { defaultValue: 'upcoming', children: panels }, decorators: [Story => <div className="w-full max-w-xl"><Story /></div>], parameters: { docs: { description: { component: 'Underlined tabs for related views. Horizontal tabs are 48 pixels high. Arrow keys move between available tabs and their linked panels.' } } } } satisfies Meta<typeof Tabs>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+export const Sessions: Story = {};
+export const Past: Story = { args: { defaultValue: 'past' } };
+export const Vertical: Story = { args: { orientation: 'vertical' } };
+export const SwitchingPanels: Story = { play: async ({canvasElement}) => { const canvas=within(canvasElement); await userEvent.click(canvas.getByRole('tab',{name:'Past'})); await expect(canvas.getByRole('tabpanel')).toHaveTextContent('completed sessions'); } };

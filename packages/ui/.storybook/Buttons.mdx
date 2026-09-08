@@ -1,0 +1,63 @@
+import { Meta, Canvas, Controls } from '@storybook/addon-docs/blocks';
+import * as ButtonStories from '../src/components/ui/button.stories';
+
+<Meta of={ButtonStories} name="Docs" />
+
+<p className="ds-eyebrow">DEVMENTOR / ACTIONS</p>
+
+# Buttons
+
+<p className="ds-doc-lead">Three action types and four styles, with shared sizing, typography and interaction states.</p>
+
+Buttons use semantic tokens for their colors and states.
+
+<Canvas of={ButtonStories.Variants} />
+
+## Sizes
+
+Inter Medium 14/20 at every size. Medium has a 10px radius; the smaller sizes use 8px.
+The glyphs occupy a 20px box. Use the toolbar to inspect light/dark or Green.
+
+<Canvas of={ButtonStories.Sizes} />
+
+## Playground
+
+Change the properties, hover the button, then use Tab to inspect its keyboard focus.
+
+<Canvas of={ButtonStories.Primary} />
+<Controls of={ButtonStories.Primary} />
+
+## States
+
+The hover and focus columns below show fixed previews of the shared CSS rules.
+Try the Playground above to see those states in the browser. Disabled buttons use
+separate surface and text colors; they do not reduce the whole button's opacity.
+
+<Canvas of={ButtonStories.StateMatrix} />
+
+## Composition and use
+
+Use **primary** for the main action, **neutral** for supporting actions and **error**
+for destructive actions. Icon-only buttons need an accessible name. Loading is a
+composition of disabled, aria-busy and an icon.
+
+Form and dialog footers align right, with the secondary action before the primary
+submit action in both DOM and visual order. Preserve that order when buttons wrap.
+Sign-in uses full-width buttons: a neutral provider alternative, a primary email
+submit action, and separate centered back navigation below the form.
+
+<Canvas of={ButtonStories.IconOnly} />
+<Canvas of={ButtonStories.LoadingComposition} />
+
+Supported `variant` aliases are: default →
+primary/filled, outline → neutral/stroke, secondary → neutral/lighter,
+destructive → error/filled, ghost → neutral/ghost. The `default` and `icon`
+sizes mean 36px, `lg` means 40px. New code uses md/sm/xs/xxs explicitly.
+
+Action colors use dedicated contrast roles. Filled actions use readable white
+labels in both modes; lighter and stroke actions use stronger text colors. Keyboard
+focus has an outer outline separated from the button by a gap.
+
+Use visible text for important actions, reserve icon-only controls for familiar
+actions with accessible names, and keep touch targets spacious. Check contrast in
+the intended composition when adding a new theme or overriding a color.

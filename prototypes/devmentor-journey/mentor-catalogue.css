@@ -1,0 +1,42 @@
+.mentor-catalogue-page .proto-public-main { padding-top:48px; }
+.proto-public-header nav { flex-wrap:wrap; }
+.dm-dialog-content.catalogue-profile-dialog { display:flex; flex-direction:column; gap:0; width:min(720px,calc(100vw - 32px)); max-width:720px; max-height:calc(100dvh - 48px); padding:0; overflow:hidden; }
+.catalogue-profile-dialog :where(h2,h3,h4,p,ul,dl,dd) { margin:0; }
+.catalogue-profile-dialog .catalogue-profile-header { display:flex; flex-direction:row; flex-shrink:0; align-items:center; gap:24px; margin:0; padding:32px 56px 24px 32px; border-bottom:1px solid var(--border); text-align:left; }
+.catalogue-profile-header > div { display:grid; gap:8px; min-width:0; }
+.catalogue-profile-header .dm-dialog-title { font-size:28px; line-height:36px; font-weight:550; letter-spacing:-.035em; }
+.catalogue-profile-header .dm-dialog-description { line-height:24px; }
+.catalogue-profile-avatar { display:grid; place-items:center; width:64px; height:64px; flex:0 0 64px; border:1px solid var(--border); border-radius:var(--dm-radius-16); background:var(--dm-bg-weak-25); color:var(--dm-action-primary-label); font:500 20px/28px var(--dm-font-mono); }
+.catalogue-profile-content { display:grid; gap:32px; padding:32px; overflow-y:auto; overscroll-behavior:contain; min-height:0; }
+.catalogue-profile-content :where(ul,dl) { padding:0; list-style:none; }
+.catalogue-profile-summary { display:grid; gap:24px; }
+.catalogue-profile-section { display:grid; gap:16px; }
+.catalogue-profile-section h3 { display:flex; align-items:center; gap:8px; font-size:20px; line-height:28px; font-weight:550; letter-spacing:-.02em; }
+.catalogue-profile-section h3 > svg { width:20px; height:20px; color:var(--muted-foreground); }
+.catalogue-profile-section :where(p,dd) { max-width:65ch; color:var(--dm-text-sub-600); font-size:16px; line-height:28px; }
+.catalogue-profile-specialties { display:grid; gap:24px; }
+.catalogue-profile-specialties li { display:grid; gap:8px; }
+.catalogue-profile-specialties h4 { font-size:14px; line-height:24px; font-weight:600; }
+.catalogue-profile-context { display:flex; flex-wrap:wrap; gap:24px 48px; border-block:1px solid var(--border); padding-block:24px!important; }
+.catalogue-profile-context > div { display:grid; gap:8px; }
+.catalogue-profile-context dt { display:flex; align-items:center; gap:8px; font-size:12px; line-height:20px; color:var(--muted-foreground); }
+.catalogue-profile-context dt svg { width:16px; height:16px; }
+.catalogue-profile-context dd { font-size:14px; line-height:24px; overflow-wrap:anywhere; }
+.catalogue-profile-prices { display:flex; gap:8px; flex-wrap:wrap; }
+.catalogue-profile-prices .dm-badge { padding:8px 12px; font-size:12px; line-height:20px; }
+.catalogue-profile-times { display:grid; gap:8px; }
+.catalogue-profile-times time { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:12px 16px; border:1px solid var(--border); border-radius:var(--dm-radius-8); font-size:14px; line-height:24px; }
+.catalogue-profile-times strong { font-weight:500; font-variant-numeric:tabular-nums; }
+.catalogue-profile-dialog .catalogue-profile-footer { display:flex; flex-direction:row; flex-wrap:wrap; flex-shrink:0; justify-content:flex-end; gap:16px; margin:0; padding:24px 32px; border-top:1px solid var(--border); }
+.catalogue-profile-footer .dm-button { min-height:44px; max-width:100%; white-space:normal; }
+.catalogue-profile-dialog .dm-dialog-dismiss { width:44px; height:44px; top:16px; right:8px; }
+@media(max-width:560px) {
+  .mentor-catalogue-page .proto-public-main { padding:32px 16px 64px; }
+  .dm-dialog-content.catalogue-profile-dialog { width:calc(100vw - 16px); max-height:calc(100dvh - 16px); }
+  .catalogue-profile-dialog .catalogue-profile-header { gap:16px; padding:24px 48px 24px 24px; }
+  .catalogue-profile-avatar { width:48px; height:48px; flex-basis:48px; font-size:16px; border-radius:var(--dm-radius-12); }
+  .catalogue-profile-header .dm-dialog-title { font-size:24px; line-height:32px; overflow-wrap:anywhere; }
+  .catalogue-profile-header .dm-dialog-description { font-size:12px; line-height:20px; }
+  .catalogue-profile-content { padding:24px; }
+  .catalogue-profile-dialog .catalogue-profile-footer { padding:16px 24px; gap:8px; }
+}

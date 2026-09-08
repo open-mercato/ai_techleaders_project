@@ -9,7 +9,8 @@ export function LoadingMessage({
   className?: string;
 }) {
   return (
-    <p role="status" className={cn('text-sm text-muted-foreground', className)}>
+    <p role="status" className={cn('dm-loading-message', className)}>
+      <span className="dm-loading-indicator" aria-hidden="true" />
       {message}
     </p>
   );

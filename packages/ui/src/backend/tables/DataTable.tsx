@@ -30,6 +30,11 @@ export interface DataTableProps<Row> {
   emptyMessage?: string;
   rowActions?: (row: Row) => ReactNode;
   pagination?: DataTablePagination;
+  /** Accessible table name; describe the records shown. */
+  caption?: string;
+  emptyDescription?: string;
+  emptyAction?: ReactNode;
+  onRetry?: () => void;
 }
 
 /**
@@ -46,43 +51,48 @@ export function DataTable<Row>({
   emptyMessage = 'Nothing here yet.',
   rowActions,
   pagination,
+  caption = 'Records',
+  emptyDescription,
+  emptyAction,
+  onRetry,
 }: DataTableProps<Row>) {
   if (loading) {
     return <LoadingMessage />;
   }
   if (error) {
-    return <ErrorMessage message={error} />;
+    return <ErrorMessage message={error} action={onRetry ? <Button intent="neutral" appearance="stroke" size="sm" onClick={onRetry}>Try again</Button> : undefined} />;
   }
   if (!rows || rows.length === 0) {
-    return <EmptyState title={emptyMessage} />;
+    return <EmptyState title={emptyMessage} description={emptyDescription} action={emptyAction} />;
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-muted/50 text-left text-muted-foreground">
+    <div className="dm-data-table">
+      <div className="dm-table-scroll" role="region" aria-label={`${caption} table`} tabIndex={0}>
+        <table className="dm-table">
+          <caption className="sr-only">{caption}</caption>
+          <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column.key} className={cn('px-4 py-2 font-medium', column.className)}>
+                <th scope="col" key={column.key} className={cn(column.className)}>
                   {column.header}
                 </th>
               ))}
-              {rowActions ? <th className="px-4 py-2" aria-label="Actions" /> : null}
+              {rowActions ? <th scope="col" aria-label="Actions" /> : null}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={getRowId(row)} className="border-t border-border">
+              <tr key={getRowId(row)}>
                 {columns.map((column) => (
-                  <td key={column.key} className={cn('px-4 py-2', column.className)}>
+                  <td key={column.key} className={cn(column.className)}>
                     {column.render
                       ? column.render(row)
                       : String((row as Record<string, unknown>)[column.key] ?? '')}
                   </td>
                 ))}
                 {rowActions ? (
-                  <td className="px-4 py-2 text-right">{rowActions(row)}</td>
+                  <td className="dm-table-actions">{rowActions(row)}</td>
                 ) : null}
               </tr>
             ))}
@@ -91,7 +101,7 @@ export function DataTable<Row>({
       </div>
 
       {pagination && pagination.pageCount > 1 ? (
-        <div className="flex items-center justify-end gap-3 text-sm">
+        <nav aria-label={`${caption} pagination`} className="dm-table-pagination">
           <Button
             variant="outline"
             size="sm"
@@ -100,7 +110,7 @@ export function DataTable<Row>({
           >
             Previous
           </Button>
-          <span className="text-muted-foreground">
+          <span aria-live="polite">
             Page {pagination.page} of {pagination.pageCount}
           </span>
           <Button
@@ -111,7 +121,7 @@ export function DataTable<Row>({
           >
             Next
           </Button>
-        </div>
+        </nav>
       ) : null}
     </div>
   );
