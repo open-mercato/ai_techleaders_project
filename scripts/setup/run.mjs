@@ -146,7 +146,8 @@ export async function startDatabase(effects) {
  */
 export async function waitForDatabase(effects, options = {}) {
   const timeoutMs = options.timeoutMs ?? DATABASE_READY_TIMEOUT_MS;
-  const intervalMs = options.intervalMs ?? DATABASE_POLL_INTERVAL_MS;
+  // Clamp the interval: a zero would make `attempts` Infinity and spin forever.
+  const intervalMs = Math.max(1, options.intervalMs ?? DATABASE_POLL_INTERVAL_MS);
   const attempts = Math.max(1, Math.ceil(timeoutMs / intervalMs));
   let last = 'unknown';
 
@@ -158,7 +159,10 @@ export async function waitForDatabase(effects, options = {}) {
       return step('Wait for PostgreSQL', RAN, 'container reports healthy');
     }
 
-    await effects.sleep(intervalMs);
+    // Nothing to wait for after the final check — the loop is about to give up.
+    if (attempt < attempts - 1) {
+      await effects.sleep(intervalMs);
+    }
   }
 
   return step(
@@ -193,11 +197,14 @@ export async function provisionDatabase(effects, options = {}) {
   );
 
   if (reachable) {
+    // A TCP probe proves only that *something* answers, not that it speaks Postgres —
+    // so say what was observed rather than claiming more. If it turns out not to be the
+    // DevMentor database, the migrate step below reports the real error.
     return [
       step(
         'Provision PostgreSQL',
         SKIPPED,
-        `reusing the PostgreSQL already accepting connections on ${address} (per ${target.source}) — Docker not needed`,
+        `something is accepting connections on ${address} (per ${target.source}) — reusing it as the DevMentor database; Docker not needed`,
       ),
     ];
   }

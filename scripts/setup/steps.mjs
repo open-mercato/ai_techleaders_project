@@ -140,6 +140,17 @@ function toPort(value, fallback) {
 }
 
 /**
+ * Is this variable actually configured? An empty assignment (`DB_HOST=`) is treated as
+ * unset, matching how the Zod schemas fall back to their defaults.
+ *
+ * @param {string|undefined} value
+ * @returns {boolean}
+ */
+function hasValue(value) {
+  return value !== undefined && value !== '';
+}
+
+/**
  * Work out which PostgreSQL the app is configured to talk to, so setup can reuse an
  * already-running instance instead of insisting on the Docker one.
  *
@@ -157,13 +168,13 @@ export function resolveDatabaseTarget(processEnv = {}, envFileText = '') {
   const pick = (key) => {
     const ambient = processEnv[key];
 
-    if (ambient !== undefined && ambient !== '') {
+    if (hasValue(ambient)) {
       return { value: ambient, origin: 'the environment' };
     }
 
     const declared = fromFile[key];
 
-    if (declared !== undefined && declared !== '') {
+    if (hasValue(declared)) {
       return { value: declared, origin: '.env' };
     }
 
@@ -199,6 +210,17 @@ export function resolveDatabaseTarget(processEnv = {}, envFileText = '') {
 }
 
 /**
+ * Discrete connection variables that a single `DATABASE_URL` replaces.
+ *
+ * `.env.example` documents both styles — one `DATABASE_URL` (commented out) *or* the
+ * individual parts — and both Zod schemas prefer the URL when it is set. A `.env`
+ * built the URL way is therefore complete, not missing five variables. Pool sizing and
+ * `DB_DEBUG` are deliberately absent: a connection URL says nothing about them, so
+ * they stay individually required.
+ */
+export const DATABASE_URL_SUPERSEDES = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+
+/**
  * Keys the example declares that the developer's `.env` does not.
  *
  * @param {string} exampleText contents of `.env.example`
@@ -206,8 +228,16 @@ export function resolveDatabaseTarget(processEnv = {}, envFileText = '') {
  * @returns {string[]}
  */
 export function missingEnvKeys(exampleText, envText) {
-  const present = parseEnvKeys(envText);
-  return parseEnvKeys(exampleText).filter((key) => !present.includes(key));
+  const declared = parseEnvAssignments(envText);
+  const satisfied = new Set(Object.keys(declared));
+
+  if (hasValue(declared.DATABASE_URL)) {
+    for (const key of DATABASE_URL_SUPERSEDES) {
+      satisfied.add(key);
+    }
+  }
+
+  return parseEnvKeys(exampleText).filter((key) => !satisfied.has(key));
 }
 
 /**

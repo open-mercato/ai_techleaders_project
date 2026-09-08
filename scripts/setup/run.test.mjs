@@ -94,6 +94,10 @@ describe('provisionDatabase', () => {
     expect(results[0].detail).toContain('db.example.com:6543');
     expect(results[0].detail).toContain('DATABASE_URL from the environment');
     expect(results[0].detail).toContain('Docker not needed');
+    // A TCP probe cannot prove the listener speaks Postgres, so the message must
+    // report what was observed rather than asserting it found PostgreSQL.
+    expect(results[0].detail).toContain('something is accepting connections');
+    expect(results[0].detail).not.toContain('reusing the PostgreSQL');
     expect(effects.probeTcp).toHaveBeenCalledWith('db.example.com', 6543, 50);
     expect(effects.run).not.toHaveBeenCalled();
   });
@@ -229,6 +233,23 @@ describe('configureEnvironment', () => {
     expect(effects.writeText).not.toHaveBeenCalled();
   });
 
+  it('accepts a .env built around DATABASE_URL instead of the discrete variables', async () => {
+    // The README's "Bring your own PostgreSQL" path: this .env is complete, so setup
+    // must skip quietly rather than warn about five variables it does not need.
+    const effects = fakeEffects({
+      readText: vi.fn(async (path) =>
+        path === '.env.example'
+          ? 'DB_HOST=h\nDB_PORT=5432\nDB_NAME=n\nDB_USER=u\nDB_PASSWORD=p\n'
+          : 'DATABASE_URL=postgres://u:p@h:5432/d\n',
+      ),
+    });
+
+    const result = await configureEnvironment(effects);
+
+    expect(result.status).toBe('skipped');
+    expect(effects.writeText).not.toHaveBeenCalled();
+  });
+
   it('warns about documented variables the existing .env does not set', async () => {
     const effects = fakeEffects({
       readText: vi.fn(async (path) => (path === '.env.example' ? 'A=1\nB=2\n' : 'A=local\n')),
@@ -320,6 +341,23 @@ describe('waitForDatabase', () => {
     expect(result.status).toBe('failed');
     expect(result.detail).toContain('last state: unhealthy');
     expect(effects.run).toHaveBeenCalledTimes(2);
+    // Two polls, but only one wait between them — no idle interval before giving up.
+    expect(effects.sleep).toHaveBeenCalledTimes(1);
+  });
+
+  it('clamps a zero poll interval instead of spinning forever', async () => {
+    const effects = fakeEffects({
+      run: vi.fn().mockResolvedValue({
+        code: 0,
+        stdout: '[{"Health":"starting","State":"running"}]',
+        stderr: '',
+      }),
+    });
+
+    const result = await waitForDatabase(effects, { timeoutMs: 3, intervalMs: 0 });
+
+    expect(result.status).toBe('failed');
+    expect(effects.run).toHaveBeenCalledTimes(3);
   });
 
   it('treats a failing ps command as an unknown state', async () => {
@@ -450,7 +488,10 @@ describe('runSetup', () => {
     expect(dockerCalls).toEqual([]);
   });
 
-  it('is a no-op-shaped second run: nothing is created and it still exits zero', async () => {
+  // Real idempotency is proven end to end by `tests/integration/setup.integration.test.ts`
+  // (which seeds twice against a live database). This case only pins the narrower
+  // guarantee the pure orchestration can offer: a repeat run creates no files.
+  it('creates nothing on a repeat run and still exits zero', async () => {
     const effects = happyEffects();
 
     const first = await runSetup(effects, { timeoutMs: 1_000, intervalMs: 10 });

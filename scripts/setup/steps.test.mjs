@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DATABASE_URL_SUPERSEDES,
   DEFAULT_POSTGRES_HOST,
   DEFAULT_POSTGRES_PORT,
   FAILED,
@@ -204,12 +205,36 @@ describe('resolveDatabaseTarget', () => {
 });
 
 describe('missingEnvKeys', () => {
+  /** The two connection styles `.env.example` documents, reduced to their keys. */
+  const example = 'DB_HOST=h\nDB_PORT=5432\nDB_NAME=n\nDB_USER=u\nDB_PASSWORD=p\nDB_POOL_MAX=10\n';
+
   it('lists example keys the env file does not set', () => {
     expect(missingEnvKeys('A=1\nB=2\nC=3\n', 'A=9\nC=9\n')).toEqual(['B']);
   });
 
   it('returns nothing when every documented key is present', () => {
     expect(missingEnvKeys('A=1\nB=2\n', 'B=9\nA=9\nEXTRA=9\n')).toEqual([]);
+  });
+
+  it('accepts a DATABASE_URL in place of the discrete connection variables', () => {
+    // Regression guard: `.env.example` documents DATABASE_URL only as a comment, so a
+    // `.env` following the README's "Bring your own PostgreSQL" advice used to be
+    // warned about five variables it deliberately does not need.
+    const env = 'DATABASE_URL=postgres://u:p@h:5432/d\nDB_POOL_MAX=10\n';
+
+    expect(missingEnvKeys(example, env)).toEqual([]);
+  });
+
+  it('still requires variables a connection URL says nothing about', () => {
+    const env = 'DATABASE_URL=postgres://u:p@h:5432/d\n';
+
+    expect(missingEnvKeys(example, env)).toEqual(['DB_POOL_MAX']);
+  });
+
+  it('does not let an empty DATABASE_URL excuse the discrete variables', () => {
+    expect(missingEnvKeys(example, 'DATABASE_URL=\nDB_POOL_MAX=10\n')).toEqual(
+      DATABASE_URL_SUPERSEDES,
+    );
   });
 });
 

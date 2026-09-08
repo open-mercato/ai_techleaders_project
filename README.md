@@ -39,6 +39,9 @@ work that is actually outstanding:
 
 Your existing `.env` is never overwritten. If it is missing a variable that
 `.env.example` documents, setup leaves the file alone and warns you which key to add.
+Setting `DATABASE_URL` counts as setting the discrete `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER`, and `DB_PASSWORD` variables it replaces, so the URL style is never reported
+as incomplete.
 Setup deliberately stops short of starting the app — `npm run dev` never exits — and
 prints it as the next command instead.
 
@@ -58,10 +61,14 @@ DATABASE_URL=postgres://user:password@db.example.com:5432/devmentor npm run setu
 ```
 
 ```text
-↷ Provision PostgreSQL (skipped) — reusing the PostgreSQL already accepting
-  connections on db.example.com:5432 (per DATABASE_URL from the environment) —
-  Docker not needed
+↷ Provision PostgreSQL (skipped) — something is accepting connections on
+  db.example.com:5432 (per DATABASE_URL from the environment) — reusing it as the
+  DevMentor database; Docker not needed
 ```
+
+The check is a TCP probe, so it can tell that *something* is listening but not that it
+speaks PostgreSQL. If the listener turns out not to be your DevMentor database, the
+`Apply migrations` step below it reports the real connection error.
 
 Resolution order matches the Zod config modules: `DATABASE_URL` wins over
 `DB_HOST`/`DB_PORT`, and the real environment wins over `.env`. With no database

@@ -42,7 +42,7 @@ describe('TC-SETUP-001 setup is idempotent', () => {
       const snapshot = await runAgentBrowser(session, 'snapshot');
 
       expect(snapshot).toContain('cell "Ada Lovelace"');
-      expect(snapshot.split('cell "ada@devmentor.dev"')).toHaveLength(2);
+      expect(snapshot.match(/cell "ada@devmentor\.dev"/g) ?? []).toHaveLength(1);
 
       await runAgentBrowser(
         session,
