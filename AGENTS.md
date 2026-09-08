@@ -99,6 +99,16 @@ the reference example every new concept copies. See
 
 ### Scripts (run from the repo root)
 
+- `npm run setup` — one-command installer: `npm install`, `.env` from `.env.example`,
+  PostgreSQL available, migrations, seed. **Idempotent** — every step reports itself as
+  `ran` or `skipped`, an existing `.env` is never overwritten, and the dev server is
+  deliberately not started (`npm run dev` never exits). **Docker is a fallback, not a
+  requirement**: setup TCP-probes the configured address (`DATABASE_URL`, else
+  `DB_HOST`/`DB_PORT`, environment before `.env`) and reuses any PostgreSQL already
+  listening; Compose is only used when nothing answers. Implementation in
+  `scripts/setup/` (plain Node ESM, `node:*` built-ins only, so it runs on a fresh
+  clone) — pure decisions in `steps.mjs`, all I/O behind the injectable effects in
+  `effects.mjs`, ordering in `run.mjs`.
 - `npm run dev` — start the Next.js app (`@devmentor/app`).
 - `npm run build` / `npm run start` — production build / serve (force `NODE_ENV=production`).
 - `npm run typecheck` — `tsc --noEmit` across all packages.
@@ -124,8 +134,16 @@ the reference example every new concept copies. See
 - Copy `.env.example` to `.env`. `.env` is git-ignored; defaults match
   `docker-compose.yml` (`devmentor` / `devmentor` / `devmentor`).
 - All env access funnels through zod schemas — `@devmentor/core` (`config/env.ts`) for
-  the app, `@devmentor/db` (`env.ts`) for the MikroORM CLI. **Nothing else reads
-  `process.env` directly.**
+  the app, `@devmentor/db` (`env.ts`) for the MikroORM CLI. **Nothing under `packages/`
+  reads `process.env` directly.** There are exactly two documented exceptions, both
+  outside `packages/`:
+  - `tests/integration/environment.ts` — inherits the parent environment to pass
+    ephemeral test configuration to migration/build/app child processes.
+  - `scripts/setup/effects.mjs` — `npm run setup` runs on a fresh clone *before*
+    `npm install`, so it cannot import zod. It reads `process.env`, `process.version`,
+    and `process.platform` behind the injectable `SetupEffects` adapter, and
+    re-implements the `DATABASE_URL`-over-`DB_*` precedence in `steps.mjs`
+    (`resolveDatabaseTarget`). Keep that precedence in step with the two zod schemas.
 
 ### Conventions & gotchas (learned the hard way — see `.ai/lessons.md`)
 
@@ -212,10 +230,11 @@ the reference example every new concept copies. See
   live accessibility tree first, assert semantic roles/text rather than guessed CSS,
   capture screenshots at key assertions, and close each isolated session in
   `finally`.
-- The integration harness under `tests/integration/` is the sole exception to the
-  direct-environment-access rule: `environment.ts` may inherit the parent process
-  environment only to pass ephemeral test configuration to migration/build/app child
-  processes. Application and package source must still use the zod config modules.
+- The integration harness under `tests/integration/` is one of the two exceptions to
+  the direct-environment-access rule (the other is `scripts/setup/` — see
+  Configuration above): `environment.ts` may inherit the parent process environment
+  only to pass ephemeral test configuration to migration/build/app child processes.
+  Application and package source must still use the zod config modules.
 
 GitHub Actions runs Build, Lint, Unit tests, and Integration tests independently on
 every pull request. A workflow result becomes merge-blocking only when the repository

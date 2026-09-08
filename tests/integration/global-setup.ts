@@ -158,6 +158,11 @@ export default async function setup(project: TestProject) {
     const environment = integrationChildEnvironment(postgres.getConnectionUri());
     await runNpm(['run', 'db:migrate'], environment);
     await runNpm(['run', 'db:seed'], environment);
+    // Seed a second time on purpose. `npm run setup` re-seeds on every invocation, so
+    // a non-idempotent seeder would break it — `users.email` is unique, and the old
+    // seeder raised a unique violation here. Failing in setup makes that regression
+    // impossible to miss.
+    await runNpm(['run', 'db:seed'], environment);
     await runNpm(['run', 'build'], environment);
 
     const port = await availablePort();

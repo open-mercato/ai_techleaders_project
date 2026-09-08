@@ -10,6 +10,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "setup": "node scripts/setup/index.mjs",
     "storybook": "npm run prototype && npm run storybook --workspace @devmentor/ui --",
     "build-storybook": "npm run prototype && npm run build-storybook --workspace @devmentor/ui",
     "typecheck:storybook": "npm run typecheck:storybook --workspace @devmentor/ui",

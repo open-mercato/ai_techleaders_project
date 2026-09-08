@@ -121,7 +121,13 @@ Read the diff in this order. A finding higher on the list outranks everything be
 - `process.env` is read only by `packages/core/src/config/env.ts` and
   `packages/db/src/env.ts`; both zod schemas describe the same database variables and
   change together. A new variable appears in `.env.example` with a default or a clear
-  comment. `tests/integration/environment.ts` is the single documented exception.
+  comment. There are two documented exceptions, both outside `packages/`:
+  `tests/integration/environment.ts` (ephemeral test configuration for child
+  processes) and `scripts/setup/effects.mjs` (the installer runs before `npm install`
+  and cannot import zod; it reads the environment behind the `SetupEffects` adapter and
+  mirrors the `DATABASE_URL`-over-`DB_*` precedence in `steps.mjs`). A *third*
+  reader is a finding — and any change to the precedence must land in all three
+  places at once.
 - Secrets never enter the repository; `.env` stays ignored.
 
 ### Tests and coverage
