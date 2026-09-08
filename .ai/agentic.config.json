@@ -22,6 +22,10 @@
   "qaGate": true,
   "ci": { "maxWaitMinutes": 40 },
   "engine": { "loopStepThreshold": 20, "executorTier": "standard", "stepReview": "final" },
+  "discovery": {
+    "enabled": true,
+    "roles": { "domainExpert": false, "designer": true }
+  },
   "paths": {
     "runs": ".ai/runs",
     "analysis": ".ai/analysis",

@@ -1,0 +1,110 @@
+id,posted_at,channel,stack,topic,urgency_signal,first_reply_minutes,replies_24h,resolved_by_thread,asker_context
+1,2026-08-18 10:29,help-react,react,performance,,38,5,yes,freelance
+2,2026-08-18 11:17,help-node,node,dependency conflict,,188,4,yes,unknown
+3,2026-08-18 12:30,help-other,other,kubernetes/helm,deadline mentioned,87,4,yes,employed
+4,2026-08-18 13:55,help-ai-agents,ai-agents,tool calling fails,,13,2,yes,unknown
+5,2026-08-18 18:22,help-python,python,packaging/deps,,8,1,partial,unknown
+6,2026-08-18 19:33,help-react,react,testing,deploy today,,0,no,unknown
+7,2026-08-18 20:56,help-python,python,pandas memory,,343,1,yes,unknown
+8,2026-08-19 07:59,help-python,python,typing,,95,1,no,employed
+9,2026-08-19 09:53,help-python,python,packaging/deps,,409,1,yes,unknown
+10,2026-08-19 10:42,help-python,python,async/concurrency,deadline mentioned,,0,no,employed
+11,2026-08-19 10:47,help-node,node,auth/session,,84,4,no,unknown
+12,2026-08-19 10:52,help-python,python,async/concurrency,,102,3,yes,unknown
+13,2026-08-19 12:56,help-other,other,kubernetes/helm,,80,2,yes,employed
+14,2026-08-19 13:05,help-python,python,typing,release tomorrow,23,1,yes,unknown
+15,2026-08-19 16:39,help-python,python,runtime error,,29,1,no,student
+16,2026-08-19 21:05,help-react,react,server components migration,,704,3,partial,employed
+17,2026-08-19 22:47,help-ai-agents,ai-agents,cost/latency,deadline mentioned,24,2,yes,freelance
+18,2026-08-20 08:02,help-python,python,packaging/deps,,17,1,yes,freelance
+19,2026-08-20 10:27,help-react,react,server components migration,,5,1,partial,unknown
+20,2026-08-20 10:58,help-react,react,server components migration,,49,2,partial,employed
+21,2026-08-20 11:19,help-typescript,typescript,types/generics error,,416,1,no,unknown
+22,2026-08-20 12:30,help-python,python,async/concurrency,client waiting,120,1,no,unknown
+23,2026-08-20 15:14,help-react,react,testing,,78,3,yes,freelance
+24,2026-08-20 15:32,help-node,node,auth/session,,22,2,yes,freelance
+25,2026-08-20 19:03,help-ai-agents,ai-agents,eval/testing,,119,2,yes,employed
+26,2026-08-20 19:05,help-react,react,state/rendering bug,,,0,no,unknown
+27,2026-08-20 20:33,help-react,react,performance,deadline mentioned,,0,no,employed
+28,2026-08-21 00:48,help-typescript,typescript,testing,,14,6,unknown,employed
+29,2026-08-21 09:03,help-ai-agents,ai-agents,context/prompt issue,,101,1,yes,unknown
+30,2026-08-21 12:07,help-python,python,typing,,8,2,yes,freelance
+31,2026-08-21 12:15,help-python,python,async/concurrency,,,0,no,unknown
+32,2026-08-21 13:38,help-node,node,streams/perf,client waiting,447,1,no,freelance
+33,2026-08-21 14:04,help-typescript,typescript,testing,deadline mentioned,631,1,no,unknown
+34,2026-08-21 15:15,help-typescript,typescript,types/generics error,,27,1,no,employed
+35,2026-08-21 17:49,help-typescript,typescript,build/tsconfig,deadline mentioned,66,1,no,employed
+36,2026-08-21 22:12,help-ai-agents,ai-agents,eval/testing,,36,2,unknown,employed
+37,2026-08-22 15:28,help-typescript,typescript,runtime error,deadline mentioned,,0,no,employed
+38,2026-08-22 16:53,help-ai-agents,ai-agents,tool calling fails,deadline mentioned,61,2,no,student
+39,2026-08-22 16:54,help-python,python,async/concurrency,,54,1,yes,unknown
+40,2026-08-22 21:42,help-node,node,runtime error,release tomorrow,55,1,unknown,freelance
+41,2026-08-22 21:51,help-python,python,runtime error,,210,1,no,employed
+42,2026-08-23 18:01,help-node,node,streams/perf,,25,1,partial,employed
+43,2026-08-23 18:41,help-ai-agents,ai-agents,context/prompt issue,,602,1,unknown,unknown
+44,2026-08-23 21:16,help-other,other,kubernetes/helm,,18,1,partial,freelance
+45,2026-08-24 07:35,help-typescript,typescript,types/generics error,deadline mentioned,10,1,yes,employed
+46,2026-08-24 10:09,help-node,node,dependency conflict,,11,3,unknown,employed
+47,2026-08-24 12:48,help-node,node,runtime error,prod is down,,0,no,unknown
+48,2026-08-24 16:11,help-python,python,pandas memory,,,0,no,freelance
+49,2026-08-24 16:57,help-python,python,packaging/deps,,205,4,yes,employed
+50,2026-08-24 17:16,help-other,other,ci pipeline,deadline mentioned,,0,no,employed
+51,2026-08-24 19:57,help-react,react,server components migration,deadline mentioned,26,3,yes,freelance
+52,2026-08-24 21:02,help-other,other,git mess,,117,2,partial,employed
+53,2026-08-25 11:15,help-python,python,packaging/deps,,77,1,yes,unknown
+54,2026-08-25 12:28,help-react,react,testing,,60,4,no,student
+55,2026-08-25 13:03,help-ai-agents,ai-agents,agent config not applied,,,0,no,unknown
+56,2026-08-25 15:48,help-python,python,runtime error,,8,2,yes,unknown
+57,2026-08-25 19:02,help-ai-agents,ai-agents,cost/latency,deploy today,,0,no,unknown
+58,2026-08-25 20:07,help-python,python,runtime error,,94,1,yes,unknown
+59,2026-08-25 20:13,help-node,node,auth/session,release tomorrow,165,4,partial,unknown
+60,2026-08-26 01:01,help-python,python,runtime error,,,0,no,employed
+61,2026-08-26 10:04,help-other,other,git mess,demo in 2h,266,4,yes,employed
+62,2026-08-26 13:06,help-react,react,state/rendering bug,,,0,no,employed
+63,2026-08-26 14:00,help-typescript,typescript,runtime error,,68,2,yes,freelance
+64,2026-08-26 14:37,help-typescript,typescript,runtime error,,19,5,partial,student
+65,2026-08-26 14:58,help-typescript,typescript,library upgrade,deploy today,92,1,yes,employed
+66,2026-08-26 16:31,help-node,node,auth/session,,22,2,partial,employed
+67,2026-08-26 18:02,help-other,other,ci pipeline,deploy today,25,4,partial,employed
+68,2026-08-27 10:42,help-ai-agents,ai-agents,context/prompt issue,,111,2,yes,unknown
+69,2026-08-27 11:46,help-ai-agents,ai-agents,context/prompt issue,,66,3,no,employed
+70,2026-08-27 12:04,help-react,react,testing,,24,4,no,unknown
+71,2026-08-27 12:29,help-typescript,typescript,types/generics error,prod is down,108,5,no,unknown
+72,2026-08-27 13:51,help-typescript,typescript,runtime error,,815,2,no,employed
+73,2026-08-27 15:30,help-typescript,typescript,library upgrade,,799,2,unknown,employed
+74,2026-08-27 15:35,help-typescript,typescript,testing,,106,1,partial,student
+75,2026-08-27 16:27,help-other,other,kubernetes/helm,,394,6,partial,unknown
+76,2026-08-27 16:38,help-typescript,typescript,testing,deadline mentioned,63,1,no,employed
+77,2026-08-27 19:13,help-other,other,git mess,deploy today,,0,no,student
+78,2026-08-27 21:09,help-python,python,packaging/deps,,,0,no,unknown
+79,2026-08-28 10:23,help-other,other,docker,,21,4,partial,employed
+80,2026-08-28 10:51,help-typescript,typescript,library upgrade,prod is down,9,2,no,unknown
+81,2026-08-28 10:53,help-typescript,typescript,library upgrade,demo in 2h,,0,no,unknown
+82,2026-08-28 12:11,help-typescript,typescript,testing,prod is down,237,3,unknown,student
+83,2026-08-28 12:40,help-react,react,state/rendering bug,,76,5,yes,student
+84,2026-08-28 15:47,help-node,node,auth/session,deadline mentioned,233,1,yes,freelance
+85,2026-08-28 16:23,help-typescript,typescript,build/tsconfig,,85,3,partial,unknown
+86,2026-08-28 16:31,help-typescript,typescript,types/generics error,release tomorrow,15,1,no,unknown
+87,2026-08-28 17:32,help-ai-agents,ai-agents,agent config not applied,,380,1,unknown,employed
+88,2026-08-28 19:08,help-python,python,runtime error,,,0,no,freelance
+89,2026-08-28 20:55,help-other,other,ci pipeline,,11,6,yes,student
+90,2026-08-28 23:08,help-python,python,async/concurrency,,85,1,yes,employed
+91,2026-08-29 09:00,help-typescript,typescript,runtime error,,1250,4,partial,freelance
+92,2026-08-29 11:37,help-python,python,runtime error,,,0,no,unknown
+93,2026-08-29 15:05,help-ai-agents,ai-agents,tool calling fails,,23,4,no,freelance
+94,2026-08-29 16:38,help-other,other,docker,,,0,no,employed
+95,2026-08-30 07:34,help-react,react,routing,,,0,no,unknown
+96,2026-08-30 08:07,help-ai-agents,ai-agents,eval/testing,,26,1,yes,employed
+97,2026-08-30 09:04,help-python,python,packaging/deps,,5,5,no,student
+98,2026-08-30 11:14,help-typescript,typescript,testing,,39,4,yes,unknown
+99,2026-08-30 11:33,help-ai-agents,ai-agents,cost/latency,,,0,no,employed
+100,2026-08-30 20:19,help-ai-agents,ai-agents,eval/testing,,24,6,yes,freelance
+101,2026-08-31 07:57,help-python,python,runtime error,,,0,no,unknown
+102,2026-08-31 13:07,help-python,python,runtime error,,15,2,no,freelance
+103,2026-08-31 13:15,help-python,python,runtime error,,582,1,yes,employed
+104,2026-08-31 13:23,help-react,react,routing,,1200,2,partial,freelance
+105,2026-08-31 13:44,help-other,other,kubernetes/helm,,16,1,partial,unknown
+106,2026-08-31 17:01,help-ai-agents,ai-agents,agent config not applied,,,0,no,unknown
+107,2026-08-31 17:12,help-react,react,state/rendering bug,,335,3,unknown,freelance
+108,2026-08-31 18:21,help-typescript,typescript,build/tsconfig,,106,2,partial,unknown
+109,2026-08-31 21:36,help-ai-agents,ai-agents,eval/testing,deadline mentioned,41,1,partial,freelance
