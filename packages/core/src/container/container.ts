@@ -14,6 +14,7 @@ import { systemClock } from '../time/clock';
 import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
+import { resolveSessionFromCookie } from '../http/auth';
 import type { Cradle } from './cradle';
 
 /**
@@ -87,6 +88,21 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),
+    // The default for a scope nobody opened for a request: no cookie, so no session. Each
+    // of `withRequestScope`/`withCookieScope` overrides it on its own scope. Registering it
+    // at the root keeps the key resolvable in a `strict` container, which is what lets a
+    // service depend on `session` unconditionally instead of guarding for its absence.
+    sessionCookie: asValue(null),
+    // SCOPED and lazy: awilix caches the promise this factory returns for the lifetime of
+    // the scope, so the verification and the single `findOne(User)` behind it happen at
+    // most once per request no matter how many guards and services await it. Nothing
+    // resolves it unless something asks, so a public route pays nothing.
+    // The three dependencies are destructured here rather than inside the resolver so the
+    // whole dependency set is resolved synchronously, while awilix is still on the
+    // resolution stack, and is visible in the registration itself.
+    session: asFunction(({ sessionCookie, sessionService, em, env }: Cradle) =>
+      resolveSessionFromCookie(sessionCookie, { sessionService, em, env }),
+    ).scoped(),
   });
 
   // Default in-process subscribers. Concept side effects (send a message, invalidate
@@ -106,16 +122,67 @@ export function getContainer(): Promise<AwilixContainer<Cradle>> {
 }
 
 /**
- * Run `fn` inside a fresh awilix scope. The scope owns a forked EntityManager and any
- * other SCOPED services; it is disposed (releasing scoped state) when `fn` settles.
- * This is the entry point request handlers should use to touch the domain.
+ * Open a scope carrying `sessionCookie`, run `fn` in it, and dispose it afterwards.
+ *
+ * The one place a scope is created. Registering the cookie on the scope — rather than
+ * handing it to each caller — is what makes the lazy `session` key resolvable by anything
+ * inside the scope without threading a `Request` through every constructor.
  */
-export async function withScope<T>(fn: (cradle: Cradle) => Promise<T> | T): Promise<T> {
+async function runInScope<T>(
+  sessionCookie: string | null,
+  fn: (cradle: Cradle) => Promise<T> | T,
+): Promise<T> {
   const container = await getContainer();
   const scope = container.createScope<Cradle>();
+  scope.register({ sessionCookie: asValue(sessionCookie) });
   try {
     return await fn(scope.cradle);
   } finally {
     await scope.dispose();
   }
+}
+
+/**
+ * Run `fn` inside a fresh awilix scope. The scope owns a forked EntityManager and any
+ * other SCOPED services; it is disposed (releasing scoped state) when `fn` settles.
+ *
+ * No request, therefore no session: `cradle.session` resolves to `null` here. This is the
+ * entry point for unauthenticated and system work — a seeder, a background reconciliation,
+ * anything with no caller to authorize. Request handlers use `withRequestScope`, and pages
+ * use `withCookieScope`, so that resolving the session inside the scope is possible at all.
+ */
+export function withScope<T>(fn: (cradle: Cradle) => Promise<T> | T): Promise<T> {
+  return runInScope(null, fn);
+}
+
+/**
+ * Run `fn` inside a request scope built from `req`.
+ *
+ * Additive, and the canonical entry point for any route that may be called by a signed-in
+ * user: it reads the (still unverified) session cookie off the request and registers it, so
+ * `requireSession` and any service depending on `session` resolve **the same** session,
+ * from one database lookup, for the whole request.
+ *
+ * `core` never imports `next`, so this takes a plain `Request`.
+ */
+export async function withRequestScope<T>(
+  req: Request,
+  fn: (cradle: Cradle) => Promise<T> | T,
+): Promise<T> {
+  const container = await getContainer();
+  return runInScope(container.cradle.sessionService.readCookie(req), fn);
+}
+
+/**
+ * The cookie-value variant of `withRequestScope`, for a caller holding a cookie but no
+ * `Request` — which is every App Router page, where the session arrives through
+ * `cookies()`. Exported because that page helper lives in `@devmentor/app`; it is a way to
+ * *open a scope*, not an authorization API, and the value it takes is unverified until the
+ * scope's `session` resolves it.
+ */
+export function withCookieScope<T>(
+  sessionCookie: string | null,
+  fn: (cradle: Cradle) => Promise<T> | T,
+): Promise<T> {
+  return runInScope(sessionCookie, fn);
 }

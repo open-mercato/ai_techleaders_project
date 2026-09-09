@@ -21,6 +21,7 @@ export {
   apiHandler,
   jsonOk,
   jsonError,
+  type ApiHandlerOptions,
   type ApiSuccess,
   type ApiFailure,
   type ApiResponseBody,
@@ -33,11 +34,15 @@ export {
   type CrudService,
   type MakeCrudRouteOptions,
 } from './makeCrudRoute';
+// `resolveSessionFromCookie` is deliberately absent: the scoped `session` cradle key and
+// `requireSession` are the two sanctioned ways to obtain a session, so the resolver behind
+// them is not part of the package's authorization surface.
 export {
-  readSession,
   requireSession,
   requireRole,
   assertOwnership,
+  requireCsrfHeader,
+  CSRF_HEADER,
   type Session,
   type Role,
 } from './auth';

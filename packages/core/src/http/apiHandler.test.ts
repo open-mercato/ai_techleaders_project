@@ -19,8 +19,13 @@ vi.mock('../logger', () => ({
 
 const context = { params: Promise.resolve({}) } as ApiRouteContext;
 
-function request(method = 'GET'): Request {
-  return new Request('http://devmentor.test/api/users', { method });
+function request(method = 'GET', headers?: Record<string, string>): Request {
+  return new Request('http://devmentor.test/api/users', { method, headers });
+}
+
+/** A mutating request the way `apiCall` sends it: always carrying the CSRF header. */
+function mutatingRequest(method = 'POST'): Request {
+  return request(method, { 'x-devmentor-request': '1' });
 }
 
 function run(logic: RouteLogic): Promise<Response> {
@@ -160,6 +165,70 @@ describe('apiHandler', () => {
     });
 
     expect(await response.text()).not.toContain('hunter2');
+  });
+
+  it('refuses a POST that does not carry the CSRF header, before the route runs', async () => {
+    // Edge case 23. The refusal must happen ahead of the logic, not inside it: a plain
+    // cross-site HTML form post cannot set the header, and this is the line that makes
+    // that fact protective for *every* mutating route rather than the ones that remembered.
+    const logic = vi.fn();
+
+    const response = await apiHandler(logic)(request('POST'), context);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: 'forbidden' },
+    });
+    expect(logic).not.toHaveBeenCalled();
+  });
+
+  it.each(['PUT', 'PATCH', 'DELETE'])('refuses a bare %s the same way', async (method) => {
+    const response = await apiHandler(async () => 'ran')(request(method), context);
+
+    expect(response.status).toBe(403);
+  });
+
+  it('runs a mutating request that carries the header', async () => {
+    const response = await apiHandler(async () => 'created')(mutatingRequest(), context);
+
+    expect(await response.json()).toEqual({ ok: true, data: 'created' });
+  });
+
+  it.each(['GET', 'HEAD', 'OPTIONS'])(
+    'lets %s through without the header',
+    async (method) => {
+      const response = await apiHandler(async () => 'read')(request(method), context);
+
+      expect(response.status).toBe(200);
+    },
+  );
+
+  it('enforces the check when an options bag is passed without a csrf key', async () => {
+    const response = await apiHandler(async () => 'ran', {})(request('POST'), context);
+
+    expect(response.status).toBe(403);
+  });
+
+  it('enforces the check when csrf is set explicitly', async () => {
+    const response = await apiHandler(async () => 'ran', { csrf: true })(
+      request('POST'),
+      context,
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it('honours { csrf: false }, the webhook opt-out', async () => {
+    // Reserved for the E04 payment webhook, which is called by the provider rather than a
+    // browser and authenticates by verifying a request signature instead.
+    const response = await apiHandler(async () => 'ran', { csrf: false })(
+      request('POST'),
+      context,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, data: 'ran' });
   });
 
   it('creates the logger once and reuses it across requests', async () => {

@@ -10,11 +10,14 @@ import {
 
 const testState = vi.hoisted(() => ({
   cradle: {} as unknown,
-  withScope: vi.fn(),
+  withRequestScope: vi.fn(),
 }));
 
+// `makeCrudRoute` opens a *request* scope, so the session cookie on the request reaches the
+// scope's lazy `session` key and an `authorize` hook and the service it guards share one
+// lookup. The stub stands in for the whole scope, as the `withScope` stub did before it.
 vi.mock('../container/container', () => ({
-  withScope: testState.withScope,
+  withRequestScope: testState.withRequestScope,
 }));
 
 type Entity = { id: string; name: string };
@@ -28,12 +31,20 @@ function context(params?: Record<string, string | string[]>): ApiRouteContext {
     : { params: Promise.resolve(params) };
 }
 
+/**
+ * Every request carries the CSRF header, because `apiHandler` now refuses a mutating
+ * request without it before the route body runs (primitives B3) — as `apiCall`, the only
+ * sanctioned client, always sends it. The refusal itself is asserted in `apiHandler.test.ts`;
+ * here it would only mask the CRUD behaviour under test.
+ */
 function request(method: string, body?: string): Request {
   return new Request('http://devmentor.test/api/resources', {
     method,
-    ...(body === undefined
-      ? {}
-      : { body, headers: { 'content-type': 'application/json' } }),
+    headers: {
+      'x-devmentor-request': '1',
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+    },
+    ...(body === undefined ? {} : { body }),
   });
 }
 
@@ -66,8 +77,8 @@ function route(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  testState.withScope.mockImplementation(
-    async (callback: (cradle: Cradle) => Promise<unknown>) =>
+  testState.withRequestScope.mockImplementation(
+    async (_req: Request, callback: (cradle: Cradle) => Promise<unknown>) =>
       callback(testState.cradle as Cradle),
   );
 });

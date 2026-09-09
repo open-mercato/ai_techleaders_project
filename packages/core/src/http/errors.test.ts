@@ -230,7 +230,12 @@ describe('isAppError', () => {
 
 describe('AppError.headers round-trip through apiHandler', () => {
   const context = { params: Promise.resolve({}) } as ApiRouteContext;
-  const request = new Request('http://devmentor.test/api/auth/login', { method: 'POST' });
+  // The CSRF header is required on a POST (primitives B3); without it `apiHandler` refuses
+  // with a 403 before the logic under test throws anything.
+  const request = new Request('http://devmentor.test/api/auth/login', {
+    method: 'POST',
+    headers: { 'x-devmentor-request': '1' },
+  });
 
   it('copies the headers onto the failure response and keeps the envelope', async () => {
     const handler = apiHandler(() => {

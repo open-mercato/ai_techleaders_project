@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { withScope } from '../container/container';
+import { withRequestScope } from '../container/container';
 import type { Cradle } from '../container/cradle';
 import { apiHandler, type ApiRouteContext } from './apiHandler';
 import { BadRequestError, type FieldErrors, ValidationError } from './errors';
@@ -80,8 +80,12 @@ export function makeCrudRoute<Entity, CreateInput = never, UpdateInput = never>(
     return Array.isArray(raw) ? raw[0] : raw;
   }
 
+  // `withRequestScope`, not `withScope`: the scope carries the request's session cookie, so
+  // an `authorize` hook calling `requireSession` and a service that also depends on the
+  // scoped `session` see the same session from a single lookup. A request with no cookie
+  // resolves to `null` and costs nothing, so a public route is unaffected.
   function run<T>(req: Request, fn: (cradle: Cradle) => Promise<T>): Promise<T> {
-    return withScope(async (cradle) => {
+    return withRequestScope(req, async (cradle) => {
       await options.authorize?.(req, cradle);
       return fn(cradle);
     });

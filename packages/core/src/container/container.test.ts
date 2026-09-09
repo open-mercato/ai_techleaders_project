@@ -12,13 +12,25 @@ import type { AppEnv } from '../config/env';
  * variable the stubs read on each call.
  */
 
+/** The row the scoped session's single `findOne` answers with. */
+let storedUser: {
+  id: string;
+  email: string;
+  roles: string[];
+  emailVerifiedAt: Date | null;
+  sessionVersion: number;
+} | null;
+
+/** Counts every user lookup, which is how "one lookup per scope" is proven rather than assumed. */
+const findOne = vi.fn(async () => storedUser);
+
 /** A forked EntityManager stand-in; a fresh object per fork proves the SCOPED lifetime. */
 let forkCount = 0;
 const fakeOrm = {
   em: {
     fork: () => {
       forkCount += 1;
-      return { forkId: forkCount };
+      return { forkId: forkCount, findOne };
     },
   },
 };
@@ -36,13 +48,18 @@ let currentEnv: AppEnv;
 vi.mock('@devmentor/db', () => ({
   getOrm: async () => fakeOrm,
   // `user.service.ts` imports `User` as a value; it is only touched inside methods the
-  // container tests never call, so an inert placeholder is enough.
+  // container tests never call, so an inert placeholder is enough. `ROLES` is real,
+  // because the scoped session's live operator derivation orders its output by it.
   User: {},
+  ROLES: ['mentee', 'mentor', 'operator'],
 }));
 vi.mock('../config/env', () => ({ getEnv: () => currentEnv }));
 vi.mock('../logger', () => ({ createLogger: () => logger }));
 
-const { getContainer, withScope } = await import('./container');
+const { getContainer, withScope, withRequestScope, withCookieScope } = await import(
+  './container'
+);
+const { requireSession } = await import('../http/auth');
 
 /** The container is cached on `globalThis` to survive HMR; tests must clear that cache. */
 const globalForContainer = globalThis as unknown as { __devmentorContainer?: unknown };
@@ -66,12 +83,33 @@ function useEnv(overrides: Partial<AppEnv> = {}): void {
   currentEnv = { ...BASE_ENV, ...overrides };
 }
 
+const SECRET = 'a'.repeat(32);
+
 beforeEach(() => {
   delete globalForContainer.__devmentorContainer;
   forkCount = 0;
   vi.clearAllMocks();
   useEnv();
+  storedUser = {
+    id: 'user-1',
+    email: 'ada@devmentor.dev',
+    roles: ['mentee'],
+    emailVerifiedAt: new Date('2026-09-01T00:00:00.000Z'),
+    sessionVersion: 0,
+  };
 });
+
+/** A request carrying a real, freshly signed session cookie for `storedUser`. */
+async function signedInRequest(): Promise<Request> {
+  const container = await getContainer();
+  const { cookie } = await container.cradle.sessionService.issue({
+    id: 'user-1',
+    sessionVersion: 0,
+  });
+  return new Request('http://devmentor.test/api/users', {
+    headers: { cookie: `theme=dark; ${cookie.slice(0, cookie.indexOf(';'))}` },
+  });
+}
 
 describe('getContainer', () => {
   it('registers the shared singletons', async () => {
@@ -174,6 +212,87 @@ describe('withScope', () => {
       }),
     ).rejects.toThrow('boom');
     expect(disposals).toEqual(['disposed']);
+  });
+});
+
+describe('the scoped session', () => {
+  beforeEach(() => {
+    useEnv({ SESSION_SECRET: SECRET });
+  });
+
+  it('resolves once per scope, however many callers ask for it', async () => {
+    // This is B2's "one indexed primary-key lookup" cost claim, made true by awilix's
+    // scoped caching: the route guard and a service both needing the session must not each
+    // reload the user.
+    const req = await signedInRequest();
+
+    const [fromGuard, fromService] = await withRequestScope(req, async (cradle) => [
+      await requireSession(req, cradle),
+      await cradle.session,
+    ]);
+
+    expect(fromGuard).toEqual({ userId: 'user-1', roles: ['mentee'] });
+    expect(fromService).toBe(fromGuard);
+    expect(findOne).toHaveBeenCalledOnce();
+  });
+
+  it('resolves separately in a second scope, so a role change is never cached across requests', async () => {
+    const req = await signedInRequest();
+
+    await withRequestScope(req, (cradle) => cradle.session);
+    await withRequestScope(req, (cradle) => cradle.session);
+
+    expect(findOne).toHaveBeenCalledTimes(2);
+  });
+
+  it('costs nothing until something asks for it', async () => {
+    const req = await signedInRequest();
+
+    await withRequestScope(req, (cradle) => cradle.em);
+
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('answers null for a request with no cookie, rather than throwing', async () => {
+    // A public route may resolve the session freely; failing closed stays the caller's
+    // explicit decision.
+    const anonymous = new Request('http://devmentor.test/');
+
+    await expect(
+      withRequestScope(anonymous, (cradle) => cradle.session),
+    ).resolves.toBeNull();
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('derives operator authority live from the allowlist', async () => {
+    useEnv({ SESSION_SECRET: SECRET, OPERATOR_EMAILS: ['ada@devmentor.dev'] });
+    const req = await signedInRequest();
+
+    await expect(withRequestScope(req, (cradle) => cradle.session)).resolves.toEqual({
+      userId: 'user-1',
+      roles: ['mentee', 'operator'],
+    });
+  });
+
+  it('resolves the same session from a bare cookie value, for a page with no Request', async () => {
+    const container = await getContainer();
+    const { cookie } = await container.cradle.sessionService.issue({
+      id: 'user-1',
+      sessionVersion: 0,
+    });
+    const token = cookie.slice(cookie.indexOf('=') + 1, cookie.indexOf(';'));
+
+    await expect(withCookieScope(token, (cradle) => cradle.session)).resolves.toEqual({
+      userId: 'user-1',
+      roles: ['mentee'],
+    });
+  });
+
+  it('answers null in a scope opened for system work', async () => {
+    // `withScope` carries no request, so there is no caller to authorize and no lookup to
+    // make. Unauthenticated and background work keeps working unchanged.
+    await expect(withScope((cradle) => cradle.session)).resolves.toBeNull();
+    expect(findOne).not.toHaveBeenCalled();
   });
 });
 

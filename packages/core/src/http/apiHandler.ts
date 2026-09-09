@@ -1,4 +1,5 @@
 import { createLogger, type Logger } from '../logger';
+import { requireCsrfHeader } from './auth';
 import { type FieldErrors, isAppError } from './errors';
 
 /**
@@ -61,17 +62,41 @@ export function jsonError(
   );
 }
 
+export interface ApiHandlerOptions {
+  /**
+   * Set `false` to skip the CSRF header check. **Reserved for the payment-webhook route
+   * (E04)**, which is called by Stripe rather than by a browser and authenticates by
+   * verifying a request signature instead. There is no other legitimate consumer: any
+   * other route reaching for this is a route that should be sending the header.
+   */
+  csrf?: boolean;
+}
+
 /**
- * Wrap a route function: run it, wrap its return value in the success envelope (or
- * pass through a `Response` it built itself), and turn any thrown `AppError` into the
- * matching status + failure envelope. Unexpected errors are logged via the shared
+ * Wrap a route function: enforce CSRF, run it, wrap its return value in the success
+ * envelope (or pass through a `Response` it built itself), and turn any thrown `AppError`
+ * into the matching status + failure envelope. Unexpected errors are logged via the shared
  * logger and returned as a generic 500 — a raw stack trace never reaches the client.
  *
  * Every route handler goes through this — no route writes its own `try/catch`.
+ *
+ * **CSRF is enforced here and nowhere else.** `requireCsrfHeader` runs before the route
+ * body for every method other than `GET`, `HEAD` and `OPTIONS`, so `makeCrudRoute`'s
+ * mutating verbs inherit the check and no route can forget it (primitives B3). The
+ * refusal is a `ForbiddenError`, so it takes the same path to the client as any other
+ * denial: 403 `forbidden`, in the standard envelope, with nothing of the route having run.
  */
-export function apiHandler(logic: RouteLogic): ApiRouteHandler {
+export function apiHandler(
+  logic: RouteLogic,
+  options?: ApiHandlerOptions,
+): ApiRouteHandler {
+  const csrf = options?.csrf ?? true;
+
   return async (req, ctx) => {
     try {
+      if (csrf) {
+        requireCsrfHeader(req);
+      }
       const result = await logic(req, ctx);
       return result instanceof Response ? result : jsonOk(result);
     } catch (error) {

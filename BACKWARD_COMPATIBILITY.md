@@ -70,14 +70,25 @@ The `exports` maps in each `package.json` and the named exports behind them are 
 API between packages. `npm run typecheck` is the consumer check.
 
 - `@devmentor/core` (`.`, `./container`, `./services`, `./http`, `./events`,
-  `./validators/*`): `getEnv`, `createLogger`, `getContainer`, `withScope`, the
-  `Cradle` keys (`env`, `logger`, `orm`, `eventBus`, `em`, `userService`),
-  `UserService` and `UserDto`, the `AppError` family and `isAppError`, `apiHandler`,
-  `jsonOk`, `jsonError`, `makeCrudRoute` with `CrudService` and
+  `./validators/*`): `getEnv`, `createLogger`, `getContainer`, `withScope`,
+  `withRequestScope`, `withCookieScope`, the `Cradle` keys (`env`, `logger`, `orm`,
+  `eventBus`, `clock`, `sessionService`, `tokenService`, `em`, `userService`,
+  `sessionCookie`, `session`),
+  `UserService` and `UserDto`, the `AppError` family and `isAppError`, `apiHandler`
+  with `ApiHandlerOptions`, `jsonOk`, `jsonError`, `makeCrudRoute` with `CrudService` and
   `MakeCrudRouteOptions`, `safeReturnTo`, `fetchJson` with `FetchJsonOptions`,
-  `OutboundHttpError` and `DEFAULT_TIMEOUT_MS`, `readSession`, `requireSession`, `requireRole`,
-  `assertOwnership`, `Session`, `Role` (`'student' | 'mentor'`), `EventBus`,
+  `OutboundHttpError` and `DEFAULT_TIMEOUT_MS`, `requireSession`, `requireRole`,
+  `assertOwnership`, `requireCsrfHeader`, `CSRF_HEADER`, `Session`
+  (`{ userId, roles: readonly [Role, ...Role[]] }`), `Role`
+  (`'mentee' | 'mentor' | 'operator'`, re-exported from `@devmentor/db`), `EventBus`,
   `EventMap`, `userCreateSchema`, and the re-exported `checkDbConnection`.
+
+  Two removals came with the canonical live session: `readSession` (a cookie-only
+  parser is no longer part of the authorization surface — see §7) and `Session.role`,
+  replaced by `Session.roles`. `withScope` keeps its exact signature and is still the
+  entry point for unauthenticated and system work; `withRequestScope(req, fn)` and
+  `withCookieScope(cookieValue, fn)` are additive and register the request-scoped
+  `session`, which resolves lazily, once per scope, to `Session | null`.
 - `@devmentor/db` (`.`, `./entities`, `./config`): `User`, `MentorProfile`, `IUser`,
   `IMentorProfile`, `baseProperties`, `entities`, `createOrmConfig`, `getOrm`,
   `closeOrm`, `checkDbConnection`, `getDbEnv`, `MikroORM`, `EntityManager`, and the
@@ -173,17 +184,42 @@ PR; adding a payload field is additive.
 
 ### 7. Session and CSRF conventions
 
-The session cookie name `devmentor_session` and the `Role` union live in
-`packages/core/src/http/auth.ts`; the CSRF header `x-devmentor-request` is set by
-`apiCall` in `packages/ui/src/backend/api/apiCall.ts`. Real session verification and
-the server-side header check are not implemented yet; every guarded route currently
-denies.
+**The cookie.** `devmentor_session`, defined once as `SESSION_COOKIE_NAME` in
+`packages/core/src/services/auth/session.service.ts`. Renaming it signs every live user
+out. It carries an HS256 JWT with `sub`, `sv` and `aud: 'session'`, and no roles.
 
-**Breaking:** once auth ships, renaming the cookie or the header, or changing the
-`Role` values.
+**The roles.** `ROLES` / `Role` (`'mentee' | 'mentor' | 'operator'`) live in
+`packages/db/src/entities/auth/roles.ts` — the single source of truth, because the
+`users.roles` column and its membership `CHECK` are generated from it. `@devmentor/core`
+re-exports the same type through `http/auth.ts`; there is no second declaration.
+`Session` is `{ userId, roles: readonly [Role, ...Role[]] }` — a non-empty tuple, so
+`homeFor` has no undefined case.
 
-**Required path:** change `core/src/http/auth.ts` and `ui/src/backend/api/apiCall.ts`
-together, with an integration scenario covering the denied path.
+**Session verification is live.** `requireSession(req, cradle)` is the only authorization
+entry point: it verifies the cookie, reloads the user row, compares
+`users.session_version` against the token's `sv`, and returns the stored roles with
+`operator` resolved against `OPERATOR_EMAILS` on every request, in both directions. There
+is deliberately no exported cookie-only parser, and an empty stored role set is an
+internal error (500), never a 401.
+
+**The CSRF header.** `x-devmentor-request` is sent by `apiCall` in
+`packages/ui/src/backend/api/apiCall.ts` and **enforced by `apiHandler` for every method
+other than `GET`, `HEAD` and `OPTIONS`** — a missing header is 403 `forbidden` before the
+route body runs. It therefore applies to every mutating route, including
+`makeCrudRoute`'s `POST`/`PUT`/`DELETE` and the public login and register routes.
+`requireCsrfHeader` is exported so the rule is greppable and separately testable, but no
+route calls it. The one opt-out, `apiHandler(logic, { csrf: false })`, is reserved for the
+payment-webhook route, which authenticates by signature. Two consequences: every
+state-changing `/api/*` route is JSON-only and is called through `apiCall` or `CrudForm`,
+never a native HTML form.
+
+**Breaking:** renaming the cookie or the header; changing the `Role` values or
+`Session`'s shape; exempting a mutating route from the CSRF check, or narrowing what
+`requireSession` verifies.
+
+**Required path:** change `core/src/http/auth.ts`, `core/src/http/apiHandler.ts`,
+`db/src/entities/auth/roles.ts` and `ui/src/backend/api/apiCall.ts` together, with an
+integration scenario covering the denied path.
 
 ### 8. Product decisions (`.ai/specs/product-brief.md`)
 
