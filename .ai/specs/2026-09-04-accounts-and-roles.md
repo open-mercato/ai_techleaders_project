@@ -2,6 +2,8 @@
 
 Date: 2026-09-04
 Revised: 2026-09-06 — design review; see "What the 2026-09-06 revision changed" at the end
+Revised: 2026-09-08 — aligned with the primitives spec's 2026-09-08 grilling review; see "What the
+2026-09-08 revision changed" at the end
 Status: active
 Tracker: epic #7 — stories #12 (E01-S01), #13 (E01-S02), #14 (E01-S03)
 Design authority: `.ai/specs/product-brief.md` (D07, D19, R06, R07, R18)
@@ -188,24 +190,31 @@ packages/db/src/entities/auth/user.entity.ts       + roles, githubId, githubLogi
                                                    + passwordHash                       (Slice 4)
 packages/db/migrations/…-auth-identity.ts          Slice 2 (up + down + verified backfill)
 packages/db/migrations/…-auth-password.ts          Slice 4 (up + down)
-packages/db/src/entities/auth/rate-limit.entity.ts Slice 4; hashed key, window, count
+packages/db/src/entities/auth/rate-limit.entity.ts Slice 4; AuthRateLimit — natural text PK,
+                                                     hashed key, window_start, count; the one
+                                                     entity without baseProperties (primitives B8)
 packages/db/src/seeders/database.seeder.ts         + a mentee, an operator; Ada becomes mentor
 
 packages/core/src/
   time/clock.ts                                    † B1
   http/outbound.ts                                 † B20  fetchJson with a timeout
   config/env.ts                                    + SESSION_SECRET(+_PREVIOUS), GITHUB_*,
-                                                     APP_URL, OPERATOR_EMAILS, MAIL_FROM,
+                                                     APP_URL, OPERATOR_EMAILS, TRUSTED_PROXY_HOPS,
                                                      AUTH_IDENTITY_ADAPTER, INTEGRATION_TEST_RUN,
+                                                     MAIL_API_KEY, MAIL_FROM, MAILER_ADAPTER,
                                                      PASSWORD_HASH_CONCURRENCY(+_WAIT_MS)
-  http/errors.ts                                   † B6   ServiceUnavailableError (503)
+  http/errors.ts                                   † B6   ServiceUnavailableError (503),
+                                                     TooManyRequestsError (429), `headers` on AppError
+  http/apiHandler.ts                               † B3   CSRF enforced on every non-GET route;
+                                                     `{ csrf: false }` reserved for the webhook route
   http/auth.ts                                     † B3   canonical live requireSession,
                                                      requireCsrfHeader, Role widened+renamed
   http/return-to.ts                                † B7
   http/rate-limit.ts                               † B8
-  container/container.ts                           + withRequestScope, scoped `session`
+  container/container.ts                           + withRequestScope, scoped `session`,
+                                                     production-secret check at creation (B6)
   container/cradle.ts                              + session, clock, sessionService, tokenService,
-                                                     passwordService, identity, mailer
+                                                     passwordService, identity, mailer, rateLimiter
   services/auth/session.service.ts                 † B2
   services/auth/token.service.ts                   † B5   stateless pair only
   services/auth/password.service.ts                † B9   node:crypto scrypt + concurrency gate
@@ -217,8 +226,9 @@ packages/core/src/
                                                      registerWithPassword, authenticateWithPassword
                                                    ~ create takes an explicit typed input
   services/notifications/mailer.port.ts            † B14
-  services/notifications/adapters/smtp-mailer.ts   † B14  production verification delivery
-  services/notifications/adapters/log-mailer.ts    † B14  local/integration only
+  services/notifications/adapters/resend-mailer.ts † B14  Resend HTTP API through fetchJson
+  services/notifications/adapters/log-mailer.ts    † B14  development default; harness via
+                                                     MAILER_ADAPTER=log + INTEGRATION_TEST_RUN=1
   validators/auth/{register,login}.schema.ts       shared client/server
   validators/auth/user-create.schema.ts            DELETED (no consumers after Slice 2)
   events/event-map.ts                              + auth.user.roles_changed
@@ -237,14 +247,20 @@ packages/app/src/
   app/(mentor)/layout.tsx  mentor/page.tsx
   app/admin/layout.tsx                             + operator guard; AppShell in Slice 3
   app/admin/page.tsx  admin/users/page.tsx         + their own guard calls (not layout-only)
-  app/api/auth/github/route.ts                     GET  → GitHub, sets `state`
+  app/api/auth/github/route.ts                     GET  → GitHub, sets `state`, forwards ?login
   app/api/auth/github/callback/route.ts            GET  → exchange, session, role home
   app/api/auth/{register,login,verify-email}/…     Slice 4
   app/api/auth/logout/route.ts                     POST
   app/api/users/route.ts                           GET only, operator-guarded; POST removed
+
+eslint.config.mjs                                  + third-party boundary patterns: next/react
+                                                     forbidden in core and db, next in ui (Slice 2)
+tests/integration/{environment,global-setup}.ts    + auth env, `signInAs(login)`, `waitForMail(to)`
 ```
 
-Four boundary facts this layout enforces, all from `eslint.config.mjs` and the package manifests:
+Four boundary facts this layout enforces — from the package manifests today, and from
+`eslint.config.mjs` once Slice 2 adds the third-party patterns (the lint config currently
+restricts only `@devmentor/*` workspace names, so `core ↛ next` is a convention until then):
 
 - `core/src/http/auth.ts` takes a plain `Request` and never imports `next`. The `next/headers`
   cookie read and every `redirect()` live in `packages/app/src/lib/session.ts`.
@@ -287,9 +303,13 @@ a `Session` through `makeCrudRoute`'s `resolve` (a §2 change) remains #23's, pe
 ### Session mechanism
 
 Defined in the primitives spec B2 and not restated here. What E01 relies on: cookie
-`devmentor_session` (name preserved, §7), a `jose` HS256 JWT with `sub`, `sv`, `iat`, and `exp`,
-24 h, `httpOnly` / `secure` in production / `sameSite=lax` / `path=/`, revocation via
-`users.session_version`, and `SESSION_SECRET_PREVIOUS` for rotation.
+`devmentor_session` (name preserved, §7), a plain `jose` HS256 JWT with `sub`, `sv`,
+`aud: 'session'`, `iat`, and `exp`, 24 h, `httpOnly` / `secure` in production / `sameSite=lax` /
+`path=/`, revocation via `users.session_version`, and `SESSION_SECRET_PREVIOUS` for rotation.
+Every token in the codebase carries an `aud` and every verifier names the one it accepts, so a
+verification link can never be presented as a session cookie. The `Set-Cookie` string is
+hand-rolled in `core` (no `cookie` package); the clock reaches `jose` as `currentDate` from the
+service's injected `Clock`.
 
 ### GitHub OAuth flow
 
@@ -299,12 +319,14 @@ GET /api/auth/github                                    [browser-navigated: fail
     ├─ state = signPurposeToken({ purpose:'oauth-state',
     │                            subject: safeReturnTo(?returnTo, '') })
     ├─ Set-Cookie devmentor_oauth_state  (httpOnly, secure in prod, SameSite=Lax, 10 min)
-    └─ 302 → identity.authorizeUrl(state)
+    ├─ login = ?login matching /^[A-Za-z0-9-]{1,39}$/, else undefined   [GitHub's own hint param]
+    └─ 302 → identity.authorizeUrl({ state, login })
 
 GET /api/auth/github/callback                           [browser-navigated: failures redirect]
     ├─ ?error=access_denied → 302 /sign-in?cancelled=1        [nothing created]
-    ├─ state cookie missing / mismatched / expired → 302 /sign-in?error=state
-    │     (rejected before any outbound call — an attacker cannot mint state)
+    ├─ ?state ≠ state cookie, or cookie missing, or token expired → 302 /sign-in?error=state
+    │     (equality first, then signature: a purpose token proves the claim, not the bearer —
+    │      the cookie comparison is what stops login CSRF; rejected before any outbound call)
     ├─ identity.exchangeCode(code)                            [fetchJson, 10s timeout]
     ├─ identity.fetchIdentity(token) → primary *verified* email required
     ├─ withRequestScope → findOrCreateFromGithub:
@@ -343,9 +365,24 @@ configuration (fail at boot).
 The harness cannot compose the container in-process — it builds and runs the app as a child
 process — so selection necessarily crosses the boundary as configuration. The port fixes the
 *shape* of the seam, not its *selection*; the two-signal rule plus the boot failure is what makes
-the selection safe. `OPERATOR_EMAILS` in `.github/workflows/ci.yml` is an obviously fake address
+the selection safe. The same rule selects every fake, present and future: the log mailer is
+`MAILER_ADAPTER=log` + `INTEGRATION_TEST_RUN=1` (Slice 4), and the payment-gateway mock will be
+selected the same way. `OPERATOR_EMAILS` in `.github/workflows/ci.yml` is an obviously fake address
 (`mock-operator@devmentor.test`); the real founder addresses exist only in deployment
 configuration, so `ci.yml` is not a second editor of the allowlist.
+
+**Personas come from a `login` hint.** A single fixed mock identity cannot serve this spec:
+operator authority is derived live from `OPERATOR_EMAILS`, so one fixed address is either always
+an operator or never one, and the mentee-landing and operator scenarios could not both run.
+GitHub's authorize endpoint accepts a `login` parameter that pre-selects an account, so the port
+carries it legitimately as `authorizeUrl({ state, login? })`: the start route forwards a validated
+`?login=`, the real adapter passes it to GitHub as a hint, and the mock derives its whole identity
+from it — a stable id, that login, and `<login>@devmentor.test` as the verified primary email
+(default persona `mock-mentee`). Harness fixtures follow the same address rule: the seeded
+operator is `mock-operator@devmentor.test` and the seeded mentor's address matches the login the
+harness uses for her, so a mock sign-in links to the seeded row. A `signInAs(login)` helper beside
+`adminBrowserSession` navigates to `/api/auth/github?login=<login>` and asserts the cookie was
+stored.
 
 ## 📝 Data Model
 
@@ -413,7 +450,10 @@ concurrency gate**: each hash holds roughly 128 MiB, and the rate limiter is per
 rather than global, so a few dozen distinct addresses would otherwise be several gigabytes of
 concurrent allocation. Over the limit, a request waits up to `PASSWORD_HASH_WAIT_MS` and then
 fails `503 service_unavailable`; that 503 does **not** count against the rate limiter, or an
-unrelated burst would lock out the users who were merely unlucky.
+unrelated burst would lock out the users who were merely unlucky. The ordering that makes this
+true is fixed in primitives B8: acquire the gate slot first (an in-memory check), consume the
+rate limit second, hash third — the limiter counts every attempt that reaches credential work and
+never decrements.
 
 This deviates from the standards spec's *"`bcrypt`/`bcryptjs`, cost factor ≥ 12 … the extra ~50 ms
 per login is free"*. That figure describes the native binding. `bcryptjs` is pure JavaScript,
@@ -427,6 +467,8 @@ unaffected.
 and becomes the mentor. Two rows are added: a mentee and an operator, both with
 `email_verified_at` set, and from Slice 4 a password hash so the harness can sign in through the
 form. The operator fixture also holds `mentor`, proving combined roles do not erase each other.
+Seeded addresses follow `<login>@devmentor.test` so the mock identity adapter's persona for that
+login links to the seeded row rather than creating a second one.
 
 ## 📝 API Contracts
 
@@ -438,7 +480,7 @@ GitHub" never sees a JSON envelope rendered as a page.
 
 | Route | Method | Auth | Body / query | Answer |
 |---|---|---|---|---|
-| `/api/auth/github` | GET | public | `?returnTo` | 302 to GitHub, or 302 `/sign-in?error=unavailable` |
+| `/api/auth/github` | GET | public | `?returnTo&login` | 302 to GitHub, or 302 `/sign-in?error=unavailable` |
 | `/api/auth/github/callback` | GET | public | `?code&state` / `?error` | 302 + `Set-Cookie`, or 302 to `/sign-in?error=…` |
 | `/api/auth/register` | POST | public, **CSRF**, rate-limited | `registerSchema` | `{ ok: true, data: { email } }` |
 | `/api/auth/login` | POST | public, **CSRF**, rate-limited | `loginSchema` | `{ ok: true, data: UserDto }` + cookie |
@@ -449,7 +491,12 @@ GitHub" never sees a JSON envelope rendered as a page.
 
 Login and register carry the CSRF header requirement even though they are public. They are
 state-changing — login sets a session cookie — and the standards spec requires a CSRF defence on
-every state-changing route. Without it, an attacker can force a victim's browser to sign into the
+every state-changing route. No route calls `requireCsrfHeader` itself: `apiHandler` enforces it
+for every method other than `GET`, `HEAD` and `OPTIONS` (primitives B3), so `makeCrudRoute`'s
+mutating verbs inherit it and a forgotten check is impossible. The only opt-out,
+`apiHandler(logic, { csrf: false })`, is reserved for the E04 webhook route. Consequently every
+state-changing route is JSON-only and is called through `apiCall` or `CrudForm`, never a native
+HTML form. Without it, an attacker can force a victim's browser to sign into the
 *attacker's* account and then read whatever the victim does there, which matters once E04 collects
 payment details. `apiCall` already sends `x-devmentor-request` on every request including GETs, so
 this costs nothing on the client. The defence holds because a cross-origin POST carrying a custom
@@ -474,11 +521,14 @@ loginSchema    = { email, password: z.string().max(72), returnTo? }
 The 72-byte cap is not cosmetic: accepting an unbounded string into a deliberately expensive hash
 is free amplification, and it is bounded input to the concurrency gate above.
 
-**Error codes** — all existing except one addition: `401 unauthorized` for a failed sign-in
+**Error codes** — all existing except two additions: `401 unauthorized` for a failed sign-in
 (*"Invalid credentials"*, generic for unknown email and wrong password alike), `403 forbidden` for
 a wrong role or a missing CSRF header, `409 conflict` for an email already tied to a GitHub
-account, `422 validation_failed` with `fieldErrors`, and the new **`503 service_unavailable`** when
-an auth secret is unset or the hashing gate is saturated.
+account, `422 validation_failed` with `fieldErrors`, the new **`503 service_unavailable`** when
+an integration credential is unset, an upstream call fails, or the hashing gate is saturated, and
+the new **`429 rate_limited`** (Slice 4) with `retryAfterSeconds` in the envelope and a
+`Retry-After` header, carried by a new optional `headers` field on `AppError` that `apiHandler`
+copies through.
 
 ### `registerWithPassword` — the full state matrix
 
@@ -586,7 +636,8 @@ semantic roles rather than CSS, per `AGENTS.md`.
 
 | # | Scenario | Behaviour |
 |---|---|---|
-| 1 | `SESSION_SECRET` / GitHub credentials unset | 302 `/sign-in?error=unavailable`; the app builds, boots and serves public pages. Never a boot failure, never a JSON envelope in the browser |
+| 1 | GitHub credentials unset, or `SESSION_SECRET` unset outside production | 302 `/sign-in?error=unavailable`; the app builds, boots and serves public pages. Never a JSON envelope in the browser |
+| 1b | `SESSION_SECRET` unset with `NODE_ENV=production` | First container creation throws and the process does not serve — checked in `createContainer`, **not** in the zod schema, so `next build` (which also runs as production, with no secrets in CI) is unaffected. From Slice 4 the same check covers `MAIL_API_KEY` unless `MAILER_ADAPTER=log` is legitimately set |
 | 2 | User cancels GitHub authorisation | 302 `/sign-in?cancelled=1`; **no account created**; the screen says so |
 | 3 | GitHub account has no *verified* primary email | Refused with the reason; no account created |
 | 4 | GitHub email matches a row whose `email_verified_at` is **null** | **Refused, nothing linked.** Unreachable between Slices 2 and 4 (backfill + `POST /api/users` removed); from Slice 4 it means an unconfirmed registration, and the user holds the verification link they are told to use |
@@ -602,20 +653,22 @@ semantic roles rather than CSS, per `AGENTS.md`.
 | 14 | Registering an email already tied to a GitHub account | 409 pointing to GitHub sign-in (deviation recorded above) |
 | 15 | Sign-in before email verification | Refused with the reason; no session issued |
 | 16 | Verification link reused, expired, or prefetched by a mail scanner | Already-verified is **idempotent, not an error**, so a scanner consuming the link does not break the user |
-| 17 | Rate limit exceeded on login/register | Cooldown with a generic message; PostgreSQL counters survive process restarts and are shared across instances |
-| 18 | Hashing concurrency gate saturated | Bounded wait, then `503 service_unavailable`; the 503 is **not** counted against the rate limiter |
+| 17 | Rate limit exceeded on login/register | `429 rate_limited` with `Retry-After` and a generic message that does not reveal whether the email exists; PostgreSQL counters survive process restarts and are shared across instances |
+| 17b | No client IP can be derived (`TRUSTED_PROXY_HOPS=0` and no forwarded header) | Per-IP key skipped, per-email key still enforced, one warning per process |
+| 18 | Hashing concurrency gate saturated | Bounded wait, then `503 service_unavailable`; the 503 is **not** counted against the rate limiter because the gate slot is acquired before the counter is consumed |
 | 19 | Mentee opens a mentor screen | Redirected to `/home` (403 on the API equivalent) |
 | 20 | Mentor opens `/admin` | Refused |
 | 21 | Revoked operator navigates client-side from `/admin` to `/admin/users` | Refused — the page and the service each check, so the un-re-run layout is not the boundary |
-| 22 | `returnTo=//evil.example` or `returnTo=https://…` | Rejected by `safeReturnTo`; falls back to the role home |
-| 23 | State-changing POST without `x-devmentor-request` | 403 — a plain HTML form post cannot forge it, and a cross-origin fetch fails preflight |
+| 22 | `returnTo=//evil.example`, `returnTo=https://…`, `returnTo=/api/…`, `returnTo=/_next/…` | Rejected by `safeReturnTo`; falls back to the role home. The `/api/` and `/_next/` rejections stop a validated path from landing on a JSON envelope or re-entering the OAuth start route |
+| 23 | State-changing POST without `x-devmentor-request` | 403 from `apiHandler` before the route body runs — a plain HTML form post cannot forge it, and a cross-origin fetch fails preflight |
 | 24 | Operator email removed from the allowlist | Operator authorization fails on the **next request**; the stored cache is reconciled opportunistically, other roles are preserved, `auth.user.roles_changed` is emitted, and `session_version` is **not** bumped |
 | 25 | Operator email added to the allowlist | Authority applies on the next request, without a sign-out/sign-in cycle |
 | 26 | Founder changes their GitHub primary email | Nothing happens — `users.email` is never rewritten, so operator authority is unaffected. Changing the address is an allowlist edit |
 | 27 | Sign-out with an expired or tampered cookie | Succeeds: the cookie is cleared and `{ ok: true }` returned; no `session_version` bump, because there is no live session |
 | 28 | A signed-in user opens `/sign-in` | Redirected to `homeFor(roles)`; no second OAuth round trip |
-| 29 | Mail transport is missing or delivery throws | Registration fails with retryable `503 service_unavailable`; no success is reported without delivery |
-| 30 | `AUTH_IDENTITY_ADAPTER=mock` without `INTEGRATION_TEST_RUN=1` | The env schema refuses and the app **fails at boot**, loudly — never a silent fallback to the real adapter |
+| 29 | Mail delivery throws or times out | Registration fails with retryable `503 service_unavailable`; no success is reported without delivery. `MAIL_API_KEY` missing in production is edge case 1b; in development the log adapter is registered automatically with a boot warning, so `npm run dev` never shows a form that always 503s |
+| 30 | `AUTH_IDENTITY_ADAPTER=mock` or `MAILER_ADAPTER=log` set without `INTEGRATION_TEST_RUN=1` | The env schema refuses and the app **fails at boot**, loudly — never a silent fallback to the real adapter |
+| 30b | A stored `users.roles` is empty despite the `CHECK` | `requireSession` throws an internal error (logged 500), never a 401 — a 401 would loop the user through sign-in and hide a data bug. `Session.roles` is typed `readonly [Role, ...Role[]]` |
 | 31 | Database unreachable | Auth routes fail closed; `/api/health` still answers 200 with `database: "down"` |
 | 32 | Integration harness: `NODE_ENV=production` over plain-HTTP loopback | A `secure` cookie is accepted only because Chrome treats loopback origins as trustworthy. This is browser behaviour, not something the harness implements — `tests/integration/environment.ts` sets `NODE_ENV: 'production'` and contains no loopback logic. Load-bearing: a harness serving from a non-loopback host would break sign-in in CI, so the harness asserts the cookie was stored |
 
@@ -645,7 +698,8 @@ signals take the higher label, so a Slice 3 diff that touches a `requirePageRole
 | The `AppShell` port breaks CI's Integration job | The signed-in `admin.integration.test.ts` asserts `link "Users"`; the port keeps it |
 | An auth bypass ships in production code as "test mode" | Two required signals, a **boot failure** on the dangerous combination, and a unit test asserting the mock is refused in a production-shaped environment. The port alone would not have achieved this — it fixes the shape of the seam, not its selection |
 | The rename (`student` → `mentee`) is missed somewhere | Zero consumers today; `npm run typecheck` is the exhaustive check, and both §2/§7 entries change in the same PR |
-| Env vars without defaults break the CI build | All auth vars are `optional()` and fail closed at the route; `.env.example`, `README.md`, `.github/workflows/ci.yml` and `tests/integration/environment.ts` are updated in the same PR as the var |
+| Env vars without defaults break the CI build | All auth vars are `optional()` in the schema and fail closed at the route; the production-only requirement for `SESSION_SECRET` (and `MAIL_API_KEY`) is checked at container creation, never at parse time, so the Build job — which runs `next build` as production with no env — is untouched. `.env.example`, `README.md`, `.github/workflows/ci.yml` and `tests/integration/environment.ts` are updated in the same PR as the var |
+| The mail provider is not decided by ship date | Decided: Resend over its HTTP API through `fetchJson` — one call, no SMTP client, B20's timeout and redaction for free. The remaining action is a founder creating the key |
 | Secrets leak into logs | pino redaction for `password`, `passwordHash`, `token`, `authorization`, `cookie`; `fetchJson` never logs a request body; asserted by a unit test |
 | Session forgery | `jose` HS256 verification with an explicit algorithm allowlist; unit tests for valid, expired, malformed, tampered payload and tampered signature |
 | Login is a denial-of-service surface | `scrypt` on the threadpool rather than `bcryptjs` on the main thread; a global concurrency gate bounds memory; the 503 path is excluded from the rate limiter |
@@ -674,13 +728,16 @@ before the 1.0 ship date (D16: 2026-10-31).
 - **Slice 1 — React test infrastructure.** Test dependencies and configuration only. `risk-low`.
 - **Slice 2 — GitHub sign-in and data protection (#12).** The session mechanism, multi-role model,
   role homes, page-and-service enforcement, operator guard for the users resource, removal of
-  `POST /api/users`, and CSRF enforcement. Ships primitives B1, B2, B3 (`requireSession`,
-  `requireCsrfHeader`), B5 (stateless pair), B6, B7, B10, B14 (GitHub identity port), B20, F3, and
-  the minimal F4 sign-out action. **This is the unblock point: E02+ may start when it merges.**
+  `POST /api/users`, and CSRF enforcement in `apiHandler`. Ships primitives B1, B2, B3
+  (`requireSession`, `requireCsrfHeader`, the Cradle registrations), B5 (stateless pair), B6 (503
+  + the production-secret check), B7, B10, B14 (GitHub identity port, mock personas via `login`),
+  B20, F3, the minimal F4 sign-out action, the ESLint third-party boundary patterns, and the
+  harness `signInAs` helper. **This is the unblock point: E02+ may start when it merges.**
 - **Slice 3 — Signed-in shell (#12, #14).** F1/F2, `nav.ts`, combined-role navigation, and F7 with
   the R07 negative assertion. Depends on Slice 2. `risk-medium`.
-- **Slice 4 — Email and password (#13).** The D07 fallback on the same session. Ships B8, B9, B14
-  (mailer port), F5.
+- **Slice 4 — Email and password (#13).** The D07 fallback on the same session. Ships B8 (with
+  the `AuthRateLimit` table, the 429 error and `TRUSTED_PROXY_HOPS`), B9, B14 (mailer port, Resend
+  and log adapters, `waitForMail`), F5.
 
 Story #14's remaining guard obligations ship per-story with E02–E05, carried by the
 `CODE_REVIEW.md` checklist line. There is no Slice 5: E01 has exactly one list endpoint
@@ -719,22 +776,33 @@ and no `*.test.tsx` anywhere. The later slices add `.tsx` production files.
 ### Slice 2 — GitHub sign-in and data protection (#12) (`risk-high`)
 
 3. **Clock (B1).** `core/src/time/clock.ts`; register `clock` in `container/container.ts` and
-   `container/cradle.ts`.
+   `container/cradle.ts`. The auth services receive it by constructor injection and read it
+   internally; none of their public methods takes a `now` parameter.
    *Test:* `systemClock.now()` returns a `Date`; an injected fixed clock is honoured.
 4. **`ServiceUnavailableError` (B6) + `safeReturnTo` (B7) + `fetchJson` (B20).** Add the 503 row to
    `BACKWARD_COMPATIBILITY.md` §1.
-   *Test:* `return-to.test.ts` — a relative path passes; `//host`, `/\host`, `https://…`, `''` and
-   `undefined` fall back. `errors.test.ts` — status 503, code `service_unavailable`.
-   `outbound.test.ts` — happy path; non-2xx → typed error; an aborting signal → typed error; the
-   request body never reaches the logger.
+   *Test:* `return-to.test.ts` — a relative page path passes; `//host`, `/\host`, `https://…`,
+   `/api/anything`, `/_next/anything`, `''` and `undefined` fall back. `errors.test.ts` — status
+   503, code `service_unavailable`; the optional `headers` field round-trips through `apiHandler`.
+   `outbound.test.ts` — happy path; non-2xx → `ServiceUnavailableError` with the upstream status
+   in the cause; an aborting signal → `ServiceUnavailableError`; the request body never reaches
+   the logger.
 5. **Env (B6).** `core/src/config/env.ts`: `SESSION_SECRET` (`z.string().min(32).optional()`),
    `SESSION_SECRET_PREVIOUS`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `OPERATOR_EMAILS`
-   (default empty), `APP_URL` (default `http://localhost:3000`), `AUTH_IDENTITY_ADAPTER`,
-   `INTEGRATION_TEST_RUN`. A `superRefine` **rejects `AUTH_IDENTITY_ADAPTER=mock` without
-   `INTEGRATION_TEST_RUN=1`**, failing at boot. Mirror every var in `.env.example`, `README.md`,
-   `.github/workflows/ci.yml` (with a fake `OPERATOR_EMAILS`), and `tests/integration/environment.ts`.
-   *Test:* defaults; a too-short secret rejected; all-absent still parses; the mock combination
-   rejected in a production-shaped env; the memoisation branch. `getEnv` caches in a module-level
+   (default empty), `APP_URL` (default `http://localhost:3000`), `TRUSTED_PROXY_HOPS` (integer
+   ≥ 0, default `0`), `AUTH_IDENTITY_ADAPTER`, `INTEGRATION_TEST_RUN`, and — declared now, consumed
+   in Slice 4 — `MAILER_ADAPTER`, `MAIL_API_KEY`, `MAIL_FROM`. A `superRefine` **rejects
+   `AUTH_IDENTITY_ADAPTER=mock` or `MAILER_ADAPTER=log` without `INTEGRATION_TEST_RUN=1`**,
+   failing at boot. Separately, `createContainer` throws when `NODE_ENV=production` and
+   `SESSION_SECRET` is unset (from Slice 4: or `MAIL_API_KEY` is unset while `MAILER_ADAPTER` is
+   not `log`) — **in the container, not the schema**, because `getEnv()` is reachable from
+   `admin/page.tsx` and the logger during `next build`, which CI runs as production with no env.
+   Mirror every var in `.env.example`, `README.md`, `.github/workflows/ci.yml` (with a fake
+   `OPERATOR_EMAILS`), and `tests/integration/environment.ts` (which now sets `SESSION_SECRET`,
+   `AUTH_IDENTITY_ADAPTER=mock`, `INTEGRATION_TEST_RUN=1`, `OPERATOR_EMAILS`).
+   *Test:* defaults; a too-short secret rejected; all-absent still parses; each fake-adapter
+   combination rejected in a production-shaped env; the container check throws in production
+   without the secret and passes in development without it; the memoisation branch. `getEnv` caches in a module-level
    `let` (`env.ts:27-35`), so each case needs `vi.resetModules()` and the cache-hit path needs one
    explicit call to reach 100% branches.
 6. **Migration + entity.** Spike the `p`-builder representation of `text[]` first. Then
@@ -746,37 +814,50 @@ and no `*.test.tsx` anywhere. The later slices add `.tsx` production files.
    *Test:* a migration test that runs `up` then `down` then `up` against the Testcontainers database
    and asserts the schema and the backfill each way — required by `SDLC.md:108`. A unit test for the
    seeder's produced rows.
-7. **Token service (B5).** Add `jose`; implement `signPurposeToken` / `verifyPurposeToken` as HS256
-   JWTs with an explicit algorithm allowlist.
-   *Test:* round-trip; wrong purpose rejected; expired rejected; tampered signature rejected. Clock
-   injected.
-8. **Session service (B2).** `issue`, `verify`, `clear`; claims carry identity and session version
-   but no roles; register in the container.
+7. **Token service (B5).** Add `jose` — the only runtime dependency E01 adds; implement
+   `signPurposeToken` / `verifyPurposeToken` as HS256 JWTs with an explicit algorithm allowlist,
+   the purpose in `aud` and enforced on verify, the same `SESSION_SECRET` family, and
+   `SESSION_SECRET_PREVIOUS` honoured on verify.
+   *Test:* round-trip; wrong purpose (audience) rejected; expired rejected; tampered signature
+   rejected; a token signed with the previous secret verifies. Clock injected via the constructor.
+8. **Session service (B2).** `issue`, `verify`, `clear`; claims carry identity, session version
+   and `aud: 'session'` but no roles; the `Set-Cookie` string is hand-rolled; register in the
+   container as a singleton.
    *Test:* issue→verify round-trip; expired; tampered payload; tampered signature; malformed value;
-   a token signed with `SESSION_SECRET_PREVIOUS` verifies but is never issued; missing
-   `SESSION_SECRET` throws `ServiceUnavailableError`; cookie flags asserted (`httpOnly`,
-   `sameSite=lax`, `secure` only when `NODE_ENV=production`).
+   a purpose token presented as a session is rejected on audience; a token signed with
+   `SESSION_SECRET_PREVIOUS` verifies but is never issued; missing `SESSION_SECRET` throws
+   `ServiceUnavailableError`; cookie flags asserted (`httpOnly`, `sameSite=lax`, `path=/`,
+   `secure` only when `NODE_ENV=production`).
 9. **Canonical live session, request scope, and CSRF (B3).** `core/src/http/auth.ts`:
-   `Role = 'mentee' | 'mentor' | 'operator'`, `Session.roles: readonly Role[]`,
+   `Role = 'mentee' | 'mentor' | 'operator'`, `Session.roles: readonly [Role, ...Role[]]`,
    `requireSession(req, cradle)` verifying the cookie, reloading the user, comparing
    `sessionVersion`, returning **stored** roles with `operator` resolved live against
-   `OPERATOR_EMAILS`. Add `withRequestScope` and the lazily-resolved, fail-closed scoped `session`
-   to `container/container.ts` and `cradle.ts`. A cookie-only parser may exist for diagnostics but
-   is not exported as an authorization API. Update `BACKWARD_COMPATIBILITY.md` §2 and §7 in the same
-   commit; add `auth.ts` to `coverage.include` here.
+   `OPERATOR_EMAILS`; an empty stored role set is an internal error, not a 401. Add
+   `withRequestScope` and the lazily-resolved, fail-closed scoped `session` to
+   `container/container.ts` and `cradle.ts`. `requireCsrfHeader` is exported but called only by
+   `apiHandler`, which enforces it for every method other than `GET`/`HEAD`/`OPTIONS` and gains
+   `apiHandler(logic, { csrf: false })` for the future webhook route. A cookie-only parser may exist
+   for diagnostics but is not exported as an authorization API. Update `BACKWARD_COMPATIBILITY.md`
+   §2 and §7 (the header is now enforced on every mutating route) in the same commit; add `auth.ts`
+   and `apiHandler.ts` to `coverage.include` here.
    *Test:* no cookie; other cookies present; valid; expired; tampered; user absent → 401;
-   `sessionVersion` mismatch → 401; stored roles returned; combined roles; live operator allowlist
-   **removal and addition**; the scoped session resolves once per scope; a public route resolving it
-   gets `null` rather than a throw; `requireRole`, `requireCsrfHeader`, and `assertOwnership` for all
-   branches.
+   `sessionVersion` mismatch → 401; stored roles returned; combined roles; empty stored roles →
+   internal error; live operator allowlist **removal and addition**; the scoped session resolves
+   once per scope; a public route resolving it gets `null` rather than a throw; `requireRole`,
+   `requireCsrfHeader`, and `assertOwnership` for all branches; `apiHandler` rejects a POST without
+   the header, passes a GET without it, and honours `{ csrf: false }`.
 10. **The GitHub identity race.** Handle the transaction and the two relevant unique constraints
     inside `UserService`, where the recovery lookup is known. Do not add a generic `findOrCreate`
     abstraction until a second identical domain use exists.
-11. **GitHub identity port + adapters (B14).** `github-identity.port.ts`, the real adapter (two
-    `fetchJson` calls, no SDK), and `mock-github-identity.ts`. Register the real adapter by default;
+11. **GitHub identity port + adapters (B14).** `github-identity.port.ts` with
+    `authorizeUrl({ state, login? })`, `exchangeCode`, `fetchIdentity`; the real adapter (two
+    `fetchJson` calls, no SDK; `login` forwarded to GitHub as its hint parameter), and
+    `mock-github-identity.ts`, which derives a stable identity from the `login` hint (default
+    `mock-mentee`; email `<login>@devmentor.test`, verified). Register the real adapter by default;
     the mock only under the two-signal rule from step 5.
     *Test:* real adapter with mocked `fetch` — happy path; token-exchange failure; no verified email;
-    upstream 5xx; timeout. Mock adapter returns its fixed identity. A container test asserts the
+    upstream 5xx; timeout; the hint appears in the authorize URL. Mock adapter: two logins yield two
+    stable identities, the same login yields the same identity. A container test asserts the
     selection rule in both directions, and an env test asserts the boot failure.
 12. **`findOrCreateFromGithub` + operator reconciliation.** Inside a concept-owned transaction:
     match `githubId` → match a row with `emailVerifiedAt` set → else create with `roles: ['mentee']`
@@ -799,31 +880,43 @@ and no `*.test.tsx` anywhere. The later slices add `.tsx` production files.
     route denies before reaching the service; `create` cannot set `roles`.
 14. **Routes.** `api/auth/github/route.ts`, `api/auth/github/callback/route.ts`,
     `api/auth/logout/route.ts` — `apiHandler`, `force-dynamic`, the two `GET`s returning redirect
-    `Response`s built with `new Response(null, { status: 302, headers })`. Logout requires CSRF but
-    not a session.
+    `Response`s built with `new Response(null, { status: 302, headers })`. The start route validates
+    `?login` against `/^[A-Za-z0-9-]{1,39}$/` and forwards it to `authorizeUrl`; the callback compares
+    `?state` with the cookie for equality before verifying the token. Logout requires CSRF (via
+    `apiHandler`) but not a session.
     *Test:* unconfigured → `?error=unavailable` redirect, not JSON; `access_denied` → cancelled
-    redirect with nothing created; state missing / mismatched / expired, with no outbound call; happy
+    redirect with nothing created; a malformed `?login` is dropped, a valid one is forwarded; state
+    missing / mismatched / expired, with no outbound call; happy
     path sets the cookie and redirects per role set; combined mentor/operator landing; `returnTo`
     honoured and sanitised; logout clears the cookie and bumps `sessionVersion` **only** when a live
     session exists; logout with an expired cookie still succeeds.
 15. **Page guards and sign-out (F3/F4).** `app/src/lib/session.ts` — `getPageSession`,
-    `requirePageSession`, `requirePageRole`, `homeFor` — and the minimal sign-out `WorkflowAction`.
+    `requirePageSession`, `requirePageRole`, `homeFor(roles: readonly [Role, ...Role[]])` — and the
+    minimal sign-out `WorkflowAction`, whose `onSuccess` performs a hard `window.location.assign('/')`
+    rather than a client-side push. In the same step add the third-party boundary patterns to
+    `eslint.config.mjs`: `next`, `next/*`, `react` forbidden in `packages/core/**` and
+    `packages/db/**`; `next`, `next/*` forbidden in `packages/ui/**`.
     *Test:* `session.test.ts` with `next/navigation` mocked — no cookie → redirect with `returnTo`;
     wrong role → own home; required role present → session; combined roles; `homeFor` priority. The
-    sign-out action under jsdom for pending state, success, and envelope errors.
+    sign-out action under jsdom for pending state, success (hard navigation invoked), and envelope
+    errors. `npm run lint` fails on a deliberate `next/headers` import in `core` (verified, then
+    reverted, in the PR description).
 16. **Minimal pages and integration.** `(auth)/sign-in/page.tsx` (GitHub first, email disabled with
     a note, the `cancelled` / `state` / `unavailable` / `verification` messages, and a redirect for
     an already-signed-in visitor); `(mentee)/layout.tsx` + `home/page.tsx`; `(mentor)/layout.tsx` +
     `mentor/page.tsx`; guard the existing admin layout **and** `admin/page.tsx` and
     `admin/users/page.tsx`, without changing the chrome and preserving an accessible `link "Users"`.
-    *Test:* each page invoked directly per step 2. `auth.integration.test.ts` — a cancelled
-    authorisation shows the notice and creates nothing; a full sign-in through the mock identity
-    adapter lands on the mentee home; a mentor lands on the mentor home; an expired session on a
-    signed-in screen redirects and reveals nothing; the harness asserts the `secure` cookie was
-    stored. `admin.integration.test.ts` **signs in as the operator fixture first** — it cannot pass
-    unchanged once `/admin` is guarded, and it is updated in this PR.
-17. **Docs.** `AGENTS.md`: the navigated-vs-fetched route rule and the component-testing approach.
-    `README.md`: the new variables and how to create a GitHub OAuth app.
+    *Test:* each page invoked directly per step 2. Add `signInAs(login)` to the harness beside
+    `adminBrowserSession`. `auth.integration.test.ts` — a cancelled authorisation shows the notice
+    and creates nothing; `signInAs('mock-mentee')` lands on the mentee home; signing in as the
+    seeded mentor's login lands on the mentor home; `signInAs('mock-operator')` lands on `/admin`;
+    an expired session on a signed-in screen redirects and reveals nothing; the harness asserts the
+    `secure` cookie was stored. `admin.integration.test.ts` **signs in as `mock-operator` first** —
+    it opens `/admin` with no cookie today (`admin.integration.test.ts:16`) and cannot pass unchanged
+    once `/admin` is guarded, so it is updated in this PR.
+17. **Docs.** `AGENTS.md`: the navigated-vs-fetched route rule, the JSON-only rule for
+    state-changing routes, and the component-testing approach. `README.md`: the new variables,
+    which ones production requires at boot, and how to create a GitHub OAuth app.
     `BACKWARD_COMPATIBILITY.md`: §1, §2, §7. **`CODE_REVIEW.md`**: replace the stale
     *"`readSession` currently returns `null` by design"* line, and add the page-and-service
     enforcement checklist item, graded blocker. Fix the `uuid v7` docblock in
@@ -856,18 +949,36 @@ and no `*.test.tsx` anywhere. The later slices add `.tsx` production files.
     *Test:* hash ≠ plaintext; verify true/false; a null hash never verifies; parameters below
     `maxmem` throw without the explicit raise (regression); the gate admits up to the limit, queues,
     and throws `ServiceUnavailableError` past the wait.
-23. **Rate limiter (B8).** Add the `AuthRateLimit` entity and migration, then implement
-    `core/src/http/rate-limit.ts`, driven by the clock and backed by atomic PostgreSQL counters
-    shared across instances. Store a SHA-256 hash of the normalized IP/email key rather than the raw
-    identifier; opportunistically delete expired windows.
-    *Test:* under the limit passes; at the limit throws; the window rolls over; per-IP and per-email
-    keys are independent; a hashing-gate 503 does not increment a counter.
-24. **Mailer port + adapters (B14).** `mailer.port.ts`, a production SMTP adapter, and a log adapter
-    selected explicitly only by local/integration composition. Add optional, zod-validated `SMTP_URL`
-    and `MAIL_FROM`; registration fails closed with `service_unavailable` when no real transport is
-    configured outside local/integration runs.
-    *Test:* SMTP success and failure; secrets and message bodies never reach logs; explicit test
-    composition selects the log adapter; normal runtime without SMTP configuration fails closed.
+23. **Rate limiter (B8) and the 429.** Add `TooManyRequestsError` (429, `rate_limited`,
+    `retryAfterSeconds`, a `Retry-After` header through `AppError.headers`) and the §1 row. Add the
+    `AuthRateLimit` entity — `auth_rate_limits (key text PK, window_start timestamptz, count int)`,
+    indexed on `window_start`, the one entity without `baseProperties` — and its migration with
+    `down`. Implement `core/src/http/rate-limit.ts` as a scoped `RateLimiter` class taking
+    `{ em, clock }`, with `consume(key, policy)` as one raw-SQL `INSERT … ON CONFLICT … RETURNING`
+    through `em.execute`, an inline `DELETE` of rows older than the longest window on every call,
+    keys of the form `<scope>:<kind>:<sha256(lowercased identifier)>`, the client IP taken
+    Nth-from-right from `x-forwarded-for` per `TRUSTED_PROXY_HOPS` (per-IP key skipped, one warning
+    per process, when none is derivable), and the policies as named constants: sign-in 10/IP/15 min
+    and 5/email/15 min; registration 5/IP/hour; verification resend 3/email/hour. Every attempt
+    counts, consumed after the hashing gate slot is acquired and before any credential work.
+    *Test:* under the limit passes; at the limit throws a 429 with `retryAfterSeconds`; the window
+    rolls over; expired rows are deleted; per-IP and per-email keys are independent; the key holds
+    no raw identifier; the forwarded-header parsing for 0, 1 and 2 hops; the no-IP fallback warns
+    once; a hashing-gate 503 does not increment a counter (ordering).
+24. **Mailer port + adapters (B14).** `mailer.port.ts` (`send({ to, subject, text })`);
+    `adapters/resend-mailer.ts` — one `fetchJson` call to Resend's `POST /emails` with the bearer
+    key, no SMTP client; `adapters/log-mailer.ts` — one structured pino line per message
+    (`msg: 'mail.sent'`, `to`, `subject`, `text`). Selection: `MAILER_ADAPTER=log` +
+    `INTEGRATION_TEST_RUN=1` (refused when half-set, step 5); in `development` with
+    `MAILER_ADAPTER` unset the log adapter is registered automatically with a boot warning; in
+    production `MAIL_API_KEY` is required at container creation (step 5). Delivery failure makes
+    registration fail closed with `service_unavailable`. In the harness, add `waitForMail(to)` that
+    polls the app log file `global-setup.ts` already pipes stdout into and returns the parsed
+    message.
+    *Test:* Resend success, non-2xx and timeout (via `fetchJson`'s error); the key and message
+    bodies never reach logs; the two-signal rule selects the log adapter; development without a
+    key gets the log adapter and a warning; production without a key fails at container creation;
+    `waitForMail` parses a captured line and times out cleanly.
 25. **Verification service.** `email-verification.service.ts` on `token.service` with purpose
     `email-verify`. Verification sets `emailVerifiedAt` and issues a session.
     *Test:* issue→verify; expired; wrong purpose; **already-verified is idempotent, not an error**;
@@ -886,9 +997,11 @@ and no `*.test.tsx` anywhere. The later slices add `.tsx` production files.
     (GitHub stays first). Update `README.md` and `BACKWARD_COMPATIBILITY.md` §1.
     *Test:* happy paths; the generic failure sets no cookie; the rate limit trips; valid verification
     redirects through `safeReturnTo`; invalid and expired tokens redirect to
-    `/sign-in?error=verification` rather than rendering a JSON envelope. `CrudForm.test.tsx` under
-    jsdom for the `password` type and server `fieldErrors` mapping. Integration: a wrong password
-    shows the generic message and sets no cookie.
+    `/sign-in?error=verification` rather than rendering a JSON envelope; the rate limit answers 429
+    with `Retry-After`. `CrudForm.test.tsx` under jsdom for the `password` type and server
+    `fieldErrors` mapping. Integration: a wrong password shows the generic message and sets no
+    cookie; a registration completes end-to-end by following the link `waitForMail` captures from
+    the log adapter.
 
 ## ✅ Acceptance criteria
 
@@ -943,13 +1056,15 @@ Carried in intent from #12, #13 and #14, with the naming decision applied.
 - **Where operator authority lives** → the allowlist, checked live in both directions; the stored
   role is a cache.
 - **Where authorization is enforced** → the page and the service, never the layout alone.
+- **Mail transport** → Resend over its HTTP API through `fetchJson`, not SMTP. One call, no
+  `nodemailer`, B20's timeout and redaction for free. `SMTP_URL` is retired before it ever existed;
+  the keys are `MAIL_API_KEY` and `MAIL_FROM`. What remains is a founder creating the Resend key
+  before the Slice 4 deploy — release configuration, no longer a design question.
+- **Mock personas** → the `login` hint on `authorizeUrl`, because a fixed mock identity cannot
+  coexist with a live operator allowlist.
 
 ## 📝 Open questions
 
-- **Which SMTP service supplies the 1.0 credentials** (owner: founder A, from #13). **Blocking on
-  the 2026-10-31 ship date**, not merely a release-configuration detail: Slice 4 is in 1.0, and
-  registration fails closed without `SMTP_URL`, so E01-S02 would ship as a screen that always 503s.
-  The architecture is provider-neutral; the decision is not.
 - **Combined roles are resolved.** A founder who is also a mentor uses one account holding both
   `mentor` and `operator`; removing the operator allowlist entry leaves `mentor` intact.
 
@@ -976,3 +1091,31 @@ orient a reviewer reading the diff.
   change; the container files live under `src/container/`; edge case #32's loopback behaviour is
   Chrome's, not the harness's; CSRF now covers login and register; logout no longer requires a
   session.
+
+## 📝 What the 2026-09-08 revision changed
+
+The primitives spec was grilled on 2026-09-08 (32 questions) and this spec follows its decisions
+wherever the two overlap. The body above is authoritative; this list orients a reviewer.
+
+- **Mail.** SMTP + `SMTP_URL` → Resend over HTTP through `fetchJson`, `MAIL_API_KEY` +
+  `MAIL_FROM`; the blocking "which SMTP service" question is closed. The log mailer is the
+  development default and is selected in the harness by the same env-pair rule as the GitHub mock;
+  `waitForMail` reads the link from the app log the harness already captures.
+- **Mock personas.** A fixed identity → a `login` hint on `authorizeUrl`, forwarded by the start
+  route and used by the mock to derive its identity; `signInAs(login)` in the harness; seeded
+  addresses follow `<login>@devmentor.test`.
+- **Config gate.** `SESSION_SECRET` (and `MAIL_API_KEY`) are required in production at container
+  creation, deliberately outside the zod schema so `next build` in CI still passes; `MAILER_ADAPTER`
+  joins the refuse-when-half-set rule; `TRUSTED_PROXY_HOPS` added.
+- **CSRF.** Enforced by `apiHandler` on every non-`GET` route with `{ csrf: false }` reserved for
+  the webhook; state-changing routes are JSON-only by rule.
+- **Tokens.** Every JWT carries an `aud` (`session` or the purpose) and every verifier names one;
+  `SESSION_SECRET_PREVIOUS` verifies purpose tokens too; the cookie string is hand-rolled; the
+  clock is injected by constructor.
+- **Rate limiting.** The contract is now concrete: `AuthRateLimit` with a natural PK, hashed keys,
+  inline expiry, a 429 with `Retry-After`, the policy numbers, and the gate → limiter → hash
+  ordering that keeps edge case 18 true.
+- **Guards.** `Session.roles` is a non-empty tuple; an empty stored set is an internal error;
+  sign-out ends in a hard navigation; `safeReturnTo` also rejects `/api/` and `/_next/`.
+- **Boundaries.** The ESLint third-party patterns (`next`, `react`) land in Slice 2; until then
+  the `core ↛ next` rule is a convention, which the architecture section now says.
