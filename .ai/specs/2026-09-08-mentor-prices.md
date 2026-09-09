@@ -1,20 +1,21 @@
 # DevMentor — E02-S04: Prices within the operator's bounds
 
 Date: 2026-09-08
-Status: active
+Status: blocked — platform currency and initial bounds require founder approval
 Issue: [#18](https://github.com/open-mercato/ai_techleaders_project/issues/18) (epic #8)
-Depends on: E02-S01 (#15), E02-S02 (#16); E01 Slices 1, 2 and 4
+Depends on: E02-S01 (#15), E02-S02 (#16), E02-S03 (#17); E01 Slices 1, 2 and 4
 Design authority for architecture, data model and money rules:
-`.ai/specs/2026-09-08-mentors-become-bookable.md` (Slice 4) and
-`.ai/specs/2026-09-08-platform-primitives-ii.md` (B12′, B16′, F5′)
+`.ai/specs/2026-09-08-mentors-become-bookable.md` (Slice 4). The primitive catalogue in
+`.ai/specs/2026-09-08-platform-primitives-ii.md` (B12′, B16′, F5′) is an index, not a second authority.
 
 A **thin story spec** — behaviour, screens and acceptance criteria only.
 
 ## 📝 TLDR
 
-A mentor sets a 25-minute and a 50-minute price in their currency, refused outside the operator's
-bounds. Both appear on the mentor page, and a mentor without both is not bookable. A booking made at an
-old price keeps it.
+A mentor sets a 25-minute and a 50-minute price in the platform currency, refused outside the
+operator's bounds. Both appear on the mentor page, and a mentor without both is not ready to offer a
+bookable session. The currency and initial bounds are blocking product decisions before this slice is
+implemented.
 
 ## 📝 Problem Statement
 
@@ -25,23 +26,26 @@ consumer reads them through one service now, so #31 changes the storage and not 
 
 ## 📝 Scope
 
-**In:** the two prices and the currency; per-currency operator bounds and the platform fee behind one
-settings service; the refusal that names the breached bound; the `mentorBookable` gate the public page
-and E03-S02 both read.
+**In:** two integer-cent prices in one platform currency; one bounds object behind the settings
+service; exact decimal-to-cents parsing; the refusal that names the breached bound; the
+`mentorOfferReady` gate the public page and E03-S02 both read.
 
-**Out:** the operator settings screen (#31); the fee split and payouts (#25); the booking's own price
-snapshot (#21, #22 — this story only guarantees that changing a price never touches one).
+**Out:** choosing the platform currency or initial values (founder decisions required before
+implementation); the operator settings screen (#31); the platform fee, fee split and payouts (#25);
+the booking's own price snapshot (#21, #22).
 
 ## 📝 UI/UX
 
-**`/mentor/prices`** — app surface. Two `money` fields with the applicable bound printed under each as
-help text, plus the currency. **All three save together**: currency is never updated alone, because a
-currency change with stale prices would silently reprice a mentor by an order of magnitude.
+**`/mentor/prices`** — app surface. Two decimal money fields with the applicable bound and fixed
+platform currency printed as help text. There is no mentor-selectable currency. Both prices save
+together. The server parses their decimal strings exactly (`20.00` becomes `2000` cents) and rejects
+excess fractional precision instead of rounding through binary floating point.
 
 An out-of-bounds save is refused with the bound in the message, keyed to the field.
 
 **`/m/[slug]`** shows both prices. A mentor who is published but not priced shows "not bookable yet"
-and no bookable slot, rather than a slot that fails at checkout.
+and no booking action. Future availability may remain visible; it must not lead to a checkout that
+cannot succeed.
 
 ## ✅ Acceptance criteria
 
@@ -49,24 +53,30 @@ and no bookable slot, rather than a slot that fails at checkout.
   inside them, Then the mentor page shows both. (R08, R01)
 - Given a price outside the bounds, When the mentor saves, Then the save is refused and the bound is
   shown. (R08, negative)
-- Given a mentor with no prices set, When a visitor opens the page, Then no slot can be booked and the
-  page says the mentor is not bookable yet. (negative)
-- Given a mentor changing a price, When a session was already booked at the old price, Then that
-  booking keeps its price. (money, negative — asserted by E03)
-- Given a currency with no configured bounds, When a mentor tries to use it, Then the save is refused
-  rather than silently accepted. (misconfiguration)
-- Given a mentor changing currency, When they save, Then both prices are revalidated against the new
-  currency's bounds in the same operation.
+- Given a mentor with no prices set, When a visitor opens the page, Then no booking action is offered
+  and the page says the mentor is not bookable yet. (negative)
+- Given `20.00`, When the server parses the price, Then it stores exactly `2000` cents; given more
+  fractional digits than the platform currency supports, Then the save is refused rather than
+  rounded. (money)
+- Given one valid price and one invalid price, When the mentor saves, Then neither price changes.
+- Given the platform currency or bounds are missing, When a mentor tries to save, Then the route fails
+  closed rather than silently inventing values. (misconfiguration)
+- Given either owner or public price data is read, Then prices are integer cents plus the platform
+  currency; only the owner DTO includes operator bounds.
+
+E03 must snapshot the selected duration, platform currency and price on `Booking`; changing a mentor's
+current prices must never rewrite an existing booking. That behavior is an E03 acceptance criterion,
+not a partially implemented behavior in this slice.
 
 ## 📝 Risks
 
-`risk-high` (money), `needs-qa`, second reviewer. Compatibility: additive columns (§3); three new env
-variables, all with defaults (§4, additive), listed in `.env.example` and `README.md`.
+`risk-high` (money), `needs-qa`, second reviewer. Compatibility: additive columns (§3); approved
+`PLATFORM_CURRENCY` and `PLATFORM_PRICE_BOUNDS` configuration (§4, additive), listed in `.env.example`
+and `README.md`. Missing production values fail closed; the spec must not ship placeholder commercial
+defaults.
 
-**The per-currency decision has a stated cost.** Prices in minor units assume a two-decimal currency,
-which is false for JPY and KWD. The `Currencies` vocabulary is restricted to two-decimal currencies in
-1.0, so adding a zero-decimal one is a code change and not a config change — see the epic spec's Risks
-and B12′.
+The first release supports the single approved platform currency only. Supporting currencies with
+different minor-unit rules is a later product and schema change, not an environment-only expansion.
 
 ## 📝 Decisions in play
 
@@ -74,8 +84,7 @@ D09/R08, R01/D01, D11/R10, D19/R18.
 
 ## 📝 Open questions
 
-- **The initial bound values** (owner: founder A). The env defaults are placeholders; the numbers are a
-  product decision and the mechanism does not change with them. Non-blocking.
-- **Currency** — resolved in the epic spec: per mentor profile, with per-currency bounds and a
-  two-decimal restriction. `PLATFORM_CURRENCIES=USD` in 1.0 makes the runtime behaviour identical to a
-  single-currency design.
+- **Platform currency** (owner: founders). The smallest design is one platform currency, proposed as
+  USD, but money-affecting behavior cannot be selected silently. Blocking before Slice 4 starts.
+- **Initial 25- and 50-minute bounds** (owner: founder A with founder B). Blocking before Slice 4
+  starts; no placeholder production defaults.
