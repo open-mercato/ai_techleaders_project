@@ -6,6 +6,7 @@ import {
   DatabaseSeeder,
   SEED_MENTEE_EMAIL,
   SEED_MENTOR_EMAIL,
+  SEED_MOCK_MENTOR_EMAIL,
   SEED_OPERATOR_EMAIL,
 } from './database.seeder';
 
@@ -29,14 +30,15 @@ function fakeEntityManager(existingByEmail: Record<string, unknown> = {}): FakeE
 }
 
 describe('DatabaseSeeder', () => {
-  it('creates one verified user per role on an empty database', async () => {
+  it('creates every verified persona on an empty database', async () => {
     const em = fakeEntityManager();
 
     await new DatabaseSeeder().run(em as unknown as EntityManager);
 
     expect(em.findOne).toHaveBeenNthCalledWith(1, User, { email: SEED_MENTOR_EMAIL });
     expect(em.findOne).toHaveBeenNthCalledWith(2, User, { email: SEED_MENTEE_EMAIL });
-    expect(em.findOne).toHaveBeenNthCalledWith(3, User, { email: SEED_OPERATOR_EMAIL });
+    expect(em.findOne).toHaveBeenNthCalledWith(3, User, { email: SEED_MOCK_MENTOR_EMAIL });
+    expect(em.findOne).toHaveBeenNthCalledWith(4, User, { email: SEED_OPERATOR_EMAIL });
 
     const created = em.create.mock.calls
       .filter(([entity]) => entity === User)
@@ -58,6 +60,13 @@ describe('DatabaseSeeder', () => {
         emailVerifiedAt: expect.any(Date),
       },
       {
+        email: SEED_MOCK_MENTOR_EMAIL,
+        displayName: 'Mock Mentor',
+        roles: ['mentor'],
+        githubLogin: 'mock-mentor',
+        emailVerifiedAt: expect.any(Date),
+      },
+      {
         // The operator holds `mentor` too: the two are independent assignments, and a
         // regression that lets one erase the other has to fail somewhere.
         email: SEED_OPERATOR_EMAIL,
@@ -69,20 +78,57 @@ describe('DatabaseSeeder', () => {
     ]);
   });
 
-  it('gives only the mentor a profile, linked to the user object it just created', async () => {
+  it('addresses every persona except Ada as <githubLogin>@devmentor.test', async () => {
+    // The mock identity adapter derives `<login>@devmentor.test` from its `login` hint, so
+    // a drifting address silently makes a persona unreachable by sign-in — it would create
+    // a second row rather than link. Ada is the deliberate exception: she is the
+    // admin-list fixture, `BACKWARD_COMPATIBILITY.md` §3 pins her address, and no login can
+    // produce it.
     const em = fakeEntityManager();
 
     await new DatabaseSeeder().run(em as unknown as EntityManager);
 
-    const profiles = em.create.mock.calls.filter(([entity]) => entity === MentorProfile);
+    const created = em.create.mock.calls
+      .filter(([entity]) => entity === User)
+      .map(([, data]) => data as { email: string; githubLogin: string });
 
-    expect(profiles).toHaveLength(1);
-    expect(profiles[0]?.[1]).toEqual({
-      user: expect.objectContaining({ email: SEED_MENTOR_EMAIL }),
-      headline: 'Systems & algorithms mentor',
-      bio: 'Helping engineers reason about complexity.',
-      yearsOfExperience: 12,
-    });
+    expect(created.map((user) => user.email)).toContain(SEED_MENTOR_EMAIL);
+    for (const user of created.filter(({ email }) => email !== SEED_MENTOR_EMAIL)) {
+      expect(user.email).toBe(`${user.githubLogin}@devmentor.test`);
+    }
+  });
+
+  it('gives each profile-bearing mentor a profile linked to the user object just created', async () => {
+    const em = fakeEntityManager();
+
+    await new DatabaseSeeder().run(em as unknown as EntityManager);
+
+    const profiles = em.create.mock.calls
+      .filter(([entity]) => entity === MentorProfile)
+      .map(([, data]) => data);
+
+    // Ada carries the headline `admin.integration.test.ts` asserts on; Mock Mentor is the
+    // mentor the harness signs in as, and needs a profile for `/mentor` to have anything
+    // to render. Mock Mentee and Mock Operator get none — holding the `mentor` role and
+    // having a profile are independent.
+    expect(profiles).toEqual([
+      {
+        user: expect.objectContaining({ email: SEED_MENTOR_EMAIL }),
+        headline: 'Systems & algorithms mentor',
+        bio: 'Helping engineers reason about complexity.',
+        yearsOfExperience: 12,
+      },
+      {
+        user: expect.objectContaining({ email: SEED_MOCK_MENTOR_EMAIL }),
+        headline: 'Mock mentor for sign-in scenarios',
+        bio: 'Seeded so a mock GitHub sign-in lands on a mentor that already has a profile.',
+        yearsOfExperience: 5,
+      },
+    ]);
+    // Distinct headlines: an assertion on either row must not be able to match the other.
+    expect(new Set(profiles.map((profile) => (profile as { headline: string }).headline)).size).toBe(
+      2,
+    );
   });
 
   it('is idempotent: seeding an already-seeded database inserts nothing', async () => {
@@ -97,12 +143,15 @@ describe('DatabaseSeeder', () => {
         emailVerifiedAt: new Date('2026-09-01T00:00:00Z'),
       },
       [SEED_MENTEE_EMAIL]: { email: SEED_MENTEE_EMAIL, emailVerifiedAt: new Date() },
+      [SEED_MOCK_MENTOR_EMAIL]: { email: SEED_MOCK_MENTOR_EMAIL, emailVerifiedAt: new Date() },
       [SEED_OPERATOR_EMAIL]: { email: SEED_OPERATOR_EMAIL, emailVerifiedAt: new Date() },
     };
     const em = fakeEntityManager(rows);
 
     await new DatabaseSeeder().run(em as unknown as EntityManager);
 
+    // No second `mentor_profiles` row either: a profile is planted at creation only, so
+    // re-seeding cannot resurrect one a mentor deleted or duplicate one they still have.
     expect(em.create).not.toHaveBeenCalled();
     // An already-verified row keeps its original timestamp — re-seeding must not look
     // like a fresh verification.
@@ -128,7 +177,9 @@ describe('DatabaseSeeder', () => {
     expect(ada.roles).toEqual(['mentor']);
     expect(ada.githubLogin).toBe('ada');
     expect(ada.emailVerifiedAt).toBeInstanceOf(Date);
-    // The two missing personas are still inserted alongside the reconciled row.
-    expect(em.create.mock.calls.filter(([entity]) => entity === User)).toHaveLength(2);
+    // The three missing personas are still inserted alongside the reconciled row, and
+    // reconciling Ada must not re-create the profile she already has.
+    expect(em.create.mock.calls.filter(([entity]) => entity === User)).toHaveLength(3);
+    expect(em.create.mock.calls.filter(([entity]) => entity === MentorProfile)).toHaveLength(1);
   });
 });

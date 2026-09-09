@@ -111,10 +111,14 @@ the change spans several concepts; note it in the PR body.
   generated with `npm run db:migration:create -- --name <x>`. The integration harness
   pins `MIKRO_ORM_MIGRATIONS_SNAPSHOT_NAME=.snapshot-devmentor` so a test run never
   creates a second snapshot.
-- The seeder `packages/db/src/seeders/database.seeder.ts` creates one user
+- The seeder `packages/db/src/seeders/database.seeder.ts` creates the admin-list fixture
   (`ada@devmentor.dev`, `Ada Lovelace`) with a mentor profile
-  (`Systems & algorithms mentor`). `tests/integration/admin.integration.test.ts`
-  asserts on those exact cells.
+  (`Systems & algorithms mentor`) — `tests/integration/admin.integration.test.ts` asserts
+  on those exact cells — plus the mock personas the harness signs in as
+  (`mock-mentee@`, `mock-mentor@`, `mock-operator@devmentor.test`), whose addresses must
+  stay `<githubLogin>@devmentor.test` or a mock sign-in creates a second row instead of
+  linking. Ada's address is deliberately unreachable that way; the seeder's docblock says
+  why.
 
 **Breaking:** dropping or renaming a table or column; tightening a constraint that
 existing rows may violate; editing an already applied migration or the snapshot by
