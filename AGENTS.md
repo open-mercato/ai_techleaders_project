@@ -240,6 +240,28 @@ GitHub Actions runs Build, Lint, Unit tests, and Integration tests independently
 every pull request. A workflow result becomes merge-blocking only when the repository
 ruleset requires those four exact check names.
 
+### Testing React components and pages
+
+- **Server components are invoked, not rendered.** `page.tsx` and `layout.tsx` are async
+  functions returning an element tree. Test them by calling the exported function and
+  asserting on the tree it returns — no DOM, no renderer, the default `node` environment.
+- **Client components use Testing Library under jsdom.** Render `CrudForm`,
+  `WorkflowAction`, `AppShell` and the other `'use client'` components with
+  `@testing-library/react`. jsdom is opt-in per file through a `// @vitest-environment jsdom`
+  pragma on the first line; `node` stays the project-wide default, so no existing test
+  changes.
+- **A guarded page needs two mocking seams, because `redirect()` throws.** It does not
+  return — it raises a framework control-flow error — so the denied path yields no tree to
+  assert on. A `page.tsx` test mocks `packages/app/src/lib/session.ts`, asserts the rendered
+  tree on the authorized path, and asserts a sentinel throw from the mocked guard on the
+  denied one. `session.test.ts` mocks `next/navigation` instead and asserts `redirect` was
+  called with the expected URL. Neither test asserts against Next internals.
+- **Page-level enforcement is a recurring coverage cost.** Every guarded `page.tsx` calls the
+  guard itself rather than relying on its layout, so every guarded `page.tsx` is its own
+  `coverage.include` entry, and each one needs both the authorized and the redirected branch
+  to clear the per-file 100% bar above. That cost repeats per page; it is not a one-time
+  setup.
+
 ## Spec-Driven Development (SDD)
 
 Nontrivial work in this repo is defined by a spec before it's implemented. All SDD
