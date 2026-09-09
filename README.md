@@ -111,6 +111,101 @@ Then open:
 The app **builds and boots even with no database running**; DB-backed pages degrade
 to a visible "unavailable" state instead of crashing.
 
+## Configuration
+
+Every variable is declared in `.env.example` and validated by a zod schema —
+`packages/core/src/config/env.ts` for the app, `packages/db/src/env.ts` for the
+MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
+
+### Application
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `NODE_ENV` | `development` | `development`, `test`, or `production`. |
+| `APP_NAME` | `DevMentor` | Name attached to every log line. |
+| `LOG_LEVEL` | `info` | pino level, from `fatal` to `silent`. |
+| `APP_URL` | `http://localhost:3000` | Absolute origin of this deployment. Builds the OAuth redirect URI and the links in outbound mail, so it must be the address a browser actually reaches. Must be `http://` or `https://`. |
+| `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header. |
+
+### Database
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DATABASE_URL` | *(unset)* | Full connection URL. Takes precedence over every `DB_*` variable it replaces. |
+| `DB_HOST` / `DB_PORT` | `127.0.0.1` / `5432` | Discrete connection, used when `DATABASE_URL` is unset. |
+| `DB_NAME` / `DB_USER` / `DB_PASSWORD` | `devmentor` | Discrete connection, as above. Defaults match `docker-compose.yml`. |
+| `DB_POOL_MIN` / `DB_POOL_MAX` | `2` / `10` | Connection pool bounds. Not implied by `DATABASE_URL`. |
+| `DB_POOL_IDLE_MS` | `30000` | How long an idle pooled connection is kept. |
+| `DB_DEBUG` | `false` | `true` logs every SQL statement. |
+
+### Authentication
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SESSION_SECRET` | *(unset)* | Signs every session cookie and every short-lived purpose token. At least 32 characters — a shorter value is rejected at boot. Generate one with `openssl rand -base64 32`. |
+| `SESSION_SECRET_PREVIOUS` | *(unset)* | The outgoing secret during a rotation. Accepted on verify, never used to sign, so live sessions survive their remaining lifetime. Same 32-character minimum. |
+| `GITHUB_CLIENT_ID` | *(unset)* | GitHub OAuth app client ID — see below. |
+| `GITHUB_CLIENT_SECRET` | *(unset)* | GitHub OAuth app client secret. |
+| `OPERATOR_EMAILS` | *(empty)* | Comma-separated founder addresses. Operator authority is derived from this list on **every** request and matched, trimmed and case-insensitively, against the account's verified email — so removing an address takes effect on that person's very next request rather than at their next sign-in. |
+
+### Mail
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `MAILER_ADAPTER` | *(unset)* | `resend` for real delivery. Left unset in development, the log mailer is selected automatically with a warning at boot. |
+| `MAIL_API_KEY` | *(unset)* | Resend API key. |
+| `MAIL_FROM` | *(unset)* | Envelope sender, e.g. `DevMentor <hello@devmentor.example.com>`. |
+
+### Integration-test doubles
+
+Set by `tests/integration/environment.ts`, never on a real deployment.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `AUTH_IDENTITY_ADAPTER` | *(unset)* | `github` for real sign-in, `mock` for the harness double. |
+| `INTEGRATION_TEST_RUN` | *(unset)* | The literal `1` marks the process as an integration-test run, which is what permits a `mock` or `log` adapter. |
+
+### Missing, dangerous, and required-in-production
+
+The three categories behave differently on purpose:
+
+- **Missing integration credentials fail closed at the route.** With no
+  `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, `/api/auth/github` answers "temporarily
+  unavailable" and everything else — the marketing pages, the build, the boot —
+  carries on. One unconfigured integration never takes the site down.
+- **Dangerous configuration fails at boot, loudly.** `AUTH_IDENTITY_ADAPTER=mock`
+  replaces GitHub sign-in with a fake identity, and `MAILER_ADAPTER=log` writes email
+  to the application log instead of delivering it. Either one without
+  `INTEGRATION_TEST_RUN=1` — and only the literal `1` counts — makes the process refuse
+  to start. The alternative, silently falling back to the real adapter, would leave an
+  operator believing the mock is active when it is not.
+- **Production requires `SESSION_SECRET` at boot.** A production deployment without the
+  secret that signs every session cookie must not come up green and then fail every
+  sign-in. The check runs at first container creation, **not** in the zod schema,
+  because `npm run build` forces `NODE_ENV=production` and CI builds with no
+  environment at all; the container is only ever created while serving a request.
+  Development is unaffected — `npm run dev` starts without a secret, and sign-in fails
+  closed until you set one.
+
+The integration harness supplies its own database URL, session secret and test-double
+signals (`tests/integration/environment.ts`); you do not need any of them in a local
+`.env`.
+
+### Creating a GitHub OAuth app
+
+1. Go to **Settings → Developer settings → OAuth Apps → New OAuth App**
+   (<https://github.com/settings/developers>).
+2. **Application name** — anything; it is shown on the consent screen.
+   **Homepage URL** — your `APP_URL`.
+   **Authorization callback URL** — `<APP_URL>/api/auth/github/callback`, so
+   `http://localhost:3000/api/auth/github/callback` for local development. GitHub
+   matches this exactly, and a mismatch is the usual cause of a failed sign-in.
+3. Register the app, copy the **Client ID**, then **Generate a new client secret** and
+   copy that too — GitHub shows it once.
+4. Put both in `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, and set
+   `SESSION_SECRET` alongside them. Use a separate OAuth app per environment; the
+   callback URL is per-app, so local and production cannot share one.
+
 ## Scripts
 
 | Command | Description |

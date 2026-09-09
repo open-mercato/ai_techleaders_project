@@ -7,7 +7,7 @@ import {
   type AwilixContainer,
 } from 'awilix';
 import { getOrm } from '@devmentor/db';
-import { getEnv } from '../config/env';
+import { getEnv, type AppEnv } from '../config/env';
 import { createLogger } from '../logger';
 import { EventBus } from '../events/event-bus';
 import { systemClock } from '../time/clock';
@@ -23,7 +23,42 @@ const globalForContainer = globalThis as unknown as {
   __devmentorContainer?: Promise<AwilixContainer<Cradle>>;
 };
 
+/**
+ * Refuse to serve a production process that is missing a secret the whole request path
+ * depends on. A deployment without `SESSION_SECRET` must not boot green and then 503
+ * every sign-in until somebody notices.
+ *
+ * **This lives in the container and deliberately not in the zod schema.** `npm run
+ * build` forces `NODE_ENV=production`, CI's Build job sets no environment at all, and
+ * `getEnv()` is reachable at build time (`admin/page.tsx` renders it, and the pino
+ * logger reads it), so a schema-level refine on a *missing* secret would fail every CI
+ * build. The container is only ever created while serving a request. See B6 in
+ * `.ai/specs/2026-09-04-platform-primitives.md` and the 2026-09-08 entry in
+ * `.ai/lessons.md`.
+ */
+function assertProductionSecrets(env: AppEnv): void {
+  if (env.NODE_ENV !== 'production') {
+    return;
+  }
+
+  if (!env.SESSION_SECRET) {
+    throw new Error(
+      'SESSION_SECRET is required when NODE_ENV=production: it signs every session ' +
+        'cookie, so the app cannot authenticate anyone without it. Set it to at least ' +
+        '32 characters of random data in the deployment environment.',
+    );
+  }
+
+  // Slice 4 adds the second half of this gate here: MAIL_API_KEY is required in
+  // production unless MAILER_ADAPTER=log is deliberately set (B14).
+}
+
 async function build(): Promise<AwilixContainer<Cradle>> {
+  // Checked before anything is opened, so a misconfigured deployment fails on the
+  // configuration rather than on a half-built container.
+  const env = getEnv();
+  assertProductionSecrets(env);
+
   // Resolve the ORM once up front so it can be registered as a shared singleton value.
   const orm = await getOrm();
 
@@ -33,7 +68,7 @@ async function build(): Promise<AwilixContainer<Cradle>> {
   });
 
   container.register({
-    env: asValue(getEnv()),
+    env: asValue(env),
     logger: asFunction(createLogger).singleton(),
     orm: asValue(orm),
     eventBus: asClass(EventBus).singleton(),
