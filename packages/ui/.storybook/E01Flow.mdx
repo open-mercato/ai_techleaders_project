@@ -11,17 +11,46 @@ This page maps the UI to the Accounts and Roles specification dated
 state during the current visit. It does not create real accounts or establish
 production authorization.
 
+Use the [implementation handoff](?path=/docs/design-system-implementation-handoff--docs)
+for the complete E01/E02 story, screen and source map. E02 continues from a
+received [mentor invitation, s26](/prototypes/devmentor-journey/index.html#s26).
+
 ## Journey coverage
 
-| Story | Success path | Failure and recovery |
-| --- | --- | --- |
-| [#12 GitHub sign-in](https://github.com/open-mercato/ai_techleaders_project/issues/12) | Sign-in (`s12`) opens the labelled GitHub response demo (`s23`). A successful result opens the account's role home or its permitted continuation. | Cancellation, an invalid sign-in request, an unavailable provider, an unverified GitHub primary email and an unverified local account each explain the next action. A refused attempt does not sign the person in. |
-| [#13 Email and password](https://github.com/open-mercato/ai_techleaders_project/issues/13) | Registration (`s20`) leads to check-inbox (`s21`), email verification (`s22`) and the account home. Existing verified accounts use sign-in (`s12`). | Field validation, incorrect credentials, an existing account, a GitHub-only account, an unverified email, service or mail failure and a cooldown have recovery states. Invalid or expired verification links offer another email; reusing a verified link succeeds. |
-| [#14 Roles and access](https://github.com/open-mercato/ai_techleaders_project/issues/14) | Mentee (`s6`), mentor (`s11`) and operator (`s24`) homes expose the navigation for the account's combined roles. Operators can open Users (`s25`). | Signed-out or expired sessions lead to sign-in. Wrong-role and revoked-operator states withhold protected content and offer a permitted destination. Sign-out returns to the public homepage. |
+<div className="dm-table-scroll" role="region" aria-label="E01 journey coverage table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 760, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E01 journey coverage</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '20%', textAlign: 'left' }}>Story</th>
+        <th scope="col" style={{ width: '40%', textAlign: 'left' }}>Success path</th>
+        <th scope="col" style={{ width: '40%', textAlign: 'left' }}>Failure and recovery</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/12">#12 GitHub sign-in</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Sign-in (<code>s12</code>) opens the labelled GitHub response demo (<code>s23</code>). A successful result opens the account's role home or its permitted continuation.</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Cancellation, an invalid sign-in request, an unavailable provider, an unverified GitHub primary email and an unverified local account each explain the next action. A refused attempt does not sign the person in.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/13">#13 Email and password</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Registration (<code>s20</code>) leads to check-inbox (<code>s21</code>), email verification (<code>s22</code>) and the account home. Existing verified accounts use sign-in (<code>s12</code>).</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Field validation, incorrect credentials, an existing account, a GitHub-only account, an unverified email, service or mail failure and a cooldown have recovery states. Invalid or expired verification links offer another email; reusing a verified link succeeds.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/14">#14 Roles and access</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Mentee (<code>s6</code>), mentor (<code>s11</code>) and operator (<code>s24</code>) homes expose the navigation for the account's combined roles. Operators can open Users (<code>s25</code>).</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Signed-out or expired sessions lead to sign-in. Wrong-role and revoked-operator states withhold protected content and offer a permitted destination. Sign-out returns to the public homepage.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 The default home follows operator, then mentor, then mentee priority. It does not
-remove navigation for the person's other roles. There is no product action for
-granting mentor or operator access.
+remove navigation for the person's other roles. General account registration
+grants mentee access. E02 adds mentor access through an accepted invitation;
+operator access remains controlled by application configuration.
 
 ## Review the connected states
 
@@ -35,15 +64,56 @@ The GitHub response preview (`s23`) has separate **GitHub demo account** and
 **GitHub response** selectors. Session expiry and operator eligibility controls
 stay in the review panel, separate from product navigation.
 
-| Review | What to check |
-| --- | --- |
-| Registration and verification | Enter a display name, valid email and password with at least 12 characters and at most 72 bytes. Registration alone grants no session. Choose Open verification link in the demo inbox, then Open my workspace. A newly registered mentee sees No sessions yet. |
-| Retry after a failure | Under Next request result, select Service unavailable or Email delivery failed. Confirm the feedback explains a retry and the form retains its entries. The failure is consumed once; the next valid submission can succeed. |
-| A reused or expired email link | Complete verification, reopen Check your inbox from the screen picker and open the valid link again. For an expired or invalid link, choose Request a new verification link. This returns to registration with the email filled in. Enter the name and password again, submit, set Verification link to Valid and open the replacement link. |
-| Return to a booking | Choose Alex's time and session length before signing in. Successful sign-in returns to that selection. A refused attempt keeps it available for retry. |
-| Combined roles | Use Taylor's mentee/mentor account or Sam's mentor/operator account. Check its default home and every permitted navigation link. |
-| Live operator access | Sign in as Sam, open Operator home and choose Remove Sam's operator access. The user list becomes unavailable and the mentor role remains. Try Operator users through the screen picker, then choose Restore Sam's operator access and open Users again. |
-| Expiry and sign-out | Choose Expire demo session while signed in. Protected content becomes unavailable until sign-in succeeds again. Sign out from a signed-in workspace to return to the public homepage. |
+<div className="dm-table-scroll" role="region" aria-label="E01 connected-state review table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 600, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E01 connected-state review</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '22%', textAlign: 'left' }}>Review</th>
+        <th scope="col" style={{ width: '78%', textAlign: 'left' }}>What to check</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Registration and verification</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Enter a display name, valid email and password with at least 12 characters and at most 72 bytes. Registration alone grants no session. Choose Open verification link in the demo inbox, then Open my workspace. A newly registered mentee sees No sessions yet.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Retry after a failure</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Under Next request result, select Service unavailable or Email delivery failed. Confirm the feedback explains a retry and the form retains its entries. The failure is consumed once; the next valid submission can succeed.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>A reused or expired email link</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Complete verification, reopen Check your inbox from the screen picker and open the valid link again. For an expired or invalid link, choose Request a new verification link. This returns to registration with the email filled in. Enter the name and password again, submit, set Verification link to Valid and open the replacement link.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Return to a booking</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Choose Alex's time and session length before signing in. Successful sign-in returns to that selection. A refused attempt keeps it available for retry.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Return to an invitation</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Open a valid mentor invitation while signed out, then sign in or register and verify an email account. Successful authentication returns to that invitation; acceptance adds the mentor role separately.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Combined roles</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Use Taylor's mentee/mentor account or Sam's mentor/operator account. Check its default home and every permitted navigation link.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Live operator access</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Sign in as Sam, open Operator home and choose Remove Sam's operator access. The user list becomes unavailable and the mentor role remains. Try Operator users through the screen picker, then choose Restore Sam's operator access and open Users again.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Expiry and sign-out</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Choose Expire demo session while signed in. Protected content becomes unavailable until sign-in succeeds again. Sign out from a signed-in workspace to return to the public homepage.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+On compact workspace screens, **Menu** opens the permitted navigation links.
+Operator Users also shows a read-only payout setup status for mentor accounts;
+[the E02 state map](?path=/docs/design-system-e02-mentors-become-bookable--docs)
+covers those states.
 
 The screen picker keeps the existing screen IDs. Opening a protected screen
 through review navigation still uses the current demo account's access state.
@@ -55,13 +125,39 @@ and sign-in modes, a GitHub action and submission feedback. The host supplies it
 schema, endpoint and success callback. [AuthFeedback](?path=/docs/product-authentication-feedback--docs) presents the confirmed
 result, optional detail and recovery actions supplied by the host.
 
-| Component examples | States to review |
-| --- | --- |
-| [Sign-in](?path=/story/product-account-form--sign-in) and [registration](?path=/story/product-account-form--registration) | Field labels, password guidance, mode changes, provider order and full-width actions |
-| [Client validation](?path=/story/product-account-form--client-validation), [submitting](?path=/story/product-account-form--submitting) and [service failure](?path=/story/product-account-form--service-unavailable) | Associated errors, disabled repeat submission and retained entries |
-| [Check inbox](?path=/story/product-authentication-feedback--check-inbox), [verified](?path=/story/product-authentication-feedback--verified) and [expired link](?path=/story/product-authentication-feedback--verification-expired) | Verification status, destination detail and recovery actions |
-| [GitHub cancellation](?path=/story/product-authentication-feedback--git-hub-cancelled) and [account conflict](?path=/story/product-authentication-feedback--git-hub-account) | A clear result and the correct sign-in method |
-| [Expired session](?path=/story/product-authentication-feedback--session-expired) and [revoked operator access](?path=/story/product-authentication-feedback--operator-revoked) | Explanation and an available next destination |
+<div className="dm-table-scroll" role="region" aria-label="E01 shared component examples table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 600, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E01 shared component examples</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '22%', textAlign: 'left' }}>Component examples</th>
+        <th scope="col" style={{ width: '78%', textAlign: 'left' }}>States to review</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-account-form--sign-in">Sign-in</a> and <a href="?path=/story/product-account-form--registration">registration</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Field labels, password guidance, mode changes, provider order and full-width actions</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-account-form--client-validation">Client validation</a>, <a href="?path=/story/product-account-form--submitting">submitting</a> and <a href="?path=/story/product-account-form--service-unavailable">service failure</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Associated errors, disabled repeat submission and retained entries</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-authentication-feedback--check-inbox">Check inbox</a>, <a href="?path=/story/product-authentication-feedback--verified">verified</a> and <a href="?path=/story/product-authentication-feedback--verification-expired">expired link</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Verification status, destination detail and recovery actions</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-authentication-feedback--git-hub-cancelled">GitHub cancellation</a> and <a href="?path=/story/product-authentication-feedback--git-hub-account">account conflict</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>A clear result and the correct sign-in method</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-authentication-feedback--session-expired">Expired session</a> and <a href="?path=/story/product-authentication-feedback--operator-revoked">revoked operator access</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Explanation and an available next destination</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 Feedback-story buttons demonstrate host-supplied action slots. The prototype
 connects those actions to the full journey.
@@ -91,6 +187,54 @@ forgery protection, session revocation and secret rotation, transport failures,
 and the operator allowlist on each protected request. These obligations cannot
 be proved by a clickable prototype or component stories.
 
-Password reset and invitation acceptance are outside E01. Invitation feedback
-already has separate DS examples; this flow does not implement invitation
-delivery, acceptance or mentor-role assignment.
+Password reset is outside E01. Invitation acceptance and the additive mentor role
+are covered by the connected [E02 flow](?path=/docs/design-system-e02-mentors-become-bookable--docs).
+Invitation delivery and server-side acceptance remain production work.
+
+## Source map
+
+All prototype paths below are relative to `prototypes/devmentor-journey/`.
+
+<div className="dm-table-scroll" role="region" aria-label="E01 source map table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 600, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E01 source map</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '22%', textAlign: 'left' }}>Responsibility</th>
+        <th scope="col" style={{ width: '78%', textAlign: 'left' }}>Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Sign-in, registration, verification, provider preview, operator screens</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>AuthScreens.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Account scenarios, input schemas and role/home rules</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>auth-model.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Local mock API requests</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>auth-runtime.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Current account, request feedback and return destination</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>auth-context.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Public/authenticated frames and protected-content suppression</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>Frame.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>New-account empty state and sample session workspace</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>SessionScreens.tsx</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+Reusable forms and feedback are in `packages/ui/src/components/auth/`; shared
+layouts are in `packages/ui/src/backend/shell/`. The active product specification
+is `.ai/specs/2026-09-04-accounts-and-roles.md`. Its server mechanisms remain the
+implementation contract; the confirmed action styling follows the current
+Storybook usage guidelines.

@@ -1,0 +1,175 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design system/Implementation handoff" />
+
+# E01 and E02 implementation handoff
+
+Use these finished screen compositions alongside the feature specification when
+implementing accounts, roles and mentor onboarding. The prototype uses the same
+`@devmentor/ui` components, tokens, fonts and icons as this Storybook. Its account,
+save and provider responses are simulated locally. This handoff has 29 prototype
+screens; the complete Storybook contains 288 stories and 60 documentation pages.
+
+The UI/prototype contract is
+`.ai/specs/2026-09-09-e02-design-handoff.md`. E01 also has the accounts-and-roles
+specification at `.ai/specs/2026-09-04-accounts-and-roles.md`. The UI contract
+covers all eight stories' visible flows. The E02 production contracts are also
+in the repository: `.ai/specs/2026-09-08-mentors-become-bookable.md` and its five
+story specifications. The prototype README links each specification. Use them
+alongside these UI compositions for services, data, authorization and integrations.
+
+<div className="dm-table-scroll" role="region" aria-label="Handoff entry points table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 600, tableLayout: 'fixed' }}>
+    <caption className="sr-only">Handoff entry points</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '22%', textAlign: 'left' }}>Start here</th>
+        <th scope="col" style={{ width: '78%', textAlign: 'left' }}>What to open</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>E01 accounts and roles</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s12">Sign in</a> and <a href="?path=/docs/design-system-e01-accounts-and-roles--docs">E01 state map</a></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>E02 mentors become bookable</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s26">Accept an invitation</a> and <a href="?path=/docs/design-system-e02-mentors-become-bookable--docs">E02 state map</a></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Existing mentor</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s11">Mentor workspace</a>, after signing in with a mentor demo account</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Public result</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s1">Mentor profile</a> and <a href="/prototypes/devmentor-journey/index.html#s3">choose a session</a></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Component reference</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/design-system-components--gallery">Component gallery</a> and <a href="?path=/docs/design-system-usage-and-accessibility--docs">usage rules</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+Start Storybook with `npm run storybook` from a checkout containing this source.
+It serves the prototype at the same origin. A localhost link opens the copy
+running on the reader's computer; it is not a shared deployment. The source
+entrypoint and run instructions are `prototypes/devmentor-journey/README.md`.
+
+## Every story has a screen and a state map
+
+The screen IDs are permanent review references. Direct links to protected screens
+still check the current demo account. Use the role accounts in **Auth scenarios**
+or complete invitation acceptance before opening mentor screens.
+
+<div className="dm-table-scroll" role="region" aria-label="E01 and E02 story-to-screen map table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 960, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E01 and E02 story-to-screen map</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '25%', textAlign: 'left' }}>Story</th>
+        <th scope="col" style={{ width: '25%', textAlign: 'left' }}>Composed screens</th>
+        <th scope="col" style={{ width: '25%', textAlign: 'left' }}>Required visible states</th>
+        <th scope="col" style={{ width: '25%', textAlign: 'left' }}>Shared UI and source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/12">E01-S01 / #12</a>: GitHub sign-in</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s12">Sign-in, s12</a>; <a href="/prototypes/devmentor-journey/index.html#s23">provider response preview, s23</a>; role homes s6, s11, s24</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Successful account creation/sign-in, combined roles, cancellation, invalid callback, unavailable provider, unverified primary/local email, expired session, continuation</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/docs/product-account-form--docs">AccountForm</a>, <a href="?path=/docs/product-authentication-feedback--docs">AuthFeedback</a>, AuthLayout; <code>AuthScreens.tsx</code>, <code>auth-model.ts</code>, <code>auth-context.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/13">E01-S02 / #13</a>: Email/password</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s20">Registration, s20</a>; <a href="/prototypes/devmentor-journey/index.html#s21">inbox, s21</a>; <a href="/prototypes/devmentor-journey/index.html#s22">verification, s22</a>; s12</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Validation, pending submission, valid/reused/expired/invalid link, incorrect credentials, existing/GitHub-only account, unverified email, unavailable service/mail, cooldown and retry</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/docs/product-account-form--docs">AccountForm states</a>, <a href="?path=/docs/product-authentication-feedback--docs">verification feedback</a>; <code>AuthScreens.tsx</code>, <code>auth-runtime.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/14">E01-S03 / #14</a>: Role access</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s6">Mentee home, s6</a>; <a href="/prototypes/devmentor-journey/index.html#s11">mentor home, s11</a>; <a href="/prototypes/devmentor-journey/index.html#s24">operator home, s24</a>; <a href="/prototypes/devmentor-journey/index.html#s25">users, s25</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>First use and sample sessions, additive navigation, signed-out/expired denial, wrong role, live operator revocation/restoration, sign-out; no general role-grant action</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/docs/backend-layout-appshell--docs">AppShell</a>, DataTable, AuthFeedback; <code>Frame.tsx</code>, <code>AuthScreens.tsx</code>, <code>auth-model.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/15">E02-S01 / #15</a>: Invitation</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s26">Invitation, s26</a>, s12/s20–s23, <a href="/prototypes/devmentor-journey/index.html#s11">first mentor home, s11</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Signed-out continuation, accept once, mentor role added to existing roles, invalid/expired/used link, failed request and retry, first-use checklist and 14-day deadline</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Card, Button, <a href="?path=/docs/product-mentor-onboarding--docs">MentorOnboarding</a>; <code>MentorScreens.tsx</code>, <code>mentor-model.ts</code>, <code>mentor-runtime.ts</code>, <code>auth-context.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/16">E02-S02 / #16</a>: Mentor profile</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s27">Edit, publish and share, s27</a>, s11, <a href="/prototypes/devmentor-journey/index.html#s1">public profile, s1</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Required work URL, description and stack tags; draft/saved/published, validation, failed save with retained values, missing public page, copy success/failure</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/docs/product-mentor-profile-editor--docs">MentorProfileEditor</a>, <a href="?path=/docs/product-mentors--docs">MentorRatingSummary and MentorReviews</a>, TechnologyChips; <code>MentorScreens.tsx</code>, <code>MentorProfileScreen.tsx</code>, <code>mentor-model.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/17">E02-S03 / #17</a>: Availability</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s11">Mentor workspace, s11</a>, <a href="/prototypes/devmentor-journey/index.html#s3">public selection, s3</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Empty availability, explicit timezone, invalid/past/duplicate start, add/remove free time, booked refusal and cancellation guidance, failed request and retry</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>CrudForm, DataTable, <a href="?path=/docs/product-availability--docs">AvailabilityPicker</a>; <code>MentorScreens.tsx</code>, <code>BookingScreens.tsx</code>, <code>mentor-model.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/18">E02-S04 / #18</a>: Prices</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s11">Mentor workspace, s11</a>, s1, s3, <a href="/prototypes/devmentor-journey/index.html#s4">booking summary, s4</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Both lengths, lower/upper bounds, missing price blocks booking, failed save and retry, public values update; confirmed booking keeps its price</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>CrudForm, <a href="?path=/docs/product-availability--docs">DurationSelector</a>, neutral fact chips; <code>MentorScreens.tsx</code>, <code>BookingScreens.tsx</code>, <code>main.tsx</code>, <code>mentor-model.ts</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/19">E02-S05 / #19</a>: Stripe Connect</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="/prototypes/devmentor-journey/index.html#s28">Payout settings, s28</a>; <a href="/prototypes/devmentor-journey/index.html#s29">provider response preview, s29</a>; <a href="/prototypes/devmentor-journey/index.html#s25">operator users, s25</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Incomplete, pending, enabled and restricted; start/return, cancel, request failure and retry; mentor-owned setup and read-only operator status</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-payments--connect-states">ConnectStatus</a>, DataTable, ErrorMessage; <code>MentorScreens.tsx</code>, <code>AuthScreens.tsx</code>, <code>mentor-model.ts</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+Prototype source paths in this table are relative to
+`prototypes/devmentor-journey/`. Reusable component source is under
+`packages/ui/src/components/`; generic layouts, forms and tables are under
+`packages/ui/src/backend/`. Each epic's state map links to the relevant examples
+and gives the review sequence.
+
+## Implementation boundaries
+
+- The screen composition, spacing, typography, action order and visible recovery
+  copy form the UI handoff. Use the shared components instead of recreating their
+  markup in application pages.
+- Real OAuth, password hashing, verification and invitation email, tokens,
+  cookies, persistence, authorization and provider webhooks belong to the
+  application. Demo outcomes do not prove any of these mechanisms work.
+- E02 acceptance adds mentor access to the current account. General registration
+  gives mentee access; no screen can self-assign operator access.
+- The same mentor data drives editing, public preview, prices and available
+  times. Each confirmed booking keeps its price snapshot. The application must
+  enforce these rules under concurrent requests too.
+- Connect is designed here for iteration 1.1. The response preview asks for no
+  real payout details and never contacts Stripe. Returning from a provider is
+  not proof that payouts or a payment are enabled. Mentors manage their own setup
+  on s28; operators read the Payout setup column on s25. Neither surface exposes
+  bank or identity details, and public profiles show no payout status.
+- Reviews and search are approved design extensions. Their production rules must
+  be recorded in the accepted feature specification, since the original backlog
+  still excludes them. Review storage, eligibility, moderation and search data
+  access remain application work.
+
+The reusable workflow lives at
+`.agents/skills/devmentor-prototype/SKILL.md`. Invoke `$devmentor-prototype` when
+extending these flows. It points to the current source, validation commands and
+design rules. It does not publish changes or contact reviewers.
+
+## Review before implementing
+
+Walk E01 and E02 from their start links, then repeat the failure paths in their
+state maps. Review light and dark themes, desktop and 320px mobile, keyboard
+order, validation focus and retained values after failure. On compact workspace
+screens, **Menu** opens the authorized navigation links. Existing comments
+stay attached to stable screen IDs and can be exported from **Review tools**.
+
+Use `npm run test:unit:coverage`, `npm run test:prototype`, the three typecheck
+commands, lint and builds when changing the source. The prototype checks local
+behavior. Production account and booking flows also require the repository's
+integration tests with real application boundaries.

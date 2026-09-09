@@ -7,7 +7,7 @@ import { navigate, scrollToSection } from './navigation';
 import developerIllustration from './assets/developer-mentoring.png';
 import './landing.css';
 
-export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
+export function LandingScreen({ reviews, onMeetMentor = () => navigate('s1') }: { reviews: MentorReview[]; onMeetMentor?: () => void }) {
   const auth = useAuth();
   const accountScreen = auth?.user ? homeFor(auth.user.roles) : 's12';
   const accountLabel = auth?.user ? 'My workspace' : 'Sign in';
@@ -40,7 +40,7 @@ export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
           <div className="home-feature-row">
             <div className="home-feature-copy"><p className="home-eyebrow">Bring your code</p><h3>Understand what is happening<br />and what to change.</h3><p>You might have a type error you cannot explain, an API that feels too complicated or a React component that keeps growing. Share the example with your mentor.</p>
               <ul className="home-check-list"><li><Check aria-hidden="true" />Work on your own code example</li><li><Check aria-hidden="true" />Ask why a change works and what to try next</li><li><Check aria-hidden="true" />Choose the session length and ask for the pace you need</li></ul>
-              <Button onClick={() => navigate('s1')}>View mentor profile<ArrowRight aria-hidden="true" /></Button>
+              <Button onClick={onMeetMentor}>View mentor profile<ArrowRight aria-hidden="true" /></Button>
             </div>
             <div className="home-chat-scene">
               <span className="home-scene-caption"><MessageSquare aria-hidden="true" />An example text session</span>
@@ -62,7 +62,7 @@ export function LandingScreen({ reviews }: { reviews: MentorReview[] }) {
         </section>
         <section className="home-mentor-band" aria-labelledby="home-mentor-title"><div className="home-container">
           <div className="home-section-heading"><p className="home-eyebrow">Your mentor</p><h2 id="home-mentor-title" tabIndex={-1}>See who you will work with.</h2><p>Read about their experience and the problems they help with,<br className="home-wide-break" /> then check reviews from other developers.</p></div>
-          <Card className="home-mentor-card"><div className="home-mentor-identity"><span className="home-mentor-avatar" aria-hidden="true">AL</span><div><p className="home-eyebrow">Example mentor profile</p><h3>Alex Laurent</h3><p>Staff engineer</p><TechnologyChips stacks={['TypeScript', 'React', 'API design']} /></div></div><div className="home-mentor-details"><p>I help developers simplify complex types, decide where code belongs and work through architecture choices.</p>{reviews.length > 0 && <MentorRatingSummary average={average} reviewCount={reviews.length} />}<Button onClick={() => navigate('s1')}>Meet Alex<ArrowRight aria-hidden="true" /></Button><span className="home-demo-caption">Fictional mentor and reviews for this prototype.</span></div></Card>
+          <Card className="home-mentor-card"><div className="home-mentor-identity"><span className="home-mentor-avatar" aria-hidden="true">AL</span><div><p className="home-eyebrow">Example mentor profile</p><h3>Alex Laurent</h3><p>Staff engineer</p><TechnologyChips stacks={['TypeScript', 'React', 'API design']} /></div></div><div className="home-mentor-details"><p>I help developers simplify complex types, decide where code belongs and work through architecture choices.</p>{reviews.length > 0 && <MentorRatingSummary average={average} reviewCount={reviews.length} />}<Button onClick={onMeetMentor}>Meet Alex<ArrowRight aria-hidden="true" /></Button><span className="home-demo-caption">Fictional mentor and reviews for this prototype.</span></div></Card>
         </div></section>
         <section className="home-how home-container" aria-labelledby="landing-how-title"><div className="home-section-heading"><p className="home-eyebrow">How it works</p><h2 id="landing-how-title" tabIndex={-1}>Book a session for your question.</h2></div><ol className="home-steps">
           <li><span className="home-step-number" aria-hidden="true">01</span><h3>Choose a mentor</h3><p>Read their profile and work examples to see if they can help with your problem.</p></li>

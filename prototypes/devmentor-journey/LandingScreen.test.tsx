@@ -17,6 +17,15 @@ function LandingWithAuth() {
 beforeEach(() => { authDemo.reset(); vi.mocked(navigate).mockReset(); });
 afterEach(cleanup);
 
+it('opens the named mentor from both profile actions even after viewing another mentor', () => {
+  const openAlex = vi.fn();
+  render(<LandingScreen reviews={INITIAL_REVIEWS} onMeetMentor={openAlex} />);
+  fireEvent.click(screen.getByRole('button', { name: 'View mentor profile' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Meet Alex' }));
+  expect(openAlex).toHaveBeenCalledTimes(2);
+  expect(navigate).not.toHaveBeenCalled();
+});
+
 it.each([true, false])('routes signed-out visitors to sign-in with context=%s', withContext => {
   render(withContext ? <LandingWithAuth /> : <LandingScreen reviews={INITIAL_REVIEWS} />);
   for (const name of ['Main navigation', 'Footer navigation']) {

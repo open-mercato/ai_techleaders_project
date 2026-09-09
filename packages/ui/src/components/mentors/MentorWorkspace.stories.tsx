@@ -1,44 +1,128 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import { http, HttpResponse } from 'msw';
 import { z } from 'zod';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { CrudForm, type CrudFormProps } from '../../backend/forms/CrudForm';
 import { DataTable } from '../../backend/tables/DataTable';
-
-const profile: CrudFormProps<Record<string, unknown>> = {
-  schema: z.object({ displayName: z.string().trim().min(2, 'Enter your display name.'), publicWork: z.url('Enter a full URL for your public work.'), description: z.string().trim().min(20, 'Tell mentees what you can help them with.'), stack: z.string().min(1, 'Choose a primary stack.') }),
-  fields: [{ name: 'displayName', label: 'Display name' }, { name: 'publicWork', label: 'Link to public work', placeholder: 'https://github.com/your-name' }, { name: 'description', label: 'How you can help', type: 'textarea' }, { name: 'stack', label: 'Primary stack', type: 'select', options: [{ label: 'TypeScript', value: 'typescript' }, { label: 'React', value: 'react' }, { label: 'Python', value: 'python' }] }],
-  initialValues: { displayName: 'Alex Laurent', publicWork: 'https://example.com/alex/work', description: 'I help developers work through TypeScript API questions and decide where to test.', stack: 'typescript' },
-  endpoint: '/storybook-api/mentor-workspace/profile', submitLabel: 'Save profile',
-};
+import { MentorProfileEditor } from './MentorProfileEditor';
 
 function WorkspaceForm({ title, description, form }: { title: string; description: string; form: CrudFormProps<Record<string, unknown>> }) {
-  const [saved, setSaved] = useState(false);
-  return <div className="dm-product-panel"><div><h2 className="dm-product-heading">{title}</h2><p className="dm-product-muted">{description}</p></div><CrudForm {...form} onSuccess={() => setSaved(true)} />{saved && <p role="status" className="dm-product-callout">Saved in this local example. No account, availability or note was changed.</p>}</div>;
+  const [notice, setNotice] = useState('');
+  return <div className="dm-product-panel"><div><h2 className="dm-product-heading">{title}</h2><p className="dm-product-muted">{description}</p></div>
+    <CrudForm {...form} onCancel={() => setNotice('The host would return to your mentor home.')} onSuccess={() => setNotice('Saved in this local example.')} />
+    {notice && <p role="status" className="dm-product-callout">{notice}</p>}
+  </div>;
+}
+
+function ProfileExample() {
+  const [notice, setNotice] = useState('');
+  return <div className="dm-product-panel"><div><h2 className="dm-product-heading">Your mentor profile</h2><p className="dm-product-muted">Describe the help you offer and add a link to your public work. Review the saved profile before publishing.</p></div>
+    <MentorProfileEditor initialValues={{ displayName: 'Alex Laurent', publicWorkUrl: 'https://example.com/alex/work', description: 'I help developers work through TypeScript API questions and decide where to test.', stacks: ['TypeScript', 'React'] }}
+      endpoint="/storybook-api/mentor-workspace/profile" onSaved={() => setNotice('Profile saved in this example. Publication is a separate step.')} onCancel={() => setNotice('The host would return to your mentor home.')} />
+    {notice && <p role="status" className="dm-product-callout">{notice}</p>}
+  </div>;
 }
 
 const meta = {
   title: 'Product/Mentor workspace', tags: ['autodocs'],
-  parameters: { msw: { handlers: [http.post('/storybook-api/mentor-workspace/:form', () => HttpResponse.json({ ok: true, data: { id: 'local-example' } }))] }, docs: { description: { component: 'Mentor editing forms and tables using CrudForm and DataTable for #16/#17/#18/#28. They share client/server schema shapes and use only local MSW requests. Date-times are local wall-clock inputs with an explicit timezone; the application must resolve timezone/DST and validate booking conflicts. Example price bounds are story configuration, not product policy.' } } },
+  parameters: {
+    msw: { handlers: [http.all('/storybook-api/mentor-workspace/:form', () => HttpResponse.json({ ok: true, data: { id: 'local-example' } }))] },
+    docs: { description: { component: 'E02 #16/#17/#18 profile, price and availability examples, plus private-note drafting for #28. Profile editing uses MentorProfileEditor; other forms and lists reuse CrudForm and DataTable. Prices are PLN 90 to 600 for 25 minutes and PLN 180 to 1,200 for 50 minutes. Availability stores one UTC start time; the mentee selects the session length. Booked times cannot be removed here. Local mock requests illustrate saved states; the application must enforce ownership, future times, conflicts and confirmed booking price snapshots.' } },
+  },
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const EditProfile: Story = { render: () => <WorkspaceForm title="Your mentor profile" description="Describe what you can help with and add a link to your public work." form={profile} /> };
 
-export const PublishAvailability: Story = { render: () => <WorkspaceForm title="Publish a text session time" description="Enter local times in the selected timezone. The application checks conflicts before publishing." form={{
-  schema: z.object({ startsAt: z.string().min(1, 'Choose a start time.'), endsAt: z.string().min(1, 'Choose an end time.'), timeZone: z.enum(['Europe/Warsaw', 'UTC', 'America/New_York']) }).refine(value => value.endsAt > value.startsAt, { path: ['endsAt'], message: 'End time must be after start time.' }),
-  fields: [{ name: 'startsAt', label: 'Starts at', type: 'datetime-local' }, { name: 'endsAt', label: 'Ends at', type: 'datetime-local' }, { name: 'timeZone', label: 'Timezone', type: 'select', options: [{ label: 'Europe/Warsaw', value: 'Europe/Warsaw' }, { label: 'UTC', value: 'UTC' }, { label: 'America/New_York', value: 'America/New_York' }] }],
-  initialValues: { startsAt: '2026-09-09T14:00', endsAt: '2026-09-09T15:00', timeZone: 'Europe/Warsaw' }, endpoint: '/storybook-api/mentor-workspace/availability', submitLabel: 'Publish availability',
+export const EditProfile: Story = { render: () => <ProfileExample /> };
+export const PublishAvailability: Story = { render: () => <WorkspaceForm title="Add an available time" description="Enter the start time in UTC. A mentee chooses 25 or 50 minutes when booking. The application checks that the time is available before saving it." form={{
+  schema: z.object({ startsAt: z.string().min(1, 'Choose a start time.').refine(value => !Number.isNaN(Date.parse(`${value}Z`)), 'Enter a valid UTC start time.').transform(value => new Date(`${value}Z`).toISOString()) }),
+  fields: [{ name: 'startsAt', label: 'Starts at (UTC)', type: 'datetime-local', required: true, description: 'All dates and times in this form use UTC.' }],
+  initialValues: { startsAt: '2026-09-24T14:00' }, endpoint: '/storybook-api/mentor-workspace/availability', submitLabel: 'Add available time',
 }} /> };
 
 const priceForm: CrudFormProps<Record<string, unknown>> = {
-  schema: z.object({ price25: z.number('Set a price for 25 minutes.').min(5, 'The example minimum is 5.').max(300, 'The example maximum is 300.'), price50: z.number('Set a price for 50 minutes.').min(10, 'The example minimum is 10.').max(600, 'The example maximum is 600.'), currency: z.enum(['EUR', 'USD']) }),
-  fields: [{ name: 'price25', label: '25-minute price', type: 'number' }, { name: 'price50', label: '50-minute price', type: 'number' }, { name: 'currency', label: 'Currency', type: 'select', options: [{ label: 'EUR', value: 'EUR' }, { label: 'USD', value: 'USD' }] }],
-  initialValues: { price25: 45, price50: 80, currency: 'EUR' }, endpoint: '/storybook-api/mentor-workspace/prices', submitLabel: 'Save prices',
+  schema: z.object({
+    '25': z.number('Set a price for 25 minutes.').int('Use a whole PLN amount.').min(90, 'The 25-minute price must be at least PLN 90.').max(600, 'The 25-minute price must be at most PLN 600.'),
+    '50': z.number('Set a price for 50 minutes.').int('Use a whole PLN amount.').min(180, 'The 50-minute price must be at least PLN 180.').max(1200, 'The 50-minute price must be at most PLN 1,200.'),
+  }),
+  fields: [
+    { name: '25', label: '25-minute price (PLN)', type: 'number', required: true, description: 'Allowed price: PLN 90 to 600. Use a whole PLN amount.' },
+    { name: '50', label: '50-minute price (PLN)', type: 'number', required: true, description: 'Allowed price: PLN 180 to 1,200. Use a whole PLN amount.' },
+  ],
+  initialValues: { '25': 180, '50': 340 }, endpoint: '/storybook-api/mentor-workspace/prices', submitLabel: 'Save prices',
 };
-export const SetSessionPrices: Story = { render: () => <WorkspaceForm title="Session prices" description="Set a price for each session length. This example allows 5 to 300 for 25 minutes and 10 to 600 for 50 minutes, in the selected currency." form={priceForm} /> };
-export const PriceBoundsError: Story = { render: () => <WorkspaceForm title="Session prices" description="The bounds in this example come from the operator configuration." form={{ ...priceForm, initialValues: { price25: 2, price50: 80, currency: 'EUR' } }} />, play: async ({ canvasElement }) => { const canvas = within(canvasElement); await userEvent.click(canvas.getByRole('button', { name: 'Save prices' })); await expect(canvas.getByText('The example minimum is 5.')).toBeVisible(); } };
+export const SetSessionPrices: Story = { render: () => <WorkspaceForm title="Session prices" description="Set both prices before accepting bookings. Changes apply to new bookings; confirmed bookings keep their agreed price." form={priceForm} /> };
+export const PriceBoundsError: Story = {
+  render: () => <WorkspaceForm title="Session prices" description="Enter a PLN price within the allowed range for each session length." form={{ ...priceForm, initialValues: { '25': 89, '50': 1201 } }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Save prices' }));
+    await expect(canvas.getByText('The 25-minute price must be at least PLN 90.')).toBeVisible();
+    await expect(canvas.getByText('The 50-minute price must be at most PLN 1,200.')).toBeVisible();
+  },
+};
+export const MissingPrices: Story = {
+  render: () => <WorkspaceForm title="Set prices to accept bookings" description="People can read your published profile, but they cannot book until you save both session prices." form={{ ...priceForm, initialValues: {} }} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Save prices' }));
+    await expect(canvas.getByText('Set a price for 25 minutes.')).toBeVisible();
+    await expect(canvas.getByText('Set a price for 50 minutes.')).toBeVisible();
+  },
+};
 export const DraftPrivateNote: Story = { render: () => <WorkspaceForm title="Draft a private session note" description="Summarize the agreed decisions and next steps. Sending for approval does not publish the note." form={{ schema: z.object({ title: z.string().trim().min(3, 'Add a clear title.'), body: z.string().trim().min(20, 'Include the decisions and next steps from the session.') }), fields: [{ name: 'title', label: 'Note title' }, { name: 'body', label: 'Session note', type: 'textarea' }], initialValues: { title: 'A clearer API boundary', body: 'Validate at the HTTP boundary. Keep ownership checks in the service and return a DTO. Next: add tests for the invalid-input and forbidden-access paths.' }, endpoint: '/storybook-api/mentor-workspace/note', submitLabel: 'Send for approval' }} /> };
-export const ManageAvailability: Story = { render: () => <div className="dm-product-panel"><div><h2 className="dm-product-heading">Your available times</h2><p className="dm-product-muted">Europe/Warsaw: Booked times cannot be removed.</p></div><DataTable columns={[{ key: 'date', header: 'Text session time' }, { key: 'status', header: 'Status' }]} rows={[{ id: '1', date: '9 September, 14:00–15:00', status: 'Open' }, { id: '2', date: '9 September, 16:00–17:00', status: 'Booked' }]} getRowId={row => row.id} rowActions={row => <div className="dm-product-stack"><Button intent="error" appearance="ghost" size="xs" disabled={row.status === 'Booked'} aria-describedby={row.status === 'Booked' ? 'booked-slot-reason' : undefined}>Remove time</Button>{row.status === 'Booked' && <p id="booked-slot-reason" className="dm-product-caption">This time has a confirmed booking.</p>}</div>} /></div> };
+
+const availableTimes = [
+  { id: 'open-time', date: '24 September 2026, 14:00 UTC', status: 'Available' },
+  { id: 'booked-time', date: '24 September 2026, 16:00 UTC', status: 'Booked' },
+];
+function AvailabilityExample() {
+  const [rows, setRows] = useState(availableTimes);
+  const [removing, setRemoving] = useState<(typeof availableTimes)[number] | null>(null);
+  const [notice, setNotice] = useState('');
+  const [refused, setRefused] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  return <div className="dm-product-panel"><div><h2 ref={heading} tabIndex={-1} className="dm-product-heading">Your available times</h2><p className="dm-product-muted">All times use UTC. Remove an unbooked time when you are no longer available.</p></div>
+    <DataTable caption="Mentor availability" columns={[
+      { key: 'date', header: 'Start time (UTC)' },
+      { key: 'status', header: 'Status', render: row => <Badge variant="outline">{row.status}</Badge> },
+    ]} rows={rows} getRowId={row => row.id} emptyMessage="No available times" emptyDescription="Add a time when you can offer a text session."
+      rowActions={row => <div className="dm-product-stack"><Button intent="error" appearance="ghost" size="sm"
+        aria-label={`Remove ${row.date}`} aria-describedby={row.status === 'Booked' ? `${row.id}-reason` : undefined}
+        onClick={() => { setNotice(''); setRefused(false); if (row.status === 'Booked') { setRefused(true); setNotice('This time has a confirmed booking. Open the session details to follow the cancellation process.'); } else setRemoving(row); }}>Remove time</Button>
+        {row.status === 'Booked' && <p id={`${row.id}-reason`} className="dm-product-caption">A confirmed booking uses this time.</p>}</div>} />
+    {notice && <p role={refused ? 'alert' : 'status'} className="dm-product-callout">{notice}</p>}
+    <AlertDialog open={Boolean(removing)} onOpenChange={open => { if (!open) setRemoving(null); }}>
+      <AlertDialogContent onCloseAutoFocus={event => { event.preventDefault(); heading.current?.focus(); }}>
+        <AlertDialogHeader><AlertDialogTitle>Remove this available time?</AlertDialogTitle><AlertDialogDescription>{removing?.date} will no longer be available for new bookings.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel>Keep time</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { setRows(current => current.filter(row => row.id !== removing?.id)); setNotice('The available time was removed from this example.'); }}>Remove time</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </div>;
+}
+export const ManageAvailability: Story = { render: () => <AvailabilityExample /> };
+export const RemoveAvailableTime: Story = {
+  render: () => <AvailabilityExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove 24 September 2026, 14:00 UTC' }));
+    const dialog = within(await within(canvasElement.ownerDocument.body).findByRole('alertdialog'));
+    await expect(dialog.getByRole('button', { name: 'Keep time' })).toHaveFocus();
+    await userEvent.click(dialog.getByRole('button', { name: 'Remove time' }));
+    await expect(canvas.getByRole('status')).toHaveTextContent('The available time was removed');
+    await expect(canvas.queryByRole('button', { name: 'Remove 24 September 2026, 14:00 UTC' })).not.toBeInTheDocument();
+  },
+};
+export const BookedTimeCannotBeRemoved: Story = {
+  render: () => <AvailabilityExample />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove 24 September 2026, 16:00 UTC' }));
+    await expect(canvas.getByRole('alert')).toHaveTextContent('Open the session details to follow the cancellation process.');
+    await expect(canvas.getByRole('button', { name: 'Remove 24 September 2026, 16:00 UTC' })).toBeVisible();
+  },
+};

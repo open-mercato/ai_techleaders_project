@@ -57,6 +57,34 @@ it('preserves an anonymous protected destination through the engine redirect to 
   expect(result.current.screen).toBe('s9');
 });
 
+it('returns invitation sign-in to the invitation and clears the destination after login', async () => {
+  const { result } = renderHook(() => useAuthController(true));
+  await go('s26');
+  await go('s12');
+  expect(result.current.returnTo).toBe('s26');
+  await act(async () => { await post('login', login); });
+  expect(result.current.screen).toBe('s26');
+  expect(result.current.user?.roles).toEqual(['mentee']);
+  expect(result.current.returnTo).toBeNull();
+  await act(async () => { await result.current.logout(); });
+  await go('s12');
+  expect(result.current.returnTo).toBeNull();
+});
+
+it('keeps invitation continuation through registration, email verification and completion', async () => {
+  const { result } = renderHook(() => useAuthController(false));
+  await go('s26');
+  await go('s12');
+  act(() => result.current.switchMode('s20'));
+  await act(async () => { await post('register', registration); });
+  expect(result.current.returnTo).toBe('s26');
+  await act(async () => { await result.current.verify(); });
+  act(() => result.current.complete());
+  expect(result.current.screen).toBe('s26');
+  expect(result.current.returnTo).toBeNull();
+  expect(result.current.user?.roles).toEqual(['mentee']);
+});
+
 it('uses the current booking selection and ignores a previously abandoned booking on standalone sign-in', async () => {
   const { result, rerender } = renderHook(({ selected }) => useAuthController(selected), { initialProps: { selected: false } });
   await go('s3');
@@ -194,6 +222,18 @@ it('keeps new accounts away from fixture session details until they confirm thei
     await waitFor(() => expect(result.current.screen).toBe('s6'));
     expect(result.current.notice).toBeNull();
   }
+  rerender({ confirmed: true });
+  expect(result.current.hasSession).toBe(true);
+  await go('s7');
+  expect(result.current.screen).toBe('s7');
+});
+
+it.each(['taylor', 'sam'])('does not give %s another account’s fixture session without a matching booking', async account => {
+  authDemo.github(account, 'success');
+  const { result, rerender } = renderHook(({ confirmed }) => useAuthController(false, confirmed), { initialProps: { confirmed: false } });
+  expect(result.current.hasSession).toBe(false);
+  await go('s7');
+  await waitFor(() => expect(result.current.screen).toBe('s6'));
   rerender({ confirmed: true });
   expect(result.current.hasSession).toBe(true);
   await go('s7');
