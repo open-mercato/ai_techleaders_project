@@ -40,6 +40,24 @@ export interface OperatorAuthoritySubject {
 }
 
 /**
+ * A role membership as a canonical array: ordered by `ROLES` and duplicate-free.
+ *
+ * The `users_roles_check` the schema generator emits constrains membership but **not**
+ * uniqueness — a Postgres `CHECK` cannot contain a subquery, so array-uniqueness would need
+ * an `IMMUTABLE` helper function. E01 therefore makes duplicate suppression an application
+ * invariant, and this is where it is enforced: every write of `users.roles` goes through
+ * here, so a stored set is always in the one canonical form.
+ *
+ * Canonical form is not cosmetic. It is what lets a caller decide "did this change?" with a
+ * plain element-wise comparison instead of a set difference, which is how reconciliation
+ * skips the write and the event when nothing actually moved.
+ */
+export function normalizeRoles(roles: Iterable<Role>): Role[] {
+  const held = new Set<Role>(roles);
+  return ROLES.filter((role) => held.has(role));
+}
+
+/**
  * Whether the allowlist grants `operator` to this row, right now.
  *
  * **Verification is required.** An allowlisted address on an unverified row is not
@@ -88,5 +106,5 @@ export function resolveLiveRoles(
     held.delete('operator');
   }
 
-  return ROLES.filter((role) => held.has(role));
+  return normalizeRoles(held);
 }

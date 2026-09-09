@@ -38,6 +38,7 @@ export default defineConfig({
         'packages/core/src/services/auth/session-secret.ts',
         'packages/core/src/services/auth/session.service.ts',
         'packages/core/src/services/auth/token.service.ts',
+        'packages/core/src/services/auth/user.service.ts',
         'packages/core/src/time/clock.ts',
         'packages/db/src/config.ts',
         'packages/db/src/entities/auth/roles.ts',

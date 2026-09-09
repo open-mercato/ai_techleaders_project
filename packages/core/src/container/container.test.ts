@@ -175,6 +175,30 @@ describe('getContainer', () => {
 
     expect(logger.info).toHaveBeenCalledWith({ userId: 'user-1' }, 'auth.user.created');
   });
+
+  it('logs the default auth.user.roles_changed subscriber', async () => {
+    // The event exists to make the operator cache update observable. It is deliberately
+    // *not* the R18 audit record — that is the `OPERATOR_EMAILS` commit — so a pino line
+    // is the whole of the default subscriber.
+    const container = await getContainer();
+
+    await container.cradle.eventBus.emit('auth.user.roles_changed', {
+      userId: 'user-1',
+      roles: ['mentee', 'operator'],
+      previousRoles: ['mentee'],
+      reason: 'reconciled',
+    });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        userId: 'user-1',
+        roles: ['mentee', 'operator'],
+        previousRoles: ['mentee'],
+        reason: 'reconciled',
+      },
+      'auth.user.roles_changed',
+    );
+  });
 });
 
 describe('withScope', () => {
