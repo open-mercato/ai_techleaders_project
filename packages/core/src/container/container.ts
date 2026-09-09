@@ -14,6 +14,9 @@ import { systemClock } from '../time/clock';
 import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
+import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
+import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
+import type { GithubIdentityPort } from '../services/auth/github-identity.port';
 import { resolveSessionFromCookie } from '../http/auth';
 import type { Cradle } from './cradle';
 
@@ -56,6 +59,38 @@ function assertProductionSecrets(env: AppEnv): void {
   // production unless MAILER_ADAPTER=log is deliberately set (B14).
 }
 
+/**
+ * Choose the GitHub identity adapter (B14). **The real one unless both signals say
+ * otherwise.**
+ *
+ * The harness builds and runs the app as a child process, so it cannot compose the
+ * container in-process and the selection has to cross the boundary as configuration. That
+ * makes this the security boundary the port itself is not: the port fixes the *shape* of
+ * the seam, the two-signal rule is what makes the *selection* safe.
+ *
+ * Both flags are re-checked here even though `config/env.ts` already refuses to parse the
+ * dangerous half of the combination. That refusal protects a real deployment reading a real
+ * environment; this check protects the composition root itself, so that no future caller
+ * handing in a hand-built `AppEnv` — a test, a script, a seeder — can select the fake with
+ * one flag. Selection is from flags that are *present*, never from credentials that are
+ * *absent*: an unconfigured GitHub still gets the real adapter, which fails closed at the
+ * route (B6).
+ */
+function selectGithubIdentity({ env, logger }: Cradle): GithubIdentityPort {
+  if (env.AUTH_IDENTITY_ADAPTER === 'mock' && env.INTEGRATION_TEST_RUN) {
+    // Loud, once, on first resolution. The combination is legitimate only inside the
+    // harness, and an operator who somehow reaches it in a real process must not have to
+    // infer it from a sign-in that accepts anybody.
+    logger.warn(
+      { adapter: 'mock' },
+      'the mock GitHub identity adapter is active: sign-in accepts any login without ' +
+        'contacting GitHub',
+    );
+    return new MockGithubIdentityAdapter({ env });
+  }
+  return new GithubIdentityAdapter({ env, logger });
+}
+
 async function build(): Promise<AwilixContainer<Cradle>> {
   // Checked before anything is opened, so a misconfigured deployment fails on the
   // configuration rather than on a half-built container.
@@ -85,6 +120,10 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // which has a scoped `em`.
     sessionService: asClass(SessionService).singleton(),
     tokenService: asClass(TokenService).singleton(),
+    // SINGLETON for the same reason: stateless, and its only dependencies are `env` and
+    // `logger`. `asFunction` rather than `asClass` because which class this is *is* the
+    // decision — see `selectGithubIdentity`.
+    githubIdentity: asFunction(selectGithubIdentity).singleton(),
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),

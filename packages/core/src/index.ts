@@ -27,6 +27,15 @@ export {
   type SignedInUser,
   type UserDto,
 } from './services/auth/user.service';
+// The GitHub OAuth seam. The **port** is exported; the two adapters deliberately are not.
+// `container.ts` is the only thing allowed to choose between them, and a module that
+// cannot be imported cannot be constructed by a route that thinks it knows better.
+export {
+  GITHUB_CALLBACK_PATH,
+  type AuthorizeUrlInput,
+  type GithubIdentity,
+  type GithubIdentityPort,
+} from './services/auth/github-identity.port';
 export { EventBus, type EventHandler, type EventId, type EventMap } from './events/index';
 export { systemClock, type Clock } from './time/clock';
 export { userCreateSchema, type UserCreateInput } from './validators/auth/user-create.schema';

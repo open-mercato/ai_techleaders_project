@@ -6,6 +6,7 @@ import type { Clock } from '../time/clock';
 import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
+import type { GithubIdentityPort } from '../services/auth/github-identity.port';
 import type { Session } from '../http/auth';
 
 /**
@@ -14,8 +15,8 @@ import type { Session } from '../http/auth';
  * type-checked against this interface end to end.
  *
  * Lifetimes:
- * - `env`, `logger`, `orm`, `eventBus`, `clock`, `sessionService`, `tokenService` —
- *   SINGLETON (shared for the process).
+ * - `env`, `logger`, `orm`, `eventBus`, `clock`, `sessionService`, `tokenService`,
+ *   `githubIdentity` — SINGLETON (shared for the process).
  * - `em`, `userService`, `sessionCookie`, `session` — SCOPED (created fresh per request
  *   scope).
  *
@@ -30,6 +31,12 @@ export interface Cradle {
   clock: Clock;
   sessionService: SessionService;
   tokenService: TokenService;
+  /**
+   * The GitHub OAuth seam (B14). Which adapter answers here is the *only* difference
+   * between a normal process and an integration run — the routes have no test branch.
+   * See `container.ts` for the two-signal selection rule.
+   */
+  githubIdentity: GithubIdentityPort;
   em: EntityManager;
   userService: UserService;
   /**

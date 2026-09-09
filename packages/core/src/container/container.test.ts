@@ -60,6 +60,10 @@ const { getContainer, withScope, withRequestScope, withCookieScope } = await imp
   './container'
 );
 const { requireSession } = await import('../http/auth');
+const { GithubIdentityAdapter } = await import('../services/auth/adapters/github-identity');
+const { MockGithubIdentityAdapter } = await import(
+  '../services/auth/adapters/mock-github-identity'
+);
 
 /** The container is cached on `globalThis` to survive HMR; tests must clear that cache. */
 const globalForContainer = globalThis as unknown as { __devmentorContainer?: unknown };
@@ -317,6 +321,69 @@ describe('the scoped session', () => {
     // make. Unauthenticated and background work keeps working unchanged.
     await expect(withScope((cradle) => cradle.session)).resolves.toBeNull();
     expect(findOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('selecting the GitHub identity adapter', () => {
+  it('registers the real adapter when nothing asks for anything else', async () => {
+    const container = await getContainer();
+
+    expect(container.cradle.githubIdentity).toBeInstanceOf(GithubIdentityAdapter);
+  });
+
+  it('registers the mock only when both signals are set', async () => {
+    useEnv({ AUTH_IDENTITY_ADAPTER: 'mock', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    expect(container.cradle.githubIdentity).toBeInstanceOf(MockGithubIdentityAdapter);
+    // Loud on the way in. The combination is legitimate only inside the harness, and an
+    // operator who reaches it in a real process must not have to infer it from a sign-in
+    // that accepts anybody.
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'mock' },
+      expect.stringContaining('mock GitHub identity adapter is active'),
+    );
+  });
+
+  it('keeps the real adapter when the switch is set without the integration-run signal', async () => {
+    // The other direction, and the security-relevant one. `config/env.ts` refuses to parse
+    // this combination at all, so a real deployment never reaches here — but the container
+    // is also composable from a hand-built `AppEnv` (a script, a seeder, a test), and one
+    // flag must never be enough to select the fake.
+    useEnv({ AUTH_IDENTITY_ADAPTER: 'mock', INTEGRATION_TEST_RUN: false });
+    const container = await getContainer();
+
+    expect(container.cradle.githubIdentity).toBeInstanceOf(GithubIdentityAdapter);
+    expect(container.cradle.githubIdentity).not.toBeInstanceOf(MockGithubIdentityAdapter);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('keeps the real adapter in an integration run that did not ask for the mock', async () => {
+    // Selection is from flags that are *present*. An integration run exercising the real
+    // adapter against a stub upstream is a legitimate thing to want.
+    useEnv({ AUTH_IDENTITY_ADAPTER: 'github', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    expect(container.cradle.githubIdentity).toBeInstanceOf(GithubIdentityAdapter);
+  });
+
+  it('never selects the mock from absent credentials', async () => {
+    // The rule that would have been easy and wrong: "no GITHUB_CLIENT_ID, so use the
+    // fake". An unconfigured deployment gets the real adapter and fails closed at the
+    // route (B6, edge case 1).
+    useEnv({ GITHUB_CLIENT_ID: undefined, GITHUB_CLIENT_SECRET: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.githubIdentity).toBeInstanceOf(GithubIdentityAdapter);
+  });
+
+  it('shares one adapter for the process', async () => {
+    const container = await getContainer();
+
+    expect(container.cradle.githubIdentity).toBe(container.cradle.githubIdentity);
+    expect(await withScope((cradle) => cradle.githubIdentity)).toBe(
+      container.cradle.githubIdentity,
+    );
   });
 });
 
