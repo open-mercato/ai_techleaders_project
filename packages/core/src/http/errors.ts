@@ -9,12 +9,22 @@ export class AppError extends Error {
   readonly status: number;
   readonly code: string;
   readonly fieldErrors?: FieldErrors;
+  /**
+   * Response headers the error itself requires (e.g. `Retry-After` on a rate-limit
+   * refusal). `apiHandler` copies them onto the failure response; `content-type`
+   * always stays `application/json`, so an error cannot change the envelope's type.
+   */
+  readonly headers?: Record<string, string>;
 
   constructor(
     message: string,
     status: number,
     code: string,
-    options?: { fieldErrors?: FieldErrors; cause?: unknown },
+    options?: {
+      fieldErrors?: FieldErrors;
+      cause?: unknown;
+      headers?: Record<string, string>;
+    },
   ) {
     super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
     // `new.target.name` gives the concrete subclass name (e.g. `NotFoundError`).
@@ -22,6 +32,7 @@ export class AppError extends Error {
     this.status = status;
     this.code = code;
     this.fieldErrors = options?.fieldErrors;
+    this.headers = options?.headers;
   }
 }
 
@@ -58,6 +69,25 @@ export class ConflictError extends AppError {
 export class ValidationError extends AppError {
   constructor(message = 'Validation failed', fieldErrors?: FieldErrors) {
     super(message, 422, 'validation_failed', { fieldErrors });
+  }
+}
+
+/**
+ * The integration this request needed is not usable right now: a credential is unset,
+ * an upstream call failed or timed out, or a bounded internal resource is saturated.
+ * Always a *retryable* condition from the caller's point of view — never a way to
+ * report a client mistake, and never a carrier for an upstream response body.
+ *
+ * One code covers all three on purpose (platform primitives B20): no caller can act
+ * differently on a 502 than on a 503, and a browser-navigated route redirects to
+ * `?error=unavailable` either way.
+ */
+export class ServiceUnavailableError extends AppError {
+  constructor(
+    message = 'This part of the service is temporarily unavailable. Please try again.',
+    options?: { cause?: unknown; headers?: Record<string, string> },
+  ) {
+    super(message, 503, 'service_unavailable', options);
   }
 }
 

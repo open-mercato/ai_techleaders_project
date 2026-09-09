@@ -32,8 +32,13 @@ The shape is declared twice on purpose, in `packages/core/src/http/apiHandler.ts
 **Status and error codes**, from `packages/core/src/http/errors.ts` and `apiHandler.ts`:
 400 `bad_request`, 401 `unauthorized`, 403 `forbidden`, 404 `not_found`,
 409 `conflict`, 422 `validation_failed` (with `fieldErrors`, keyed by dotted path or
-`_root`), 500 `internal_error`. The client adds `network_error` and
-`invalid_response` in `apiCall.ts`.
+`_root`), 500 `internal_error`, 503 `service_unavailable` (an integration credential is
+unset, an upstream call failed or timed out, or a bounded internal resource is
+saturated — always retryable, and it never carries the upstream status or body). The
+client adds `network_error` and `invalid_response` in `apiCall.ts`.
+
+An `AppError` may also carry an optional `headers` bag that `apiHandler` copies onto the
+failure response; `content-type: application/json` is written last and always wins.
 
 **Routes in place:**
 
@@ -69,7 +74,8 @@ API between packages. `npm run typecheck` is the consumer check.
   `Cradle` keys (`env`, `logger`, `orm`, `eventBus`, `em`, `userService`),
   `UserService` and `UserDto`, the `AppError` family and `isAppError`, `apiHandler`,
   `jsonOk`, `jsonError`, `makeCrudRoute` with `CrudService` and
-  `MakeCrudRouteOptions`, `readSession`, `requireSession`, `requireRole`,
+  `MakeCrudRouteOptions`, `safeReturnTo`, `fetchJson` with `FetchJsonOptions`,
+  `OutboundHttpError` and `DEFAULT_TIMEOUT_MS`, `readSession`, `requireSession`, `requireRole`,
   `assertOwnership`, `Session`, `Role` (`'student' | 'mentor'`), `EventBus`,
   `EventMap`, `userCreateSchema`, and the re-exported `checkDbConnection`.
 - `@devmentor/db` (`.`, `./entities`, `./config`): `User`, `MentorProfile`, `IUser`,
