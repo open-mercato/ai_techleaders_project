@@ -1,7 +1,14 @@
 import { defineConfig } from 'vitest/config';
 
+// No React plugin is configured on purpose. Vitest's built-in esbuild transform already
+// compiles `.tsx` with the automatic JSX runtime (`"jsx": "react-jsx"` in tsconfig.base.json),
+// which is everything a component test needs. `@vitejs/plugin-react` only adds Fast Refresh and
+// Babel-only transforms (e.g. the React Compiler), neither of which runs under `vitest run`, so
+// adding it here would be configuration that changes nothing.
 export default defineConfig({
   test: {
+    // Node is the default so the existing node-only tests keep running unchanged. React
+    // component tests opt in per file with a `// @vitest-environment jsdom` pragma on line 1.
     environment: 'node',
     include: [
       'packages/**/*.test.ts',
