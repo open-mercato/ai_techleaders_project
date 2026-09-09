@@ -1,6 +1,13 @@
 export { getEnv, type AppEnv } from './config/env';
 export { createLogger, type Logger } from './logger';
 export { getContainer, withScope, type Cradle } from './container/index';
+export {
+  TokenService,
+  type PurposeTokenClaims,
+  type SignPurposeTokenInput,
+  type TokenPurpose,
+  type VerifyPurposeTokenInput,
+} from './services/auth/token.service';
 export { UserService, type UserDto } from './services/auth/user.service';
 export { EventBus, type EventHandler, type EventId, type EventMap } from './events/index';
 export { systemClock, type Clock } from './time/clock';

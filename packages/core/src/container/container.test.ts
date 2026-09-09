@@ -82,6 +82,16 @@ describe('getContainer', () => {
     expect(container.cradle.orm).toBe(fakeOrm);
     expect(container.cradle.clock.now()).toBeInstanceOf(Date);
     expect(container.cradle.eventBus).toBe(container.cradle.eventBus);
+    // `tokenService` is a SINGLETON: stateless, and both of its dependencies are
+    // process singletons. Resolving it from two different scopes must give one object.
+    expect(container.cradle.tokenService).toBe(container.cradle.tokenService);
+  });
+
+  it('shares one tokenService across request scopes', async () => {
+    const first = await withScope((cradle) => cradle.tokenService);
+    const second = await withScope((cradle) => cradle.tokenService);
+
+    expect(first).toBe(second);
   });
 
   it('builds once and reuses the cached container', async () => {
