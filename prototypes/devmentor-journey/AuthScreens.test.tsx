@@ -52,6 +52,7 @@ afterEach(cleanup);
 it.each([
   [null, 'Welcome back', 'Back to home', 's17'],
   ['s4', 'Sign in to book your session', 'Back to your selected time', 's3'],
+  ['s26', 'Sign in to accept your invitation', 'Back to invitation', 's26'],
 ] as const)('keeps the sign-in destination and back navigation for %s', (returnTo, title, back, target) => {
   const auth = authFixture({ returnTo });
   renderScreens(auth);
@@ -257,7 +258,7 @@ it('renders the operator workspace and user directory from the authorized accoun
   const operator = within(table).getByRole('row', { name: /Sam Parker/ });
   expect(within(operator).getByText('operator')).toBeTruthy();
   expect(within(operator).getByText('mentor')).toBeTruthy();
-  expect(users.queryByRole('button', { name: /edit|grant|assign/i })).toBeNull();
+  expect(within(users.getByRole('table')).queryByRole('button', { name: /edit|grant|assign/i })).toBeNull();
 });
 
 it.each([null, { ...sam, roles: ['mentor'] as ['mentor'] }])('renders no operator data when access is missing: %j', user => {

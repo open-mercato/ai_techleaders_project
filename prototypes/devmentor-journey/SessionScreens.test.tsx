@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { apiCall } from '../../packages/ui/src/backend/api/apiCall';
-import { SessionScreens } from './SessionScreens';
+import { SessionScreens, type SessionScreensProps } from './SessionScreens';
 
 vi.mock('../../packages/ui/src/backend/api/apiCall', () => ({ apiCall: vi.fn() }));
 beforeEach(() => {
@@ -10,6 +10,43 @@ beforeEach(() => {
   vi.mocked(apiCall).mockReset();
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it('uses the booked mentor and buyer throughout the conversation, reviews and profile callback', async () => {
+  const onViewMentor = vi.fn();
+  const props: SessionScreensProps = { hasBooking: true, mentorName: 'Taylor Morgan', menteeName: 'Robin Chen', duration: 50, startsAt: '2026-09-12T12:00:00Z', dateLabel: '12 September', timeLabel: '14:00', timeZone: 'Europe/Warsaw', slots: [], sessionPrice: 380, prices: { 25: 200, 50: 380 }, submittedReview: null, onReviewSubmit: vi.fn(), onPricesChange: vi.fn(), onSlotAdded: vi.fn(), onViewMentor };
+  const { container, rerender } = render(<SessionScreens {...props}/>);
+  const roomElement = container.querySelector<HTMLElement>('#s7')!;
+  roomElement.classList.add('is-current');
+  const room = within(roomElement);
+  const home = within(container.querySelector<HTMLElement>('#s6')!);
+  expect(home.getByText('Payment confirmed. Your time with Taylor is reserved.')).toBeTruthy();
+  expect(room.getByText('Taylor Morgan and Robin Chen')).toBeTruthy();
+  expect(room.getByText('Signed in as Robin Chen')).toBeTruthy();
+  expect(roomElement.textContent).not.toContain('Alex');
+  expect(roomElement.textContent).not.toContain('Jordan');
+  vi.mocked(apiCall).mockResolvedValueOnce({ ok: true, data: { message: 'My form loses the value.' } });
+  fireEvent.change(room.getByRole('textbox', { name: 'Message to Taylor' }), { target: { value: 'My form loses the value.' } });
+  fireEvent.click(room.getByRole('button', { name: 'Send message' }));
+  await waitFor(() => expect(room.getAllByRole('listitem')).toHaveLength(3));
+  expect(room.getAllByRole('listitem')[2].textContent).toContain('Robin Chen');
+  rerender(<SessionScreens {...props} isMentor/>);
+  expect(home.getByText('Payment confirmed. Your time with Robin is reserved.')).toBeTruthy();
+  expect(room.getByText('Signed in as Taylor Morgan')).toBeTruthy();
+  expect(room.getAllByRole('listitem')[2].textContent).toContain('Robin Chen');
+  vi.mocked(apiCall).mockResolvedValueOnce({ ok: true, data: { message: 'Check the controlled input handler.' } });
+  fireEvent.change(room.getByRole('textbox', { name: 'Message to Robin' }), { target: { value: 'Check the controlled input handler.' } });
+  fireEvent.click(room.getByRole('button', { name: 'Send message' }));
+  await waitFor(() => expect(room.getAllByRole('listitem')).toHaveLength(4));
+  expect(room.getAllByRole('listitem')[3].textContent).toContain('Taylor Morgan');
+  fireEvent.click(room.getByRole('button', { name: 'Mentor profile' }));
+  expect(onViewMentor).toHaveBeenCalledOnce();
+  const review = within(container.querySelector<HTMLElement>('#s18')!);
+  expect(review.getByText('Reviews are written by the mentee')).toBeTruthy();
+  rerender(<SessionScreens {...props} submittedReview={{ id: 'robin-taylor', rating: 5, text: 'Taylor helped me test the form.', reviewerName: 'Robin Chen', createdAt: '2026-09-12T12:55:00Z', dateLabel: 'After your session' }}/>);
+  fireEvent.click(review.getByRole('button', { name: "View Taylor's profile" }));
+  expect(onViewMentor).toHaveBeenCalledTimes(2);
+  expect(review.getByText("You can now read it on Taylor's profile.")).toBeTruthy();
+});
 
 function session(hasBooking = true) {
   const { container } = render(<SessionScreens hasBooking={hasBooking} duration={25} startsAt="2026-09-10T10:00:00Z" dateLabel="10 September" timeLabel="12:00" timeZone="Europe/Warsaw" slots={[]} sessionPrice={180} prices={{ 25: 180, 50: 320 }} submittedReview={null} onReviewSubmit={vi.fn()} onPricesChange={vi.fn()} onSlotAdded={vi.fn()} />);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { z } from 'zod';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -10,6 +10,22 @@ import { apiCall } from '../api/apiCall';
 import type { FieldErrors } from '../api/types';
 
 export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime-local' | 'textarea' | 'checkbox' | 'select';
+
+export interface CrudFieldRenderProps {
+  inputProps: {
+    id: string;
+    name: string;
+    disabled: boolean;
+    required?: boolean;
+    autoComplete?: string;
+    'aria-required': boolean;
+    'aria-invalid': boolean;
+    'aria-describedby'?: string;
+  };
+  labelId: string;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}
 
 export interface CrudField {
   name: string;
@@ -23,6 +39,10 @@ export interface CrudField {
   required?: boolean;
   /** Options for `select` fields. */
   options?: { label: string; value: string }[];
+  /** Custom controls reuse this form's values, validation, errors and submission.
+   * Associate the visible label using labelId and make the invalid target focusable.
+   */
+  render?: (props: CrudFieldRenderProps) => ReactNode;
 }
 
 export interface CrudFormProps<T> {
@@ -187,12 +207,12 @@ export function CrudForm<T>({
         };
         return (
           <div key={field.name} className="dm-field">
-            <Label htmlFor={id}>
+            <Label id={`${id}-label`} htmlFor={id}>
               {field.label}
               {field.required && <span className="dm-field-required" aria-hidden="true"> *</span>}
             </Label>
 
-            {field.type === 'textarea' ? (
+            {field.render ? field.render({ inputProps, labelId: `${id}-label`, value, onChange: value => setValue(field.name, value) }) : field.type === 'textarea' ? (
               <Textarea
                 {...inputProps}
                 className="w-full"

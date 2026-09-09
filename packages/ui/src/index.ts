@@ -17,6 +17,8 @@ export * from './components/bookings/BookingSummary';
 export * from './components/disputes/DisputeDetail';
 export * from './components/invitations/InvitationBatch';
 export * from './components/mentors/MentorProfileCard';
+export * from './components/mentors/MentorProfileEditor';
+export * from './components/mentors/MentorOnboarding';
 export * from './components/mentors/MentorSearch';
 export * from './components/mentors/MentorReviews';
 export * from './components/mentors/TechnologyChips';

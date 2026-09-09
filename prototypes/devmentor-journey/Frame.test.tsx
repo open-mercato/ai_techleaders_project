@@ -70,7 +70,8 @@ it('shows the union of mentor/operator links and withdraws operator children imm
   authDemo.github('sam', 'success');
   const view = mount(guarded('s25'));
   expect(screen.getByText('Private account detail')).toBeTruthy();
-  for (const name of ['Operator home', 'Users', 'My sessions', 'Private notes', 'Mentor workspace', 'Browse mentors']) expect(screen.getByRole('button', { name })).toBeTruthy();
+  for (const name of ['Operator home', 'Users', 'My sessions', 'Mentor workspace', 'Browse mentors']) expect(screen.getByRole('button', { name })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Private notes' })).toBeNull();
   expect(screen.queryByRole('button', { name: /become a mentor/i })).toBeNull();
   act(() => view.controller().operatorEligible(false));
   expect(screen.queryByText('Private account detail')).toBeNull();
@@ -83,7 +84,7 @@ it('shows the union of mentor/operator links and withdraws operator children imm
 it('keeps mentor navigation after operator removal and renders correct destinations', () => {
   authDemo.github('sam', 'success');
   const view = mount(<Workspace>Workspace content</Workspace>);
-  const destinations = { 'Operator home': 's24', Users: 's25', 'My sessions': 's6', 'Private notes': 's9', 'Mentor workspace': 's11', 'Browse mentors': 's19' };
+  const destinations = { 'Operator home': 's24', Users: 's25', 'My sessions': 's6', 'Mentor workspace': 's11', 'Browse mentors': 's19' };
   for (const [name, destination] of Object.entries(destinations)) {
     fireEvent.click(screen.getByRole('button', { name }));
     expect(visited.at(-1)).toBe(destination);
@@ -91,7 +92,32 @@ it('keeps mentor navigation after operator removal and renders correct destinati
   act(() => view.controller().operatorEligible(false));
   expect(screen.queryByRole('button', { name: 'Users' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Mentor workspace' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Private notes' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Private notes' })).toBeNull();
+});
+
+it('gives a combined-role account private notes only after a matching booking', () => {
+  authDemo.github('sam', 'success');
+  mount(<Workspace>Booked workspace</Workspace>, true);
+  fireEvent.click(screen.getByRole('button', { name: 'Private notes' }));
+  expect(visited.at(-1)).toBe('s9');
+});
+
+it('closes compact workspace navigation after an action or external screen change', () => {
+  authDemo.github('alex', 'success');
+  mount(<Workspace>Mentor workspace content</Workspace>);
+  const menu=screen.getByRole('button', { name: 'Menu' });
+  expect(menu.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(menu);
+  expect(menu.getAttribute('aria-expanded')).toBe('true');
+  fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }));
+  expect(visited.at(-1)).toBe('s27');
+  expect(menu.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(menu);
+  act(()=>navigate('s28'));
+  expect(menu.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(menu);
+  fireEvent(window,new HashChangeEvent('hashchange'));
+  expect(menu.getAttribute('aria-expanded')).toBe('false');
 });
 
 it('does not expose fixture private notes or session details to a new account', () => {

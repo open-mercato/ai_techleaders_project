@@ -10,7 +10,7 @@ import { navigate } from './navigation';
 import type { PrototypeMentor } from './mentors';
 import './mentor-catalogue.css';
 
-export function MentorCatalogueScreen({ mentors, now }: { mentors: PrototypeMentor[]; now: string }) {
+export function MentorCatalogueScreen({ mentors, now, onFullProfile }: { mentors: PrototypeMentor[]; now: string; onFullProfile?: () => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const clickedButton = useRef<HTMLButtonElement | null>(null);
@@ -57,7 +57,7 @@ export function MentorCatalogueScreen({ mentors, now }: { mentors: PrototypeMent
         profileTitle.current?.focus();
       }} onCloseAutoFocus={event => {
         event.preventDefault();
-        if (destination.current) navigate(destination.current);
+        if (destination.current) { if (onFullProfile) onFullProfile(); else navigate(destination.current); }
         else if (!leavingCatalogue.current) profileTrigger.current?.focus();
       }}>
         <DialogHeader className="catalogue-profile-header">

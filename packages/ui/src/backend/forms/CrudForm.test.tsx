@@ -47,6 +47,27 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('CrudForm', () => {
+  it('keeps a custom control in the schema, error focus and request lifecycle', async () => {
+    const onSuccess = vi.fn();
+    render(<CrudForm schema={z.object({ topics: z.array(z.string()).min(1, 'Choose a topic.') })}
+      fields={[{ name: 'topics', label: 'Topics', required: true, description: 'Choose all that apply.', render: ({ inputProps, labelId, value, onChange }) =>
+        <fieldset id={inputProps.id} disabled={inputProps.disabled} aria-labelledby={labelId}
+          aria-invalid={inputProps['aria-invalid']} aria-describedby={inputProps['aria-describedby']} tabIndex={-1}>
+          <label><input type="checkbox" checked={(value as string[]).includes('React')} onChange={event => onChange(event.target.checked ? ['React'] : [])} />React</label>
+        </fieldset> }]}
+      initialValues={{ topics: [] }} endpoint="/api/topics" onSuccess={onSuccess} />);
+    const group = screen.getByRole('group', { name: 'Topics' });
+    submitForm();
+    expect(document.activeElement).toBe(group);
+    expect(group.getAttribute('aria-describedby')).toContain(screen.getByRole('alert').id);
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'React' }));
+    submitForm();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(request).toHaveBeenCalledWith('/api/topics', { method: 'POST', body: { topics: ['React'] } });
+    expect(group.getAttribute('aria-invalid')).toBe('false');
+  });
+
   it('reports pending request transitions without announcing client validation as a submission', async () => {
     const onSubmittingChange = vi.fn();
     render(<CrudForm schema={z.object({ name: z.string().min(1, 'Enter a name.') })}

@@ -1,5 +1,6 @@
 import type { MentorListing, MentorReview } from '@devmentor/ui';
 import { DEMO_NOW, INITIAL_SLOTS, type Slot } from './flow';
+import type { MentorProfile } from './mentor-model';
 
 export interface PrototypeMentor extends MentorListing {
   bio: string[];
@@ -96,7 +97,7 @@ const OTHER_MENTORS: PrototypeMentor[] = [
   },
 ];
 
-export function getPrototypeMentors(prices: { 25: number; 50: number }, reviews: MentorReview[], slots: Slot[] = INITIAL_SLOTS): PrototypeMentor[] {
+export function getPrototypeMentors(prices: { 25: number; 50: number }, reviews: MentorReview[], slots: Slot[] = INITIAL_SLOTS, profile?: MentorProfile): PrototypeMentor[] {
   const availableSlots = slots.filter(slot => !slot.blockedReason && Date.parse(slot.start) >= DEMO_NOW + 2 * 60 * 60 * 1000).map(slot => slot.start).sort();
   return [{
     id: 'alex-laurent', name: 'Alex Laurent', initials: 'AL',
@@ -116,5 +117,12 @@ export function getPrototypeMentors(prices: { 25: number; 50: number }, reviews:
       { title: 'React state and effects', description: 'Decide what belongs in a component, how to organise its state and effects, and when to split it up.' },
       { title: 'API response design', description: 'Compare response shapes and error contracts before other parts of the application depend on them.' },
     ],
+    ...(profile ? {
+      name: profile.displayName,
+      initials: profile.displayName.split(' ').map(word => word[0]).slice(0, 2).join(''),
+      headline: profile.stacks.join(' / '), introduction: profile.description,
+      stacks: [...profile.stacks], topics: [...profile.stacks], bio: [profile.description],
+      specialties: [{ title: 'Mentoring focus', description: profile.description }],
+    } : {}),
   }, ...OTHER_MENTORS];
 }

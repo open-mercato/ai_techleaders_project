@@ -1,0 +1,281 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design system/E02 mentors become bookable" />
+
+# E02 mentors become bookable
+
+Start at [the invitation](/prototypes/devmentor-journey/index.html#s26), sign in,
+accept it, then complete the mentor setup. This page maps stories #15–19 to the
+shared UI and the connected prototype. The [handoff entrypoint](?path=/docs/design-system-implementation-handoff--docs)
+also covers E01 and links every story to its source.
+
+The prototype simulates invitation, save and Stripe responses in the browser.
+Reloading resets demo business data. It creates no real mentor account, sends no
+invitation and changes no payout account. Its UI/prototype specification is
+`.ai/specs/2026-09-09-e02-design-handoff.md`. Production architecture and contracts
+are specified in `.ai/specs/2026-09-08-mentors-become-bookable.md` and its story
+specifications, already present in this repository. The prototype README links
+all five story specifications, including Connect for iteration 1.1.
+
+## Invitation to first bookable session
+
+1. Open [Invitation, s26](/prototypes/devmentor-journey/index.html#s26) while signed
+   out. Continue to sign-in, using a mentee demo account from **Auth scenarios**
+   or a new verified email account. Successful authentication returns to the
+   invitation.
+2. Accept the invitation. The mentor role is added to the account's existing
+   roles. [Mentor workspace, s11](/prototypes/devmentor-journey/index.html#s11)
+   shows the setup checklist and a deadline 14 days after acceptance for the
+   profile, both prices and first bookable time.
+3. Open [Edit mentor profile, s27](/prototypes/devmentor-journey/index.html#s27).
+   Add a display name, a link to public work, a description and stack tags. Save,
+   then publish the profile and open its public page.
+4. Set both session prices in the mentor workspace: 25 minutes within
+   PLN 90–600 and 50 minutes within PLN 180–1,200. These values are demo operator
+   settings. The application will supply the current bounds.
+5. Publish a future time in the displayed timezone. Open the public profile and
+   choose a session to see the same saved prices and available time. Open the profile editor to copy the
+   local public-preview link.
+6. Open [Payout settings, s28](/prototypes/devmentor-journey/index.html#s28) to
+   review the separate Connect flow. Its production release remains iteration
+   1.1; it does not block this demo's first-iteration setup checklist.
+
+For the existing public sample mentor, sign in as Alex using **Auth scenarios**.
+Other mentors and newly invited accounts have their own setup state. Signing in
+as another account must not reveal or overwrite someone else's draft profile.
+
+## State coverage by story
+
+<div className="dm-table-scroll" role="region" aria-label="E02 state coverage by story table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 760, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E02 state coverage by story</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '15%', textAlign: 'left' }}>Story</th>
+        <th scope="col" style={{ width: '23%', textAlign: 'left' }}>State</th>
+        <th scope="col" style={{ width: '62%', textAlign: 'left' }}>Review action and expected result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/15">#15 Invitation</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Signed out / valid</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Sign in from s26. Return to the invitation, accept it once and reach the mentor setup. Existing mentee/operator navigation remains where permitted.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#15</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Invalid / expired / used</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Select the corresponding invitation response in the mentor demo controls. The screen explains the result and offers the relevant sign-in or new-invitation guidance. No invalid response grants mentor access.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#15</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Acceptance fails</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Select a failed mentor request. Acceptance shows retry feedback; another valid attempt can succeed.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#15</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>First mentor visit</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Review an accepted account with no profile, prices or times. The checklist explains each next action and shows the publication deadline.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/16">#16 Profile</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Invalid fields</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Clear a required field, enter an incomplete work URL or remove all stack tags. Associated messages explain the correction.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#16</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Save fails / retry</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Select a failed request and save. Entries remain available. Retry, then reopen the editor to confirm the saved values.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#16</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Draft / published</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Save a valid draft and inspect the public state. Publish it, then inspect the public profile with the same identity, work link, description and technology labels.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#16</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Share succeeds / fails</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Copy the profile link from s27 and review the success status. With clipboard access denied in the review browser, copy again and check the error message and manual-copy recovery.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/17">#17 Availability</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Empty / new time</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Review a new mentor's empty list. Add a valid time in the named timezone and inspect it from public booking.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#17</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Invalid / past / duplicate</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Submit a missing or past time, then a duplicate start. The form or request feedback explains why it cannot be published.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#17</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Remove / booked refusal</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Remove a free time and confirm it disappears publicly. Try a booked time; keep the booking and show the cancellation guidance.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#17</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Request fails</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Trigger failure for adding or removing a time. Keep the existing availability until a valid retry succeeds.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/18">#18 Prices</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Missing / valid</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>An account without both prices cannot be booked. Set both lengths and verify the public profile and selection use those prices.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#18</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Lower / upper bounds</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Enter a value below and above each shown range. Field errors name the applicable bounds.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#18</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Save fails / existing booking</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>A failed save keeps entered values and prior public prices. After a successful change, new selections use the new prices; an already confirmed booking keeps its price.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="https://github.com/open-mercato/ai_techleaders_project/issues/19">#19 Connect</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Incomplete / start</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>From payout settings, begin onboarding. The labelled <a href="/prototypes/devmentor-journey/index.html#s29">Stripe response preview, s29</a> is a local review screen.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#19</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Pending / enabled / restricted</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Return each demo response to s28. Status text and next actions follow the returned state; restricted accounts can continue to review requirements.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#19</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Operator visibility</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Sign in as an operator and open <a href="/prototypes/devmentor-journey/index.html#s25">Users, s25</a>. The read-only Payout setup column shows Not set up, Under review, Enabled or Needs attention for mentor accounts; other accounts show Not a mentor. A mentor changes only their own setup on s28.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#19</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Cancel / failure / retry</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Cancel the response preview or select a failed request. Keep the last known payout state and offer another attempt.</td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>#15–19</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Wrong role / expired session</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Open mentor settings as a mentee or expire a mentor session. Private content is withheld. Sign-in and permitted-home actions allow recovery.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+Choose **Mentor scenarios** in the review toolbar to open **Mentor demo
+controls**. **Invitation link** selects Valid, Expired, Unknown or Already used;
+**Open invitation** opens s26. **Fail the next mentor request** selects a failure
+for one request. On s29, **Return status** selects the four Connect responses;
+**Return to DevMentor** applies the result and opens payout settings.
+**Refresh payout status** retries a status request on s28.
+
+Clipboard failure uses the browser's denied or unavailable clipboard response;
+it has no separate demo selector. In an isolated browser check, deny clipboard
+write access or have `navigator.clipboard.writeText` reject, then choose
+**Copy profile link**. The link stays selectable for manual copying. Restore the
+browser fixture after that check.
+
+Scenario controls are review tools, separate from the product navigation.
+Failure selection affects a local request; it does not imitate a running server,
+real cooldown or provider callback. Every protected direct link still uses the
+current demo account.
+
+## Components and source
+
+<div className="dm-table-scroll" role="region" aria-label="E02 components and source table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 760, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E02 components and source</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '20%', textAlign: 'left' }}>Composition</th>
+        <th scope="col" style={{ width: '40%', textAlign: 'left' }}>Shared UI</th>
+        <th scope="col" style={{ width: '40%', textAlign: 'left' }}>Source under <code>prototypes/devmentor-journey/</code></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Invitation and setup</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Card, Button, <a href="?path=/docs/product-mentor-onboarding--docs">MentorOnboarding</a>, AccountForm, AppShell</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>MentorScreens.tsx</code>, <code>AuthScreens.tsx</code>, <code>auth-context.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Profile editing and publication</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/docs/product-mentor-profile-editor--docs">MentorProfileEditor</a>, <a href="?path=/docs/product-mentors--docs">MentorRatingSummary and MentorReviews</a>, <a href="?path=/story/product-mentors--technology-icons">TechnologyChips</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>MentorScreens.tsx</code>, <code>MentorProfileScreen.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Prices and availability</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/docs/backend-forms-crudform--docs">CrudForm</a>, DataTable, <a href="?path=/docs/product-availability--docs">AvailabilityPicker</a></td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>MentorScreens.tsx</code>, <code>BookingScreens.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Payout settings and operator status</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-payments--connect-states">ConnectStatus states</a>, DataTable, ErrorMessage, Button</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>MentorScreens.tsx</code>, <code>AuthScreens.tsx</code></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Account-owned demo data and transitions</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Shared component props; prototype model and schemas</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><code>mentor-model.ts</code>, <code>mentor-runtime.ts</code>, <code>main.tsx</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+The production host supplies persistence, permissions and asynchronous state to
+these presentational components. Form save and public-profile publication are
+separate actions. Payout status is supplied by the provider integration; a
+button click or a return URL cannot establish it.
+
+## Component states to inspect
+
+<div className="dm-table-scroll" role="region" aria-label="E02 component states table" tabIndex={0} style={{ margin: '24px 0 32px' }}>
+  <table className="dm-table" style={{ minWidth: 600, tableLayout: 'fixed' }}>
+    <caption className="sr-only">E02 component states</caption>
+    <thead>
+      <tr>
+        <th scope="col" style={{ width: '22%', textAlign: 'left' }}>Component</th>
+        <th scope="col" style={{ width: '78%', textAlign: 'left' }}>Direct examples</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>MentorProfileEditor</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-mentor-profile-editor--filled">Filled</a>, <a href="?path=/story/product-mentor-profile-editor--empty">empty</a>, <a href="?path=/story/product-mentor-profile-editor--pending">pending</a>, <a href="?path=/story/product-mentor-profile-editor--required-fields">required fields</a>, <a href="?path=/story/product-mentor-profile-editor--technology-required">required technology</a>, <a href="?path=/story/product-mentor-profile-editor--invalid-work-link">invalid work URL</a>, <a href="?path=/story/product-mentor-profile-editor--save-failure">save failure</a>, <a href="?path=/story/product-mentor-profile-editor--server-technology-error">server field error</a>, <a href="?path=/story/product-mentor-profile-editor--saved">saved</a>, <a href="?path=/story/product-mentor-profile-editor--mobile">mobile</a></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>MentorOnboarding</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-mentor-onboarding--first-visit">First visit</a>, <a href="?path=/story/product-mentor-onboarding--profile-published">profile published</a>, <a href="?path=/story/product-mentor-onboarding--ready-for-bookings">ready for bookings</a>, <a href="?path=/story/product-mentor-onboarding--empty">no setup tasks</a>, <a href="?path=/story/product-mentor-onboarding--mobile">mobile</a></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Mentor workspace</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-mentor-workspace--edit-profile">Profile</a>, <a href="?path=/story/product-mentor-workspace--set-session-prices">price form</a>, <a href="?path=/story/product-mentor-workspace--price-bounds-error">price validation</a>, <a href="?path=/story/product-mentor-workspace--missing-prices">missing prices</a>, <a href="?path=/story/product-mentor-workspace--publish-availability">publish availability</a>, <a href="?path=/story/product-mentor-workspace--manage-availability">manage availability</a>, <a href="?path=/story/product-mentor-workspace--remove-available-time">remove a free time</a>, <a href="?path=/story/product-mentor-workspace--booked-time-cannot-be-removed">booked time cannot be removed</a></td>
+      </tr>
+      <tr>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}>Public selection and payout status</td>
+        <td style={{ verticalAlign: 'top', lineHeight: '24px', overflowWrap: 'anywhere' }}><a href="?path=/story/product-availability--missing-price">Missing price</a>, <a href="?path=/story/product-availability--empty">no times</a>, <a href="?path=/story/product-availability--all-times-taken">all times taken</a>, <a href="?path=/story/product-payments--connect-states">four Connect states</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+The [AccessStatus invitation examples](?path=/docs/product-account-access--docs)
+provide separate compact state compositions. The invitation screen uses the same
+Card, Button and feedback primitives in its full page layout.
+
+Component stories demonstrate the component's callback and feedback contract.
+Use the connected screen flow to review actions across pages and account state.
+
+## Product decisions retained in the handoff
+
+Reviews, ratings and search remain in the design as requested. Older references
+in #16 and #20 still say no ratings or search; the accepted production
+specification must record that change. The examples use fictional reviews and
+local catalogue data. No review eligibility, moderation or search backend is
+implemented here.
+
+Invitation creation and sending belong to E05. E02 starts from a received link.
+Production work includes token expiry and single use, verified-account binding,
+role/session updates, mentor ownership, public-profile queries, URL validation,
+timezone conversion, conflict/booking locks, authoritative price rules, payment
+effects and Connect webhooks. The UI prototype illustrates the results and
+recovery paths; it does not provide those services.

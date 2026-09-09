@@ -65,12 +65,15 @@ export function createAuthDemo() {
   }
   reset();
 
-  function getSession(): DemoUser | null {
-    const record = records.find(({ user }) => user.id === sessionId);
-    if (!record) return null;
-    const user = cloneUser(record.user);
+  function visibleUser(source: DemoUser): DemoUser {
+    const user = cloneUser(source);
     if (user.id === 'sam') user.roles = operatorEligible ? ['mentor', 'operator'] : ['mentor'];
     return user;
+  }
+
+  function getSession(): DemoUser | null {
+    const record = records.find(({ user }) => user.id === sessionId);
+    return record ? visibleUser(record.user) : null;
   }
 
   function startSession(record: AccountRecord): AuthDemoResult {
@@ -156,9 +159,16 @@ export function createAuthDemo() {
       return startSession(record);
     },
 
+    grantMentor(): AuthDemoResult {
+      const record = records.find(({ user }) => user.id === sessionId);
+      if (!record) return { ok: false, error: { code: 'unauthorized', message: 'Sign in to accept your invitation.' } };
+      if (!record.user.roles.includes('mentor')) record.user.roles.push('mentor');
+      return { ok: true, data: { user: getSession() } };
+    },
     logout() { sessionId = null; },
     expire() { sessionId = null; },
     getSession,
+    getUsers(): DemoUser[] { return records.map(record => visibleUser(record.user)); },
     getPendingEmail() { return records.find(({ user }) => user.id === pendingId)?.user.email ?? null; },
     setOperatorEligible(eligible: boolean) { operatorEligible = eligible; },
     setFailure(value: AuthDemoFailure) { injectedFailure = value; },
@@ -174,9 +184,9 @@ const screenRoles: Record<string, readonly DemoRole[]> = {
   s4: ['mentee'], s5: ['mentee'], s13: ['mentee'], s14: ['mentee'], s18: ['mentee'],
   s6: ['mentee', 'mentor'], s7: ['mentee', 'mentor'], s8: ['mentee', 'mentor'],
   s9: ['mentee', 'mentor'], s10: ['mentee', 'mentor'], s15: ['mentee', 'mentor'],
-  s11: ['mentor'], s24: ['operator'], s25: ['operator'],
+  s11: ['mentor'], s24: ['operator'], s25: ['operator'], s27: ['mentor'], s28: ['mentor'], s29: ['mentor'],
 };
-const isKnownScreen = (screenId: string) => /^s([1-9]|1\d|2[0-5])$/.test(screenId);
+const isKnownScreen = (screenId: string) => /^s([1-9]|1\d|2\d)$/.test(screenId);
 
 export function allowedScreen(user: DemoUser | null, screenId: string): boolean {
   if (!isKnownScreen(screenId)) return false;
