@@ -35,6 +35,8 @@ export default defineConfig({
         'packages/core/src/http/return-to.ts',
         'packages/core/src/time/clock.ts',
         'packages/db/src/config.ts',
+        'packages/db/src/entities/auth/roles.ts',
+        'packages/db/src/entities/auth/user.entity.ts',
         'packages/db/src/seeders/database.seeder.ts',
         'packages/ui/src/backend/feedback/EmptyState.tsx',
         'packages/ui/src/backend/feedback/ErrorMessage.tsx',
