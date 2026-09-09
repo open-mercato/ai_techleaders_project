@@ -82,9 +82,10 @@ describe('getContainer', () => {
     expect(container.cradle.orm).toBe(fakeOrm);
     expect(container.cradle.clock.now()).toBeInstanceOf(Date);
     expect(container.cradle.eventBus).toBe(container.cradle.eventBus);
-    // `tokenService` is a SINGLETON: stateless, and both of its dependencies are
-    // process singletons. Resolving it from two different scopes must give one object.
+    // `tokenService` and `sessionService` are SINGLETONs: stateless, and both of their
+    // dependencies are process singletons. Resolving one twice must give one object.
     expect(container.cradle.tokenService).toBe(container.cradle.tokenService);
+    expect(container.cradle.sessionService).toBe(container.cradle.sessionService);
   });
 
   it('shares one tokenService across request scopes', async () => {
@@ -92,6 +93,28 @@ describe('getContainer', () => {
     const second = await withScope((cradle) => cradle.tokenService);
 
     expect(first).toBe(second);
+  });
+
+  it('shares one sessionService across request scopes', async () => {
+    const first = await withScope((cradle) => cradle.sessionService);
+    const second = await withScope((cradle) => cradle.sessionService);
+
+    expect(first).toBe(second);
+  });
+
+  it('injects the env and clock into sessionService, not a fresh copy of either', async () => {
+    // The lifetime is only safe because the service holds process-wide references. If a
+    // scope ever handed it something request-scoped, this cookie would still be issued
+    // from the singleton's captured `env`, so assert the wiring rather than assume it.
+    useEnv({ NODE_ENV: 'production', SESSION_SECRET: 'a'.repeat(32) });
+    const container = await getContainer();
+
+    const { cookie } = await container.cradle.sessionService.issue({
+      id: 'user-1',
+      sessionVersion: 0,
+    });
+
+    expect(cookie).toContain('Secure');
   });
 
   it('builds once and reuses the cached container', async () => {

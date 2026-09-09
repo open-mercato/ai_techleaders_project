@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { AppEnv } from '../../config/env';
 import type { Clock } from '../../time/clock';
-import { ServiceUnavailableError } from '../../http/errors';
+import { signingKey, verificationKeys } from './session-secret';
 
 /**
  * Purpose-bound, stateless tokens — platform primitives **B5**.
@@ -77,7 +77,13 @@ export interface PurposeTokenClaims {
 /** `HS256` and nothing else — see the note on the allowlist in `verifyPurposeToken`. */
 const ALGORITHM = 'HS256';
 
-const encoder = new TextEncoder();
+/**
+ * Said when the secret is missing. Deliberately says nothing about the value — only
+ * that it is unset — and names the capability that is down, because the same secret
+ * failing during sign-in produces a different sentence (see `session.service.ts`).
+ */
+const SECRET_UNAVAILABLE =
+  'Signed links are unavailable because SESSION_SECRET is not configured.';
 
 export class TokenService {
   private readonly env: AppEnv;
@@ -109,7 +115,7 @@ export class TokenService {
       .setAudience(purpose)
       .setIssuedAt(issuedAt)
       .setExpirationTime(expiresAt)
-      .sign(this.signingKey());
+      .sign(signingKey(this.env, SECRET_UNAVAILABLE));
   }
 
   /**
@@ -131,7 +137,7 @@ export class TokenService {
     token,
     purpose,
   }: VerifyPurposeTokenInput): Promise<PurposeTokenClaims | null> {
-    for (const key of this.verificationKeys()) {
+    for (const key of verificationKeys(this.env, SECRET_UNAVAILABLE)) {
       try {
         const { payload } = await jwtVerify(token, key, {
           // The allowlist is not a formality. Without it the token's own `alg` header
@@ -163,31 +169,5 @@ export class TokenService {
     }
 
     return null;
-  }
-
-  /** The one key we ever sign with. Never the previous secret. */
-  private signingKey(): Uint8Array {
-    const secret = this.env.SESSION_SECRET;
-    if (!secret) {
-      // Deliberately says nothing about the value — only that it is unset.
-      throw new ServiceUnavailableError(
-        'Signed links are unavailable because SESSION_SECRET is not configured.',
-      );
-    }
-    return encoder.encode(secret);
-  }
-
-  /**
-   * Keys accepted on verify, current first: a rotation that is only half deployed must
-   * not invalidate the tokens already in flight. Order matters only for cost — a
-   * current-secret token never pays for a second verification attempt.
-   */
-  private verificationKeys(): Uint8Array[] {
-    const keys = [this.signingKey()];
-    const previous = this.env.SESSION_SECRET_PREVIOUS;
-    if (previous) {
-      keys.push(encoder.encode(previous));
-    }
-    return keys;
   }
 }

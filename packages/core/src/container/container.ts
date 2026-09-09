@@ -11,6 +11,7 @@ import { getEnv, type AppEnv } from '../config/env';
 import { createLogger } from '../logger';
 import { EventBus } from '../events/event-bus';
 import { systemClock } from '../time/clock';
+import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
 import type { Cradle } from './cradle';
@@ -74,11 +75,14 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     orm: asValue(orm),
     eventBus: asClass(EventBus).singleton(),
     clock: asValue(systemClock),
-    // SINGLETON: stateless, and both of its dependencies (`env`, `clock`) are process
-    // singletons, so a per-request instance would be a fresh object holding identical
-    // references. Nothing request-scoped may ever be added to it — a token service that
-    // closed over one request's `em` or session would be a bug that only showed up
-    // under concurrency.
+    // SINGLETON, both of them: stateless, and both of their dependencies (`env`,
+    // `clock`) are process singletons, so a per-request instance would be a fresh
+    // object holding identical references. Nothing request-scoped may ever be added to
+    // either — a session service that closed over one request's `em` or session would
+    // be a bug that only showed up under concurrency. `SessionService` in particular
+    // stays DB-free by design: the `session_version` lookup belongs to `requireSession`,
+    // which has a scoped `em`.
+    sessionService: asClass(SessionService).singleton(),
     tokenService: asClass(TokenService).singleton(),
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
