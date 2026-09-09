@@ -27,6 +27,7 @@ export default defineConfig({
       provider: 'v8',
       include: [
         'packages/core/src/http/makeCrudRoute.ts',
+        'packages/core/src/time/clock.ts',
         'packages/db/src/config.ts',
         'packages/db/src/seeders/database.seeder.ts',
         'packages/ui/src/backend/feedback/EmptyState.tsx',
