@@ -26,5 +26,8 @@
 - Covered Steps 1.1..1.3 (`cb62fc4..d6c9c32`): persistence, migration, service policy and routes passed typecheck, lint and 32 focused tests.
 - UI verification was skipped because this checkpoint changed no UI surface.
 
+## 2026-09-10T17:24:00Z — subagent delegation
+- Dispatched Step 2.1 to a standard-tier executor: `CrudForm` datetime input and local-to-UTC conversion.
+
 ## 2026-09-10T17:31:00Z — subagent delegation
 - Dispatched Step 1.2 to a capable-tier executor: slot validation, service behavior and container wiring.

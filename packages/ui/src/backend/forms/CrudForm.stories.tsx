@@ -35,7 +35,7 @@ function formArgs(prefix: string): CrudFormProps<Record<string, unknown>> {
       { name: `${prefix}Email`, label: 'Email address', type: 'email', placeholder: 'alex@example.com' },
       { name: `${prefix}Password`, label: 'Password', type: 'password' },
       { name: `${prefix}Day`, label: 'Availability day', type: 'date' },
-      { name: `${prefix}StartsAt`, label: 'Availability starts at', type: 'datetime-local' },
+      { name: `${prefix}StartsAt`, label: 'Availability starts at', type: 'datetime' },
       { name: `${prefix}Price`, label: 'Example price', type: 'number' },
       { name: `${prefix}Bio`, label: 'Introduction', type: 'textarea' },
       { name: `${prefix}Updates`, label: 'Send session updates', type: 'checkbox' },
@@ -59,7 +59,7 @@ const meta = {
   parameters: {
     msw: { handlers },
     controls: { exclude: ['schema', 'fields', 'initialValues', 'endpoint', 'method'] },
-    docs: { description: { component: 'Schema-driven create and edit forms with text, email, password, number, date, local date-time, textarea, checkbox and select fields. Field and form errors are announced to assistive technology. Cmd/Ctrl+Enter saves; Escape cancels when no request is pending. Each instance has independent label and error IDs. Stories use local mock responses.' } },
+    docs: { description: { component: 'Schema-driven create and edit forms with text, email, password, number, date, datetime, local date-time, textarea, checkbox and select fields. Datetime fields state the browser timezone and submit a UTC instant; datetime-local fields preserve their wall-clock value. Field and form errors are announced to assistive technology. Cmd/Ctrl+Enter saves; Escape cancels when no request is pending. Each instance has independent label and error IDs. Stories use local mock responses.' } },
   },
 } satisfies Meta<CrudFormProps<Record<string, unknown>>>;
 export default meta;
@@ -68,7 +68,7 @@ type Story = StoryObj<typeof meta>;
 export const AllFieldTypes: Story = {};
 export const Dates: Story = { args: {
   schema: z.object({ day: z.string().min(1, 'Choose a day.'), startsAt: z.string().min(1, 'Choose a start time.') }),
-  fields: [{ name: 'day', label: 'Day', type: 'date', required: true }, { name: 'startsAt', label: 'Starts at', type: 'datetime-local', required: true }],
+  fields: [{ name: 'day', label: 'Day', type: 'date', required: true }, { name: 'startsAt', label: 'Starts at', type: 'datetime', required: true }],
   initialValues: { day: '2026-09-08', startsAt: '2026-09-08T14:30' }, endpoint: endpoint('dates'), submitLabel: 'Save availability',
 } };
 export const Edit: Story = { args: { ...formArgs('edit'), method: 'PUT' } };
