@@ -12,6 +12,7 @@
 #   2026-09-10 repair: wait past launchd xpcproxy handoff before recording the app pid
 #   2026-09-10 repair: exclude generated build output from the source-freshness reuse check
 #   2026-09-10 repair: parse descriptor timestamps as UTC rather than the local timezone
+#   2026-09-10 repair: stop recorded and stale same-worktree launchd process groups before starting Next
 set -eu
 
 QA_DIR=.ai/qa
@@ -59,32 +60,47 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-if [ "$FORCE" -ne 1 ] && [ -f "$DESCRIPTOR" ]; then
-  status=$(jq -r '.status // ""' "$DESCRIPTOR")
-  old_pid=$(jq -r '.app.pid // 0' "$DESCRIPTOR")
-  base_url=$(jq -r '.baseUrl // ""' "$DESCRIPTOR")
-  started_at=$(jq -r '.startedAt // ""' "$DESCRIPTOR")
-  started_epoch=$(TZ=UTC date -j -f '%Y-%m-%dT%H:%M:%SZ' "$started_at" +%s 2>/dev/null || echo 0)
-  now_epoch=$(date +%s)
-  fresh=0
-  [ $((now_epoch - started_epoch)) -le "$CACHE_TTL" ] && fresh=1
-  changed=$(find packages scripts package.json package-lock.json tsconfig.json tsconfig.base.json -type f \
-    ! -path '*/node_modules/*' ! -path '*/.next/*' ! -path '*/coverage/*' ! -path '*/storybook-static/*' \
-    -newer "$DESCRIPTOR" 2>/dev/null | head -n 1 || true)
-  if [ "$status" = running ] && [ "$fresh" -eq 1 ] && [ -z "$changed" ] \
-    && kill -0 "$old_pid" 2>/dev/null \
-    && curl -fsS --max-time 5 "$base_url/api/health" | jq -e '.status == "ok" and .database == "up"' >/dev/null; then
-    success=1
-    echo "TEST_ENV_STATUS=running"
-    echo "TEST_ENV_BASE_URL=$base_url"
-    echo "TEST_ENV_DESCRIPTOR=$DESCRIPTOR"
-    echo "TEST_ENV_REUSED=1"
-    echo "BROWSER_PROVIDER=agent-browser"
-    echo "BROWSER_INSTALLED=1"
-    exit 0
+if [ -f "$DESCRIPTOR" ]; then
+  if [ "$FORCE" -ne 1 ]; then
+    status=$(jq -r '.status // ""' "$DESCRIPTOR")
+    old_pid=$(jq -r '.app.pid // 0' "$DESCRIPTOR")
+    base_url=$(jq -r '.baseUrl // ""' "$DESCRIPTOR")
+    started_at=$(jq -r '.startedAt // ""' "$DESCRIPTOR")
+    started_epoch=$(TZ=UTC date -j -f '%Y-%m-%dT%H:%M:%SZ' "$started_at" +%s 2>/dev/null || echo 0)
+    now_epoch=$(date +%s)
+    fresh=0
+    [ $((now_epoch - started_epoch)) -le "$CACHE_TTL" ] && fresh=1
+    changed=$(find packages scripts package.json package-lock.json tsconfig.json tsconfig.base.json -type f \
+      ! -path '*/node_modules/*' ! -path '*/.next/*' ! -path '*/coverage/*' ! -path '*/storybook-static/*' \
+      -newer "$DESCRIPTOR" 2>/dev/null | head -n 1 || true)
+    if [ "$status" = running ] && [ "$fresh" -eq 1 ] && [ -z "$changed" ] \
+      && kill -0 "$old_pid" 2>/dev/null \
+      && curl -fsS --max-time 5 "$base_url/api/health" | jq -e '.status == "ok" and .database == "up"' >/dev/null; then
+      success=1
+      echo "TEST_ENV_STATUS=running"
+      echo "TEST_ENV_BASE_URL=$base_url"
+      echo "TEST_ENV_DESCRIPTOR=$DESCRIPTOR"
+      echo "TEST_ENV_REUSED=1"
+      echo "BROWSER_PROVIDER=agent-browser"
+      echo "BROWSER_INSTALLED=1"
+      exit 0
+    fi
   fi
   sh .ai/scripts/test-env-down.sh >/dev/null 2>&1 || true
 fi
+
+project_root=$(pwd)
+for stale_label in $(launchctl list | awk '$3 ~ /^devmentor-qa-/ { print $3 }'); do
+  stale_job=$(launchctl print "gui/$(id -u)/$stale_label" 2>/dev/null || true)
+  printf '%s' "$stale_job" | grep -Fq -- "$project_root" || continue
+  stale_pid=$(printf '%s\n' "$stale_job" | sed -n 's/^[[:space:]]*pid = \([0-9][0-9]*\)$/\1/p' | head -n 1)
+  stale_pgid=$([ -z "$stale_pid" ] || ps -o pgid= -p "$stale_pid" 2>/dev/null | tr -d ' ' || true)
+  launchctl remove "$stale_label" >/dev/null 2>&1 || true
+  case "$stale_pgid" in
+    ''|*[!0-9]*|0|1) ;;
+    *) kill -TERM -"$stale_pgid" >/dev/null 2>&1 || true ;;
+  esac
+done
 
 free_port() {
   node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
@@ -160,7 +176,6 @@ fi
 npm run db:migrate
 npm run db:seed
 
-project_root=$(pwd)
 tool_path=$PATH
 npm_command=$(command -v npm)
 : > "$APP_LOG"

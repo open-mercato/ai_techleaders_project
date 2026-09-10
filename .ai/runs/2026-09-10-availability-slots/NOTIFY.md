@@ -43,6 +43,10 @@
 - The full coverage run exposed a timing-sensitive existing `CrudForm` focus assertion: it awaited the rendered server error but not the subsequent focus effect.
 - Appended Step 3.3-gate-fix to await the observable focus outcome, matching the same test's existing general-error assertion.
 
+## 2026-09-10T18:00:00Z — final-gate blocker
+- Browser attachment reached `ERR_CONNECTION_REFUSED`: the QA launcher had published a new URL even though a stale same-worktree Next server retained `.next/dev/lock` after its launchd parent was removed.
+- Appended Step 3.4-gate-fix to stop recorded and stale same-worktree launchd process groups, then prove cold and warm launcher runs.
+
 ## 2026-09-10T18:02:00Z — subagent delegation
 - Dispatched Step 3.1 to a capable-tier executor: owned availability integration fixture and scenario; live browser evidence remains the main session's final-gate responsibility.
 
