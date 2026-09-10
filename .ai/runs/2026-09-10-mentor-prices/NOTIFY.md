@@ -62,3 +62,19 @@
   without booking or checkout actions; priced pages and owner previews show both exact prices.
 - Full unit coverage passes 1,742 tests at 100% statements, branches, functions and lines. Typecheck,
   lint, production build, Storybook typecheck/build and 209 prototype checks pass.
+
+## 2026-09-10T19:29:39Z — subagent delegation
+- Step 3.1 automated proof is complete: owned fixtures, exact price/bound/atomicity API coverage,
+  audience projections and signed-out offer-ready/unpriced browser paths pass in the full 60-test suite.
+- `mentor-offer-ready-public-desktop.png` and `mentor-unpriced-with-slot-public.png` were captured in
+  ignored integration results. The Step remains open for the main agent's live mobile, dark-theme,
+  keyboard and accessibility walkthrough and durable final-gate evidence.
+
+## 2026-09-10T19:38:00Z — step completed
+- A fresh disposable PostgreSQL/app environment served the final walkthrough. The mentor price form
+  passed 1440px light and 320px dark presentation, no-overflow, exact reload persistence, rejected-value
+  preservation, invalid-field focus recovery and keyboard submission checks.
+- Axe reported zero WCAG A/AA violations on the price form and signed-out offer-ready page after the
+  intentional 120 ms theme transition settled; browser page errors were empty.
+- The signed-out public page showed PLN 90.00, PLN 180.00 and one future available slot while exposing
+  no booking or checkout action. Redacted evidence is preserved in `final-gate-artifacts/`.

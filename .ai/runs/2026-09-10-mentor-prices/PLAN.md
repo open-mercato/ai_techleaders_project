@@ -1,7 +1,7 @@
 # Epic E02 Slice 4 — Mentor prices and offer readiness
 
 Date: 2026-09-10
-Status: in-progress
+Status: complete
 Issue: #18
 Epic: #8
 Source spec: .ai/specs/2026-09-08-mentor-prices.md
@@ -20,7 +20,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 1 | 1.4 | Add the owner-scoped mentor-prices route | dispatch:standard | done | e3c396f |
 | 2 | 2.1 | Add the CrudForm money field | dispatch:standard | done | bc10b5b |
 | 2 | 2.2 | Add mentor price management and public price presentation | dispatch:capable | done | bdaa9bb |
-| 3 | 3.1 | Add offer-ready fixtures, integration coverage and browser proof | dispatch:capable | todo | — |
+| 3 | 3.1 | Add offer-ready fixtures, integration coverage and browser proof | dispatch:capable | done | a89c593 |
 
 ## Goal
 
