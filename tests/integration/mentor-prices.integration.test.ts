@@ -66,16 +66,17 @@ describe('TC-MENTOR-PRICES-001 exact owner price policy', () => {
   it('stores inclusive bounds exactly, rejects all four breaches atomically and projects by audience', async () => {
     const baseUrl = inject('integrationBaseUrl');
     const databaseUrl = inject('integrationDatabaseUrl');
-    const mentor = await seedPublishedMentorProfile(databaseUrl);
-    const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
-    await orm.connect();
-
-    async function storedPrices() {
-      const profile = await orm.em.fork().findOneOrFail(MentorProfile, { id: mentor.profileId });
-      return [profile.price25Cents, profile.price50Cents];
-    }
+    let orm: MikroORM | undefined;
 
     try {
+      const mentor = await seedPublishedMentorProfile(databaseUrl);
+      orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+      await orm.connect();
+      const connectedOrm = orm;
+      const storedPrices = async () => {
+        const profile = await connectedOrm.em.fork().findOneOrFail(MentorProfile, { id: mentor.profileId });
+        return [profile.price25Cents, profile.price50Cents];
+      };
       const cookie = await signInCookieHeader(baseUrl, 'mock-mentor');
 
       const lower = await responseData<OwnerPayload>(
@@ -158,7 +159,7 @@ describe('TC-MENTOR-PRICES-001 exact owner price policy', () => {
       }
     } finally {
       try {
-        await orm.close(true);
+        await orm?.close(true);
       } finally {
         await resetPublishedMentorProfile(databaseUrl);
       }
@@ -171,9 +172,9 @@ describe('TC-MENTOR-PRICES-002 signed-out offer-ready page', () => {
     const baseUrl = inject('integrationBaseUrl');
     const databaseUrl = inject('integrationDatabaseUrl');
     const session = `devmentor-offer-ready-${process.pid}`;
-    const mentor = await seedOfferReadyMentor(databaseUrl);
 
     try {
+      const mentor = await seedOfferReadyMentor(databaseUrl);
       const publicProfile = await responseData<PublicPayload>(
         await fetch(`${baseUrl}/api/mentors/${mentor.slug}`),
       );
@@ -233,10 +234,10 @@ describe('TC-MENTOR-PRICES-003 unpriced availability', () => {
     const baseUrl = inject('integrationBaseUrl');
     const databaseUrl = inject('integrationDatabaseUrl');
     const session = `devmentor-unpriced-slot-${process.pid}`;
-    const mentor = await seedPublishedMentorProfile(databaseUrl);
-    const slot = await seedFutureMentorSlot(databaseUrl, mentor.profileId);
 
     try {
+      const mentor = await seedPublishedMentorProfile(databaseUrl);
+      const slot = await seedFutureMentorSlot(databaseUrl, mentor.profileId);
       const publicProfile = await responseData<PublicPayload>(
         await fetch(`${baseUrl}/api/mentors/${mentor.slug}`),
       );

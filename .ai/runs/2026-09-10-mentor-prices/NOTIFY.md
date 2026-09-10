@@ -78,3 +78,9 @@
   intentional 120 ms theme transition settled; browser page errors were empty.
 - The signed-out public page showed PLN 90.00, PLN 180.00 and one future available slot while exposing
   no booking or checkout action. Redacted evidence is preserved in `final-gate-artifacts/`.
+
+## 2026-09-10T19:50:00Z — review fixes
+- Independent risk-high review reproduced a timing-sensitive focus assertion and found that integration
+  setup lived outside cleanup scopes. No production contract defect was found.
+- Step 3.2 waits for the asynchronous React focus effect. Step 3.3 makes every setup path cleanup-safe,
+  conditionally closes a partially acquired ORM and compensates a failed composed offer-ready fixture.

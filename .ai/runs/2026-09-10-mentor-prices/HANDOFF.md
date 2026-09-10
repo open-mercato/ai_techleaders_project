@@ -61,10 +61,14 @@
   zero horizontal overflow, empty browser error logs and zero axe WCAG A/AA violations after theme
   transitions settle. A signed-out offer-ready page showed both exact PLN prices and its future slot
   with no booking action. Durable screenshots and the redacted checklist are in `final-gate-artifacts/`.
+- Independent review found a timing-sensitive focus assertion and cleanup gaps if integration setup
+  failed between durable fixture operations. Review-fix Steps 3.2 and 3.3 now wait for the React focus
+  effect, place all setup inside cleanup scopes, conditionally close partially opened ORM handles and
+  compensate `seedOfferReadyMentor` when composition fails.
 
 ## Next concrete action
-- Run the repository-wide final gate, publish the PR evidence, and route the risk-high stacked PR to
-  an independent reviewer and separate manual QA.
+- Re-run the repository-wide gate and request independent re-review of Steps 3.2 and 3.3, then publish
+  the PR evidence and route the risk-high stacked PR to separate manual QA.
 
 ## Blockers / open questions
 - none
