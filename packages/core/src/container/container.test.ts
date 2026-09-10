@@ -274,6 +274,23 @@ describe('getContainer', () => {
       'mentors.profile.published',
     );
   });
+
+  it('logs the default availability.slot.published subscriber', async () => {
+    const container = await getContainer();
+    await container.cradle.eventBus.emit('availability.slot.published', {
+      mentorProfileId: 'profile-1',
+      slotId: 'slot-1',
+      startsAt: '2026-09-10T14:00:00.000Z',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        mentorProfileId: 'profile-1',
+        slotId: 'slot-1',
+        startsAt: '2026-09-10T14:00:00.000Z',
+      },
+      'availability.slot.published',
+    );
+  });
 });
 
 describe('withScope', () => {
@@ -290,9 +307,10 @@ describe('withScope', () => {
       cradle.userService,
       cradle.invitationService,
       cradle.mentorProfileService,
+      cradle.slotService,
     ]);
 
-    expect(services).toHaveLength(3);
+    expect(services).toHaveLength(4);
     expect(services.every(Boolean)).toBe(true);
   });
 

@@ -35,6 +35,11 @@ export interface EventMap {
     mentorProfileId: string;
     slug: string;
   };
+  'availability.slot.published': {
+    mentorProfileId: string;
+    slotId: string;
+    startsAt: string;
+  };
 }
 
 export type EventId = keyof EventMap;
