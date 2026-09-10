@@ -20,6 +20,7 @@ const BASE_MIGRATION = 'Migration20260901142829';
 const AUTH_IDENTITY_MIGRATION = 'Migration20260909222320_auth_identity';
 const AUTH_PASSWORD_MIGRATION = 'Migration20260910092433_auth_password';
 const AUTH_RATE_LIMITS_MIGRATION = 'Migration20260910095701_auth_rate_limits';
+const INVITATIONS_MIGRATION = 'Migration20260910130526_invitations';
 
 /** A row created before `auth-identity` — the population the backfill exists for. */
 const LEGACY_EMAIL = 'legacy@devmentor.test';
@@ -40,6 +41,28 @@ const PASSWORD_COLUMN = 'password_hash';
 
 /** The whole of `auth_rate_limits` — three columns, and deliberately no base columns. */
 const RATE_LIMIT_COLUMNS = ['count', 'key', 'window_start'];
+
+const INVITATION_COLUMNS = [
+  'accepted_at',
+  'accepted_by_id',
+  'batch',
+  'created_at',
+  'email',
+  'expires_at',
+  'id',
+  'publish_due_at',
+  'revoked_at',
+  'stack_tags',
+  'token_hash',
+  'updated_at',
+];
+
+const INVITATION_CONSTRAINTS = [
+  'invitations_acceptance_complete',
+  'invitations_accepted_by_id_foreign',
+  'invitations_stack_tags_check',
+  'invitations_token_hash_unique',
+];
 
 /**
  * `auth-identity` and `auth-password`, each up / down / up against a database of its own.
@@ -151,6 +174,56 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     return query(
       `select indexname, indexdef from pg_indexes where tablename = 'auth_rate_limits' order by indexname`,
     );
+  }
+
+  async function invitationColumns(): Promise<
+    { column_name: string; udt_name: string; is_nullable: string }[]
+  > {
+    return query(`
+      select column_name, udt_name, is_nullable
+      from information_schema.columns
+      where table_name = 'invitations'
+      order by column_name
+    `);
+  }
+
+  async function invitationConstraints(): Promise<{ conname: string; def: string }[]> {
+    return query(`
+      select con.conname, pg_get_constraintdef(con.oid) as def
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      where rel.relname = 'invitations'
+        and con.conname in (${INVITATION_CONSTRAINTS.map((c) => `'${c}'`).join(', ')})
+      order by con.conname
+    `);
+  }
+
+  async function invitationIndexes(): Promise<{ indexname: string; indexdef: string }[]> {
+    return query(`
+      select indexname, indexdef
+      from pg_indexes
+      where tablename = 'invitations'
+        and indexname = 'invitations_pending_email_unique'
+    `);
+  }
+
+  async function mentorDeadlineColumn(): Promise<
+    { column_name: string; udt_name: string; is_nullable: string }[]
+  > {
+    return query(`
+      select column_name, udt_name, is_nullable
+      from information_schema.columns
+      where table_name = 'mentor_profiles' and column_name = 'initial_publish_due_at'
+    `);
+  }
+
+  async function constraintFrom(operation: () => Promise<unknown>): Promise<string> {
+    try {
+      await operation();
+      return 'accepted';
+    } catch (error) {
+      return (error as { constraint?: string }).constraint ?? String(error);
+    }
   }
 
   async function appliedMigrations(): Promise<string[]> {
@@ -568,6 +641,173 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     ]);
   });
 
+  it('applies invitations with its exact columns, constraints, partial index and deadline', async () => {
+    await migrate();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+      AUTH_RATE_LIMITS_MIGRATION,
+      INVITATIONS_MIGRATION,
+    ]);
+    expect((await invitationColumns()).map((column) => column.column_name)).toEqual(
+      INVITATION_COLUMNS,
+    );
+    expect(await invitationColumns()).toEqual([
+      { column_name: 'accepted_at', udt_name: 'timestamptz', is_nullable: 'YES' },
+      { column_name: 'accepted_by_id', udt_name: 'uuid', is_nullable: 'YES' },
+      { column_name: 'batch', udt_name: 'varchar', is_nullable: 'YES' },
+      { column_name: 'created_at', udt_name: 'timestamptz', is_nullable: 'NO' },
+      { column_name: 'email', udt_name: 'varchar', is_nullable: 'NO' },
+      { column_name: 'expires_at', udt_name: 'timestamptz', is_nullable: 'NO' },
+      { column_name: 'id', udt_name: 'uuid', is_nullable: 'NO' },
+      { column_name: 'publish_due_at', udt_name: 'timestamptz', is_nullable: 'YES' },
+      { column_name: 'revoked_at', udt_name: 'timestamptz', is_nullable: 'YES' },
+      { column_name: 'stack_tags', udt_name: '_text', is_nullable: 'NO' },
+      { column_name: 'token_hash', udt_name: 'varchar', is_nullable: 'NO' },
+      { column_name: 'updated_at', udt_name: 'timestamptz', is_nullable: 'NO' },
+    ]);
+    expect((await invitationConstraints()).map(({ conname }) => conname)).toEqual(
+      INVITATION_CONSTRAINTS,
+    );
+    expect(await invitationConstraints()).toContainEqual({
+      conname: 'invitations_accepted_by_id_foreign',
+      def: 'FOREIGN KEY (accepted_by_id) REFERENCES users(id) ON DELETE RESTRICT',
+    });
+    expect(await invitationIndexes()).toEqual([
+      {
+        indexname: 'invitations_pending_email_unique',
+        indexdef:
+          'CREATE UNIQUE INDEX invitations_pending_email_unique ON public.invitations USING btree (email) WHERE ((accepted_at IS NULL) AND (revoked_at IS NULL))',
+      },
+    ]);
+    expect(await mentorDeadlineColumn()).toEqual([
+      {
+        column_name: 'initial_publish_due_at',
+        udt_name: 'timestamptz',
+        is_nullable: 'YES',
+      },
+    ]);
+  });
+
+  it('enforces the invitation vocabulary, complete acceptance and one pending email', async () => {
+    const insert = (values: string) =>
+      query(`
+        insert into invitations
+          (id, created_at, updated_at, email, token_hash, stack_tags, expires_at,
+           accepted_at, accepted_by_id, publish_due_at, revoked_at)
+        values (${values})
+      `);
+
+    await insert(
+      `gen_random_uuid(), now(), now(), 'invitee@devmentor.test', repeat('a', 64), ` +
+        `'{TypeScript,React}', now() + interval '14 days', null, null, null, null`,
+    );
+
+    expect(
+      await constraintFrom(() =>
+        insert(
+          `gen_random_uuid(), now(), now(), 'invitee@devmentor.test', repeat('b', 64), ` +
+            `'{Python}', now() + interval '14 days', null, null, null, null`,
+        ),
+      ),
+    ).toBe('invitations_pending_email_unique');
+
+    expect(
+      await constraintFrom(() =>
+        insert(
+          `gen_random_uuid(), now(), now(), 'another@devmentor.test', repeat('a', 64), ` +
+            `'{React}', now() + interval '14 days', null, null, null, null`,
+        ),
+      ),
+    ).toBe('invitations_token_hash_unique');
+
+    await query(`update invitations set revoked_at = now() where email = 'invitee@devmentor.test'`);
+    await expect(
+      insert(
+        `gen_random_uuid(), now(), now(), 'invitee@devmentor.test', repeat('b', 64), ` +
+          `'{AI agents}', now() + interval '14 days', null, null, null, null`,
+      ),
+    ).resolves.toBeDefined();
+
+    expect(
+      await constraintFrom(() =>
+        insert(
+          `gen_random_uuid(), now(), now(), 'bad-tag@devmentor.test', repeat('c', 64), ` +
+            `'{Rust}', now() + interval '14 days', null, null, null, null`,
+        ),
+      ),
+    ).toBe('invitations_stack_tags_check');
+
+    expect(
+      await constraintFrom(() =>
+        insert(
+          `gen_random_uuid(), now(), now(), 'half@devmentor.test', repeat('d', 64), ` +
+            `'{Python}', now() + interval '14 days', now(), null, now() + interval '14 days', null`,
+        ),
+      ),
+    ).toBe('invitations_acceptance_complete');
+  });
+
+  it('allows historical invitations for one user and preserves their attribution', async () => {
+    const { id: userId } = await queryOne<{ id: string }>(
+      `select id from users where email = '${LEGACY_EMAIL}'`,
+    );
+    for (const [email, tokenCharacter] of [
+      ['accepted-one@devmentor.test', 'e'],
+      ['accepted-two@devmentor.test', 'f'],
+    ]) {
+      await query(`
+        insert into invitations
+          (id, created_at, updated_at, email, token_hash, stack_tags, expires_at,
+           accepted_at, accepted_by_id, publish_due_at)
+        values
+          (gen_random_uuid(), now(), now(), '${email}', repeat('${tokenCharacter}', 64),
+           '{TypeScript}', now(), now(), '${userId}', now() + interval '14 days')
+      `);
+    }
+
+    const rows = await query<{ accepted_by_id: string }>(`
+      select accepted_by_id from invitations where accepted_by_id = '${userId}'
+    `);
+    expect(rows).toHaveLength(2);
+    expect(
+      await constraintFrom(() => query(`delete from users where id = '${userId}'`)),
+    ).toBe('invitations_accepted_by_id_foreign');
+  });
+
+  it('rolls back invitations without disturbing auth or existing profile columns', async () => {
+    await rollbackOne();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+      AUTH_RATE_LIMITS_MIGRATION,
+    ]);
+    expect(await invitationColumns()).toEqual([]);
+    expect(await mentorDeadlineColumn()).toEqual([]);
+    expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
+    const headline = await queryOne<{ column_name: string }>(`
+      select column_name from information_schema.columns
+      where table_name = 'mentor_profiles' and column_name = 'headline'
+    `);
+    expect(headline.column_name).toBe('headline');
+  });
+
+  it('re-applies invitations to the same schema', async () => {
+    await migrate();
+
+    expect((await invitationColumns()).map((column) => column.column_name)).toEqual(
+      INVITATION_COLUMNS,
+    );
+    expect((await invitationConstraints()).map(({ conname }) => conname)).toEqual(
+      INVITATION_CONSTRAINTS,
+    );
+    expect(await mentorDeadlineColumn()).toHaveLength(1);
+  });
+
   it('rolls back: removes exactly what it added and keeps the pre-existing rows', async () => {
     // `auth-rate-limits` and `auth-password` sit on top, so reaching `auth-identity`'s
     // `down` means reverting them first — the same order a real rollback of the slice
@@ -575,7 +815,10 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     await rollbackOne();
     await rollbackOne();
     await rollbackOne();
+    await rollbackOne();
 
+    expect(await invitationColumns()).toEqual([]);
+    expect(await mentorDeadlineColumn()).toEqual([]);
     expect(await rateLimitColumns()).toEqual([]);
 
     expect(await appliedMigrations()).toEqual([BASE_MIGRATION]);
@@ -603,6 +846,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       AUTH_IDENTITY_MIGRATION,
       AUTH_PASSWORD_MIGRATION,
       AUTH_RATE_LIMITS_MIGRATION,
+      INVITATIONS_MIGRATION,
     ]);
     expect((await passwordColumn()).map((column) => column.column_name)).toEqual([
       PASSWORD_COLUMN,
@@ -610,6 +854,10 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     expect((await rateLimitColumns()).map((column) => column.column_name)).toEqual(
       RATE_LIMIT_COLUMNS,
     );
+    expect((await invitationColumns()).map((column) => column.column_name)).toEqual(
+      INVITATION_COLUMNS,
+    );
+    expect(await mentorDeadlineColumn()).toHaveLength(1);
     expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
     expect((await newConstraints()).map((constraint) => constraint.conname)).toEqual(
       NEW_CONSTRAINTS,

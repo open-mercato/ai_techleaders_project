@@ -33,6 +33,8 @@ export function integrationChildEnvironment(
     DATABASE_URL: databaseUrl,
     DB_POOL_MIN: '0',
     DB_POOL_MAX: '5',
+    INVITATION_TTL_DAYS: '14',
+    MENTOR_PUBLISH_WINDOW_DAYS: '14',
     // A throwaway database must never author a repository file. `migration:up` rewrites
     // the migration snapshot from introspection whenever the migrated schema differs from
     // the committed one, so a local run of this suite could leave `migrations/devmentor.json`

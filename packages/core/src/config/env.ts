@@ -94,6 +94,12 @@ const appEnvSchema = z
     // allowed and means "never queue": fail as soon as the limit is reached.
     PASSWORD_HASH_WAIT_MS: z.coerce.number().int().nonnegative().default(2000),
 
+    // --- Mentor invitations ---
+    // Both windows are snapshotted onto the invitation when the corresponding
+    // transition happens. Changing a default affects future invitations only.
+    INVITATION_TTL_DAYS: z.coerce.number().int().positive().default(14),
+    MENTOR_PUBLISH_WINDOW_DAYS: z.coerce.number().int().positive().default(14),
+
     // --- Test-double selection (guarded by the superRefine below) ---
     AUTH_IDENTITY_ADAPTER: z.enum(['github', 'mock']).optional(),
     MAILER_ADAPTER: z.enum(['resend', 'log']).optional(),

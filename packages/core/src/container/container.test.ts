@@ -243,6 +243,25 @@ describe('getContainer', () => {
       'auth.user.roles_changed',
     );
   });
+
+  it('logs the default invitations.invitation.accepted subscriber without a token', async () => {
+    const container = await getContainer();
+
+    await container.cradle.eventBus.emit('invitations.invitation.accepted', {
+      invitationId: 'inv-1',
+      userId: 'user-1',
+      publishDueAt: '2026-09-24T12:00:00.000Z',
+    });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        invitationId: 'inv-1',
+        userId: 'user-1',
+        publishDueAt: '2026-09-24T12:00:00.000Z',
+      },
+      'invitations.invitation.accepted',
+    );
+  });
 });
 
 describe('withScope', () => {
@@ -255,9 +274,10 @@ describe('withScope', () => {
   });
 
   it('resolves scoped services against the scope', async () => {
-    const service = await withScope((cradle) => cradle.userService);
+    const services = await withScope((cradle) => [cradle.userService, cradle.invitationService]);
 
-    expect(service).toBeDefined();
+    expect(services).toHaveLength(2);
+    expect(services.every(Boolean)).toBe(true);
   });
 
   it('gives the rate limiter its own scope’s EntityManager, never a shared one', async () => {

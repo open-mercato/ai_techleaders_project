@@ -14,6 +14,7 @@
     "packages/app/next.config.ts",
     "packages/app/.next/types/**/*.ts",
     "tests/**/*.ts",
+    "scripts/**/*.ts",
     "vitest.config.mts",
     "vitest.integration.config.mts",
     "*.mjs"

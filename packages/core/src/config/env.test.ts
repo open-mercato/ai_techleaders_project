@@ -66,6 +66,8 @@ describe('getEnv', () => {
       TRUSTED_PROXY_HOPS: 0,
       PASSWORD_HASH_CONCURRENCY: 2,
       PASSWORD_HASH_WAIT_MS: 2000,
+      INVITATION_TTL_DAYS: 14,
+      MENTOR_PUBLISH_WINDOW_DAYS: 14,
       INTEGRATION_TEST_RUN: false,
     });
   });
@@ -152,6 +154,22 @@ describe('getEnv', () => {
     expect(env.TRUSTED_PROXY_HOPS).toBe(2);
 
     expect(await expectRejected({ TRUSTED_PROXY_HOPS: '-1' })).toContain('TRUSTED_PROXY_HOPS');
+  });
+
+  it('coerces positive invitation windows and rejects zero', async () => {
+    await expect(
+      parseEnv({ INVITATION_TTL_DAYS: '21', MENTOR_PUBLISH_WINDOW_DAYS: '10' }),
+    ).resolves.toMatchObject({
+      INVITATION_TTL_DAYS: 21,
+      MENTOR_PUBLISH_WINDOW_DAYS: 10,
+    });
+
+    expect(await expectRejected({ INVITATION_TTL_DAYS: '0' })).toContain(
+      'INVITATION_TTL_DAYS',
+    );
+    expect(await expectRejected({ MENTOR_PUBLISH_WINDOW_DAYS: '-1' })).toContain(
+      'MENTOR_PUBLISH_WINDOW_DAYS',
+    );
   });
 
   it('accepts an http or https APP_URL', async () => {
