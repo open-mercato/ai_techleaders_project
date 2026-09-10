@@ -41,3 +41,11 @@
 
 ## 2026-09-10T19:02:47Z — subagent delegation
 - Dispatched Step 1.4 to a standard-tier executor: owner-scoped mentor-prices route.
+
+## 2026-09-10T19:10:18Z — subagent delegation
+- Dispatched Step 2.1 to a standard-tier executor: source-compatible exact-decimal money fields in `CrudForm`.
+
+## 2026-09-10T19:10:18Z — step completed
+- Money values remain strings from initialization through client validation and API submission; the field uses a text input with decimal input mode and names its fixed currency visually and accessibly.
+- Existing `CrudField` stays an interface so additive money support does not break interface-extension consumers.
+- Focused interaction tests, typecheck, Storybook typecheck, lint and the 100% unit coverage gate pass.

@@ -10,7 +10,7 @@ import { Label } from '../../components/ui/label';
 import { apiCall } from '../api/apiCall';
 import type { FieldErrors } from '../api/types';
 
-export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime' | 'datetime-local' | 'textarea' | 'checkbox' | 'select' | 'multiselect';
+export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'money' | 'date' | 'datetime' | 'datetime-local' | 'textarea' | 'checkbox' | 'select' | 'multiselect';
 
 export interface CrudFieldRenderProps {
   inputProps: {
@@ -40,6 +40,8 @@ export interface CrudField {
   required?: boolean;
   /** Options for `select` and `multiselect` fields. */
   options?: { label: string; value: string }[];
+  /** Fixed currency shown by a `money` field; required by that field's usage contract. */
+  currency?: string;
   /** Custom controls reuse this form's values, validation, errors and submission.
    * Associate the visible label using labelId and make the invalid target focusable.
    */
@@ -190,7 +192,8 @@ export function CrudForm<T>({
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const initial: Record<string, unknown> = {};
     for (const field of fields) {
-      initial[field.name] = initialValues?.[field.name] ?? defaultValueFor(field);
+      const value = initialValues?.[field.name] ?? defaultValueFor(field);
+      initial[field.name] = field.type === 'money' ? String(value) : value;
     }
     return initial;
   });
@@ -304,7 +307,9 @@ export function CrudForm<T>({
         const descriptionId = `${id}-description`;
         const description = field.type === 'datetime'
           ? [field.description, `Times use ${timeZone ?? 'your current timezone'}.`].filter(Boolean).join(' ')
-          : field.description;
+          : field.type === 'money'
+            ? [field.description, `Currency: ${field.currency}.`].filter(Boolean).join(' ')
+            : field.description;
         const inputProps = {
           id,
           name: field.name,
@@ -386,6 +391,24 @@ export function CrudForm<T>({
                   </option>
                 ))}
               </select>
+            ) : field.type === 'money' ? (
+              <div className="relative">
+                <Input
+                  {...inputProps}
+                  type="text"
+                  inputMode="decimal"
+                  className="w-full pr-16"
+                  placeholder={field.placeholder}
+                  value={String(value)}
+                  onChange={(event) => setValue(field.name, event.target.value)}
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-medium text-muted-foreground"
+                >
+                  {field.currency}
+                </span>
+              </div>
             ) : (
               <Input
                 {...inputProps}
