@@ -8,9 +8,9 @@ PR: #46
 
 - `npm run typecheck` — passed.
 - `npm run lint` — passed with the pre-existing prototype `<img>` warning.
-- `APP_URL=http://localhost:3000 npm run test` — 142 files and 1,621 tests passed.
+- `npm run test` — 142 files and 1,630 tests passed with the caller's non-default `APP_URL` still present, proving the page-test isolation repair.
 - `npm run build` — passed; the availability API and page routes are present in the production build.
-- `APP_URL=http://localhost:3000 npm run test:unit:coverage` — 142 files and 1,621 tests passed with 100% statements, branches, functions and lines.
+- `npm run test:unit:coverage` — 142 files and 1,630 tests passed with 100% statements, branches, functions and lines (2,437 statements, 1,400 branches, 745 functions and 2,311 lines).
 - `npm run test:integration` — 10 files and 55 tests passed against owned ephemeral PostgreSQL and app processes.
 - `npm run typecheck:storybook` and `npm run build-storybook` — passed.
 - `npm run typecheck:prototype` and `npm run test:prototype` — passed; 12 navigation tests and 209 Vitest tests passed with 100% coverage.
@@ -22,6 +22,10 @@ The first complete integration run exposed that the shared complete-schema scena
 The first full coverage rerun exposed a timing-sensitive `CrudForm` focus assertion. Step 3.3 waits for the existing focus effect; its focused 40-test suite and the final complete coverage suite pass.
 
 The first browser attachment found a stale same-worktree Next process retaining `.next/dev/lock`. Step 3.4 makes the generated QA launcher and teardown remove only validated launchd jobs for this exact repository root. Cold start and warm reuse both passed before browser QA.
+
+The independent review found six actionable gaps. Steps 3.5–3.9 made configuration tests deterministic, preserved/documented source compatibility, removed module-identity database-error checks, refused DST gap/fold wall clocks, bounded active slot collections at 500, and strengthened CI browser proof. The post-fix configured gate, full coverage, integration suite, Storybook and prototype gates all pass.
+
+The first post-review integration run exposed a reversed browser CLI attribute argument order in the new assertion. It was corrected in the same unpushed Step 3.9 commit; the complete 55-test integration suite then passed.
 
 ## Browser and UX proof
 
