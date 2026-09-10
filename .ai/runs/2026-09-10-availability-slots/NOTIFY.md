@@ -58,3 +58,7 @@
 - Storybook build/typecheck and prototype typecheck/tests passed.
 - Real-browser QA published a future slot and verified the matching public-profile state on desktop and mobile; both screens reported zero WCAG A/AA violations.
 - The disposable browser session and QA environment were closed cleanly.
+
+## 2026-09-10T18:12:00Z — review fixes opened
+- The required independent review found six actionable areas: caller-environment leakage in one existing page test, exported compatibility documentation/bridges, cross-module database-error narrowing, DST gap/fold handling, unbounded slot reads/publication and a weak browser integration assertion.
+- Appended Steps 3.5–3.9; every finding will be fixed before re-review and a fresh final gate.
