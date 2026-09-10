@@ -25,7 +25,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 3 | 3.5-review-fix | Make mentor-profile page tests independent of the caller environment | inline | done | 39fdf99 |
 | 3 | 3.6-review-fix | Preserve and document exported compatibility while structurally mapping duplicate slots | inline | done | 0d12991 |
 | 3 | 3.7-review-fix | Reject nonexistent and ambiguous local wall-clock times | inline | done | 7dddbc8 |
-| 3 | 3.8-review-fix | Bound active slot publication and reads | inline | todo | — |
+| 3 | 3.8-review-fix | Bound active slot publication and reads | inline | done | 4d94a72 |
 | 3 | 3.9-review-fix | Make browser integration prove the published slot and capture evidence | inline | todo | — |
 
 ## Goal

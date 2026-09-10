@@ -10,7 +10,7 @@ import {
 } from '@devmentor/db';
 import type { Session } from '../../http/auth';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../../http/errors';
-import { SlotService } from './slot.service';
+import { MAX_ACTIVE_SLOTS, SlotService } from './slot.service';
 
 const NOW = new Date('2026-09-10T12:00:00.000Z');
 const USER_ID = '10000000-0000-4000-8000-000000000001';
@@ -75,16 +75,19 @@ function makeHarness({
   session = { userId: USER_ID, roles: ['mentee', 'mentor'] },
   storedProfile = profile(),
   slots = [],
+  activeSlotCount = 0,
 }: {
   session?: Session | null | Promise<Session | null>;
   storedProfile?: IMentorProfile | null;
   slots?: ISlot[];
+  activeSlotCount?: number;
 } = {}) {
   let createdSlot: ISlot | null = null;
   const tx = {
     findOne: vi.fn(async (entity: unknown) =>
       entity === MentorProfile ? storedProfile : slots[0] ?? null,
     ),
+    count: vi.fn(async () => activeSlotCount),
     create: vi.fn((_entity: unknown, data: Record<string, unknown>) => {
       createdSlot = slot(data.startsAt as Date, {
         mentorProfile: data.mentorProfile as IMentorProfile,
@@ -136,7 +139,7 @@ describe('SlotService owner reads', () => {
     expect(h.em.find).toHaveBeenCalledWith(
       Slot,
       { mentorProfile: PROFILE_ID, removedAt: null },
-      { orderBy: { startsAt: 'asc' } },
+      { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
   });
 
@@ -170,6 +173,10 @@ describe('SlotService publication', () => {
       { lockMode: expect.anything() },
     );
     expect(h.createdSlot?.mentorProfile).toBe(h.storedProfile);
+    expect(h.tx.count).toHaveBeenCalledWith(Slot, {
+      mentorProfile: PROFILE_ID,
+      removedAt: null,
+    });
     expect(h.storedProfile?.lastPublishedAvailabilityAt).toBe(NOW);
     expect(h.tx.persist).toHaveBeenCalledWith(h.createdSlot);
     expect(h.tx.flush).toHaveBeenCalledOnce();
@@ -184,6 +191,26 @@ describe('SlotService publication', () => {
     await expect(
       makeHarness().service.publish({ startsAt: NOW.toISOString() }),
     ).resolves.toMatchObject({ startsAt: NOW.toISOString() });
+  });
+
+  it('serializes and refuses publication at the active-slot cap', async () => {
+    const h = makeHarness({ activeSlotCount: MAX_ACTIVE_SLOTS });
+
+    await expect(h.service.publish({ startsAt: NOW.toISOString() })).rejects.toMatchObject({
+      code: 'validation_failed',
+      message: `You can publish up to ${MAX_ACTIVE_SLOTS} active times.`,
+      fieldErrors: { startsAt: ['Remove an existing time before publishing another.'] },
+    });
+    expect(h.tx.create).not.toHaveBeenCalled();
+    expect(h.tx.flush).not.toHaveBeenCalled();
+  });
+
+  it('accepts the last active slot before the cap', async () => {
+    await expect(
+      makeHarness({ activeSlotCount: MAX_ACTIVE_SLOTS - 1 }).service.publish({
+        startsAt: NOW.toISOString(),
+      }),
+    ).resolves.toMatchObject({ id: SLOT_ID });
   });
 
   it('refuses a past start before opening a transaction', async () => {
@@ -231,6 +258,8 @@ describe('SlotService publication', () => {
 
   it.each([
     new Error('database unavailable'),
+    'database unavailable',
+    null,
     uniqueViolation(),
     uniqueViolation('some_other_unique'),
     Object.assign(new Error('wrong database code'), {
@@ -289,7 +318,7 @@ describe('SlotService public reads', () => {
     expect(h.em.find).toHaveBeenCalledWith(
       Slot,
       { mentorProfile: PROFILE_ID, removedAt: null, startsAt: { $gte: NOW } },
-      { orderBy: { startsAt: 'asc' } },
+      { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
   });
 });
