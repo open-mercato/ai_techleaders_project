@@ -49,6 +49,13 @@ export {
   type GithubIdentity,
   type GithubIdentityPort,
 } from './services/auth/github-identity.port';
+// The outbound-email seam, on the same terms: the **port** is exported and neither adapter
+// is, so the only thing that can choose between them is `container.ts`. `MAIL_SENT_MESSAGE`
+// is exported for one reader only — `waitForMail` in `tests/integration/mail.ts` matches
+// captured log lines on it, and a hand-copied string there would drift into a scenario that
+// waits ten seconds for mail that was sent.
+export { MAIL_SENT_MESSAGE } from './services/notifications/adapters/log-mailer';
+export type { Mailer, MailMessage } from './services/notifications/mailer.port';
 export { EventBus, type EventHandler, type EventId, type EventMap } from './events/index';
 export { systemClock, type Clock } from './time/clock';
 

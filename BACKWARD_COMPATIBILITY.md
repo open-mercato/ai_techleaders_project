@@ -25,22 +25,35 @@ a breaking change and follows the path in "How to make a breaking change" at the
 ### 1. HTTP API (`packages/app/src/app/api/`)
 
 **The envelope.** Every `/api/*` route built with `apiHandler` or `makeCrudRoute`
-answers `{ ok: true, data }` or `{ ok: false, error: { code, message, fieldErrors? } }`.
+answers `{ ok: true, data }` or
+`{ ok: false, error: { code, message, fieldErrors?, retryAfterSeconds? } }`.
 The shape is declared twice on purpose, in `packages/core/src/http/apiHandler.ts` and
 `packages/ui/src/backend/api/types.ts`, because `ui` must not import `core`.
 
 **Status and error codes**, from `packages/core/src/http/errors.ts` and `apiHandler.ts`:
 400 `bad_request`, 401 `unauthorized`, 403 `forbidden`, 404 `not_found`,
 409 `conflict`, 422 `validation_failed` (with `fieldErrors`, keyed by dotted path or
-`_root`), 500 `internal_error`, 503 `service_unavailable` (an integration credential is
+`_root`), **429 `rate_limited`** (E01 Slice 4), 500 `internal_error`,
+503 `service_unavailable` (an integration credential is
 unset, an upstream call failed or timed out, or a bounded internal resource is
 saturated — always retryable, and it never carries the upstream status or body). The
 client adds `network_error` and `invalid_response` in `apiCall.ts`. `AppError` accepts any
-status and code, so a route can raise one that has no subclass; there is no 429 or
-`rate_limited` in the hierarchy yet, only ad-hoc instances inside tests.
+status and code, so a route can raise one that has no subclass.
+
+`429 rate_limited` is `TooManyRequestsError` (platform primitives B8). It carries
+`retryAfterSeconds` — a whole number of seconds — **twice**: as `error.retryAfterSeconds`
+in the envelope and as the standard `Retry-After` response header, in delta-seconds form
+rather than as an HTTP-date. Both are part of the contract; a client may read either. Its
+message is the constant `RATE_LIMITED_MESSAGE` and is deliberately generic: it names no
+bucket, no count and no address, because a message that distinguished "this email is
+limited" from "this IP is limited" would tell an enumerator which addresses have accounts
+(E01 edge case 17). Changing that message to something more specific is a breaking change
+to a security property, not a copy edit.
 
 An `AppError` may also carry an optional `headers` bag that `apiHandler` copies onto the
 failure response; `content-type: application/json` is written last and always wins.
+`retryAfterSeconds` and `fieldErrors` are omitted from the envelope entirely when the
+error does not carry them — they are never emitted as `null`.
 
 **Routes in place:**
 
@@ -117,7 +130,7 @@ API between packages. `npm run typecheck` is the consumer check.
   From `.`: `getEnv` with `AppEnv`, `createLogger` with `Logger`, `getContainer`, `withScope`,
   `withRequestScope`, `withCookieScope`, the `Cradle` keys (`env`, `logger`, `orm`, `eventBus`,
   `clock`, `sessionService`, `tokenService`, `githubIdentity`, `em`, `userService`,
-  `sessionCookie`, `session`), `UserService` and `UserDto`, `SessionService` with
+  `rateLimiter`, `sessionCookie`, `session`), `UserService` and `UserDto`, `SessionService` with
   `SESSION_COOKIE_NAME`, `IssuedSession`, `SessionClaims` and `SessionUser`, `TokenService`
   with `TokenPurpose`, `PurposeTokenClaims`, `SignPurposeTokenInput` and
   `VerifyPurposeTokenInput`, `GithubIdentityPort` with `GithubIdentity`, `AuthorizeUrlInput`,
@@ -130,7 +143,11 @@ API between packages. `npm run typecheck` is the consumer check.
 
   From `./http`, also re-exported by `.`: the `AppError` family (`BadRequestError`,
   `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ValidationError`,
-  `ServiceUnavailableError`) with `isAppError` and `FieldErrors`, `apiHandler` with
+  `TooManyRequestsError`, `ServiceUnavailableError`) with `RATE_LIMITED_MESSAGE`,
+  `isAppError` and `FieldErrors`, the rate limiter (`RateLimiter`, `rateLimitKey`,
+  `clientIpFromHeaders`, `SIGN_IN_IP_POLICY`, `SIGN_IN_EMAIL_POLICY`,
+  `REGISTRATION_IP_POLICY`, `VERIFICATION_RESEND_EMAIL_POLICY`, `RateLimitPolicy`,
+  `RateLimitScope`, `RateLimitKind`), `apiHandler` with
   `ApiHandlerOptions`, `ApiSuccess`, `ApiFailure`, `ApiResponseBody`, `ApiRouteContext`,
   `ApiRouteHandler` and `RouteLogic`, `jsonOk`, `jsonError`, `makeCrudRoute` with
   `CrudService` and `MakeCrudRouteOptions`, `safeReturnTo`, `fetchJson` with
@@ -214,7 +231,7 @@ the change spans several concepts; note it in the PR body.
   `avatar_url` text nullable, `email_verified_at` timestamptz nullable, `password_hash` text
   nullable, `session_version` int default 0) and `mentor_profiles` (`id`, timestamps,
   `user_id` unique with a cascading foreign key to `users`, `headline`, `bio` nullable,
-  `years_of_experience` default 0). Column names are snake_case mappings of the
+  `years_of_experience` default 0), plus `auth_rate_limits` (see below). Column names are snake_case mappings of the
   camelCase entity properties. `password_hash` is `text` on purpose — 60 is bcrypt's output
   width and this project hashes with `scrypt`, so pinning the width would close the
   `argon2id` upgrade path — and nullable on purpose: a GitHub-only account has no password,
@@ -224,6 +241,17 @@ the change spans several concepts; note it in the PR body.
   (`roles <@ array['mentee','mentor','operator']`, generated from `ROLES`) and
   `users_roles_non_empty` (`cardinality(roles) >= 1`), which is what lets `Session.roles`
   be a non-empty tuple rather than a possibly-empty array.
+- `auth_rate_limits` (`key` text **primary key**, `window_start` timestamptz not null and
+  indexed, `count` int not null) is the **one table that deliberately has no `id`,
+  `created_at` or `updated_at`** — the single stated exception to the base-column rule
+  (platform primitives B8). It is a counter addressed by a natural key, not a domain row.
+  Adding the base columns to it is a breaking change to that decision and to the upsert in
+  `packages/core/src/http/rate-limit.ts`, which conflicts on the primary key.
+  `key` is `<scope>:<kind>:<sha256hex>`: **no email address and no IP address is ever
+  stored here**, and making one storable is a privacy regression, not a debugging
+  convenience. Nothing reaches this table through the entity API — `RateLimiter` issues one
+  raw `INSERT … ON CONFLICT … RETURNING` with an inline pruning `DELETE`, because a
+  read-then-write would let concurrent attempts share one increment.
 - `id` is `crypto.randomUUID()`, which is **uuid v4** — random, not time-sortable. Order rows
   by `created_at`; nothing may assume a larger id is a later row.
 - Migrations live in `packages/db/migrations/` as `Migration<timestamp>.ts` or
@@ -240,14 +268,17 @@ the change spans several concepts; note it in the PR body.
   is set, so `config.ts` reads `DB_MIGRATIONS_SNAPSHOT` itself. The base migration
   `Migration20260901142829.ts` has `up` only; everything since ships both directions.
 - `tests/integration/migrations.integration.test.ts` pins the schema by name, so it is part of
-  this surface: all three migration class names, the column names with their PostgreSQL udt
+  this surface: all four migration class names, the column names with their PostgreSQL udt
   names (`roles _text`, `session_version int4`, `github_id varchar`, `email_verified_at
   timestamptz`, `avatar_url text`, `password_hash text` nullable with no default), the
   constraint names and definitions verbatim (`users_github_id_unique`, `users_roles_check`,
   `users_roles_non_empty`, and `users_email_unique` surviving a rollback), the backfill
-  result, and up/down/up idempotence for each of the two auth migrations — including that
+  result, and up/down/up idempotence for each of the three auth migrations — including that
   `auth-password` rolls back off `auth-identity` without taking the identity columns with it,
-  which is the documented "revert Slice 4 before Slice 2" path.
+  which is the documented "revert Slice 4 before Slice 2" path. The same suite runs the real
+  `RateLimiter` against the real `auth_rate_limits` table, so the statement's window
+  rollover, its pruning delete and its behaviour under concurrent connections are pinned
+  there rather than modelled in a unit test.
 - The seeder `packages/db/src/seeders/database.seeder.ts` creates four rows, every one with
   `email_verified_at` set: the admin-list fixture `ada@devmentor.dev` / `Ada Lovelace` /
   `['mentor']` with the mentor profile `Systems & algorithms mentor` —

@@ -18,7 +18,11 @@ import { UserService } from '../services/auth/user.service';
 import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
 import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
+import { LogMailerAdapter } from '../services/notifications/adapters/log-mailer';
+import { ResendMailerAdapter } from '../services/notifications/adapters/resend-mailer';
+import type { Mailer } from '../services/notifications/mailer.port';
 import { resolveSessionFromCookie } from '../http/auth';
+import { RateLimiter } from '../http/rate-limit';
 import type { Cradle } from './cradle';
 
 /**
@@ -56,8 +60,27 @@ function assertProductionSecrets(env: AppEnv): void {
     );
   }
 
-  // Slice 4 adds the second half of this gate here: MAIL_API_KEY is required in
-  // production unless MAILER_ADAPTER=log is deliberately set (B14).
+  // The second half of the gate, and the reason it is a gate rather than a route-level
+  // check: registration fails closed when the verification mail cannot be delivered (edge
+  // case 29), so a production deployment with no `MAIL_API_KEY` would boot green, serve
+  // every page, and 503 every single sign-up. That is the failure this file exists to
+  // prevent. `MAIL_FROM` is not required here — the adapter refuses at the point of use for
+  // both (B6) — because B14 names exactly one key as a boot requirement and widening it
+  // would refuse a process that a follow-up `MAIL_FROM` deploy would have fixed without a
+  // restart of this shape.
+  //
+  // The exemption needs **both** signals, not just `MAILER_ADAPTER=log`: the harness runs
+  // the app with `NODE_ENV=production` and no mail account at all, which is legitimate
+  // precisely because `INTEGRATION_TEST_RUN=1` says so. One flag must never be enough — see
+  // `selectMailer`, which makes the same selection from the same pair.
+  if (!env.MAIL_API_KEY && !(env.MAILER_ADAPTER === 'log' && env.INTEGRATION_TEST_RUN)) {
+    throw new Error(
+      'MAIL_API_KEY is required when NODE_ENV=production: registration cannot report ' +
+        'success without delivering a verification link, so every sign-up would fail with ' +
+        '503 without it. Set it to the Resend API key (and MAIL_FROM to the verified ' +
+        'sender address) in the deployment environment.',
+    );
+  }
 }
 
 /**
@@ -92,6 +115,54 @@ function selectGithubIdentity({ env, logger }: Cradle): GithubIdentityPort {
     return new MockGithubIdentityAdapter();
   }
   return new GithubIdentityAdapter({ env, logger });
+}
+
+/**
+ * Choose the mailer (B14). **The same two-signal rule as `selectGithubIdentity`, plus one
+ * development convenience that cannot apply anywhere else.**
+ *
+ * Three branches, in priority order:
+ *
+ * 1. `MAILER_ADAPTER=log` **and** `INTEGRATION_TEST_RUN=1` — the harness. Both flags are
+ *    re-checked here even though `config/env.ts` already refuses to parse the dangerous
+ *    half, for the reason spelled out on `selectGithubIdentity`: that refusal protects a
+ *    real deployment reading a real environment, while this protects the composition root
+ *    against a hand-built `AppEnv` from a test, a script or a seeder. One flag is never
+ *    enough to select a fake.
+ * 2. `development` with `MAILER_ADAPTER` unset — the log mailer, with a boot warning. The
+ *    exception is narrow and deliberate: registration fails closed on a delivery failure
+ *    (edge case 29), so `npm run dev` with the real adapter and no API key would present a
+ *    registration form that always 503s. Note the condition is on `MAILER_ADAPTER` being
+ *    **unset**, not on `MAIL_API_KEY` being absent — selection is from flags that are
+ *    present, never from credentials that are missing, so a developer who sets
+ *    `MAILER_ADAPTER=resend` gets Resend and finds out about a missing key at the route.
+ * 3. Anything else — Resend, which fails closed at the point of use if it is unconfigured.
+ *    `test` and `production` land here, and production cannot even reach it without a key
+ *    (`assertProductionSecrets`).
+ */
+function selectMailer({ env, logger }: Cradle): Mailer {
+  if (env.MAILER_ADAPTER === 'log' && env.INTEGRATION_TEST_RUN) {
+    // Loud, once, on first resolution — the same reason the mock identity adapter is loud.
+    // An operator who somehow reaches this in a real process must not have to infer it from
+    // verification emails that never arrive.
+    logger.warn(
+      { adapter: 'log' },
+      'the log mailer is active: every email is written to this log instead of being ' +
+        'delivered, and the log therefore contains live verification links',
+    );
+    return new LogMailerAdapter({ logger });
+  }
+
+  if (env.MAILER_ADAPTER === undefined && env.NODE_ENV === 'development') {
+    logger.warn(
+      { adapter: 'log' },
+      'no MAILER_ADAPTER is set, so emails are written to this log instead of being ' +
+        'delivered; set MAILER_ADAPTER=resend with MAIL_API_KEY and MAIL_FROM to send them',
+    );
+    return new LogMailerAdapter({ logger });
+  }
+
+  return new ResendMailerAdapter({ env, logger });
 }
 
 async function build(): Promise<AwilixContainer<Cradle>> {
@@ -145,9 +216,22 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // `logger`. `asFunction` rather than `asClass` because which class this is *is* the
     // decision — see `selectGithubIdentity`.
     githubIdentity: asFunction(selectGithubIdentity).singleton(),
+    // SINGLETON for the same reasons again — stateless, `env` and `logger` only — and
+    // `asFunction` because which class this is *is* the decision (`selectMailer`). The
+    // boot warning riding on that decision is emitted once per process because of this
+    // lifetime; a scoped registration would print it on every request.
+    mailer: asFunction(selectMailer).singleton(),
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),
+    // SCOPED, and the lifetime is forced rather than chosen: this depends on `em`, which
+    // is a per-request fork, so a singleton would capture the *first* request's
+    // EntityManager and hand every later request someone else's identity map and unit of
+    // work. Unlike `passwordService` there is nothing to lose by that: the limiter is
+    // stateless in this process — the counters it reads and writes live in PostgreSQL,
+    // which is exactly what makes the limit hold across restarts and across instances —
+    // so constructing one per scope costs two field assignments.
+    rateLimiter: asClass(RateLimiter).scoped(),
     // The default for a scope nobody opened for a request: no cookie, so no session. Each
     // of `withRequestScope`/`withCookieScope` overrides it on its own scope. Registering it
     // at the root keeps the key resolvable in a `strict` container, which is what lets a

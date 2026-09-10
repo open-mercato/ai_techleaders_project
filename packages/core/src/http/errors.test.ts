@@ -6,7 +6,9 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  RATE_LIMITED_MESSAGE,
   ServiceUnavailableError,
+  TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
   isAppError,
@@ -39,6 +41,7 @@ describe('AppError', () => {
 
     expect(error.fieldErrors).toBeUndefined();
     expect(error.headers).toBeUndefined();
+    expect(error.retryAfterSeconds).toBeUndefined();
     expect(error.cause).toBeUndefined();
   });
 
@@ -55,14 +58,16 @@ describe('AppError', () => {
     expect(error.cause).toBeNull();
   });
 
-  it('keeps field errors and headers when they are given', () => {
+  it('keeps field errors, headers and a retry hint when they are given', () => {
     const error = new AppError('Teapot', 418, 'teapot', {
       fieldErrors,
       headers: { 'retry-after': '30' },
+      retryAfterSeconds: 30,
     });
 
     expect(error.fieldErrors).toEqual(fieldErrors);
     expect(error.headers).toEqual({ 'retry-after': '30' });
+    expect(error.retryAfterSeconds).toBe(30);
   });
 
   it('names itself after the concrete subclass', () => {
@@ -205,6 +210,43 @@ describe('ServiceUnavailableError', () => {
   });
 });
 
+describe('TooManyRequestsError', () => {
+  it('is a 429 with the code the API contract names', () => {
+    const error = new TooManyRequestsError(240);
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error.status).toBe(429);
+    expect(error.code).toBe('rate_limited');
+    expect(error.name).toBe('TooManyRequestsError');
+  });
+
+  it('carries the retry hint in the envelope field and in the header', () => {
+    const error = new TooManyRequestsError(240);
+
+    expect(error.retryAfterSeconds).toBe(240);
+    expect(error.headers).toEqual({ 'Retry-After': '240' });
+  });
+
+  it('says nothing about which bucket ran out or whether the account exists', () => {
+    // Edge case 17: the refusal a stuffer sees for `nobody@example.com` and the one a
+    // real user sees for their own address have to be the same sentence, or the limiter
+    // becomes the enumeration oracle the identical 401 exists to close.
+    const unknownAddress = new TooManyRequestsError(900);
+    const realAddress = new TooManyRequestsError(60);
+
+    expect(unknownAddress.message).toBe(realAddress.message);
+    expect(unknownAddress.message).toBe(RATE_LIMITED_MESSAGE);
+    expect(unknownAddress.message).not.toMatch(/email|address|ip|account|attempt limit/i);
+  });
+
+  it('takes a call-site message for a bucket whose refusal is a different fact', () => {
+    const error = new TooManyRequestsError(30, 'This invitation batch is throttled.');
+
+    expect(error.message).toBe('This invitation batch is throttled.');
+    expect(error.retryAfterSeconds).toBe(30);
+  });
+});
+
 describe('isAppError', () => {
   it('accepts every member of the family', () => {
     expect(
@@ -216,6 +258,7 @@ describe('isAppError', () => {
         new NotFoundError(),
         new ConflictError(),
         new ValidationError(),
+        new TooManyRequestsError(1),
         new ServiceUnavailableError(),
       ].every(isAppError),
     ).toBe(true);
@@ -266,6 +309,37 @@ describe('AppError.headers round-trip through apiHandler', () => {
     expect(response.status).toBe(503);
     expect(response.headers.get('retry-after')).toBeNull();
     expect([...response.headers.keys()]).toEqual(['content-type']);
+  });
+
+  it('puts a rate-limit refusal in the envelope and the header at once', async () => {
+    const handler = apiHandler(() => {
+      throw new TooManyRequestsError(240);
+    });
+
+    const response = await handler(request, context);
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('retry-after')).toBe('240');
+    expect(await response.json()).toEqual({
+      ok: false,
+      error: {
+        code: 'rate_limited',
+        message: RATE_LIMITED_MESSAGE,
+        retryAfterSeconds: 240,
+      },
+    });
+  });
+
+  it('omits retryAfterSeconds from an envelope whose error does not carry one', async () => {
+    const handler = apiHandler(() => {
+      throw new NotFoundError();
+    });
+
+    const body = (await (await handler(request, context)).json()) as {
+      error: Record<string, unknown>;
+    };
+
+    expect(Object.keys(body.error)).toEqual(['code', 'message']);
   });
 
   it('never lets an error header change the envelope media type', async () => {

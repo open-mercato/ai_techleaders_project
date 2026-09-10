@@ -54,6 +54,11 @@ export function integrationChildEnvironment(
     // required: `AUTH_IDENTITY_ADAPTER=mock` on its own makes the app fail at boot
     // rather than quietly fall back to real GitHub sign-in.
     AUTH_IDENTITY_ADAPTER: 'mock',
+    // Same rule, same pair, for the second seam: emails are written to the app log instead
+    // of being delivered, which is both how `waitForMail` reads the verification link and
+    // how a run with `NODE_ENV=production` and no mail account gets past the container's
+    // `MAIL_API_KEY` gate. `MAILER_ADAPTER=log` on its own would make the app fail at boot.
+    MAILER_ADAPTER: 'log',
     INTEGRATION_TEST_RUN: '1',
     // Forced, never inherited. An isolated run owns its own data, and the allowlist is
     // data: a developer debugging the real allowlist has their own OPERATOR_EMAILS

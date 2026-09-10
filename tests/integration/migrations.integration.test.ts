@@ -1,8 +1,15 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { EntityManager } from '@mikro-orm/postgresql';
 import { MikroORM } from '@mikro-orm/postgresql';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  RateLimiter,
+  TooManyRequestsError,
+  rateLimitKey,
+  type RateLimitPolicy,
+} from '@devmentor/core';
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
@@ -12,6 +19,7 @@ const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const BASE_MIGRATION = 'Migration20260901142829';
 const AUTH_IDENTITY_MIGRATION = 'Migration20260909222320_auth_identity';
 const AUTH_PASSWORD_MIGRATION = 'Migration20260910092433_auth_password';
+const AUTH_RATE_LIMITS_MIGRATION = 'Migration20260910095701_auth_rate_limits';
 
 /** A row created before `auth-identity` — the population the backfill exists for. */
 const LEGACY_EMAIL = 'legacy@devmentor.test';
@@ -29,6 +37,9 @@ const NEW_CONSTRAINTS = ['users_github_id_unique', 'users_roles_check', 'users_r
 
 /** The `users` column `auth-password` adds, on its own so the two migrations stay separable. */
 const PASSWORD_COLUMN = 'password_hash';
+
+/** The whole of `auth_rate_limits` — three columns, and deliberately no base columns. */
+const RATE_LIMIT_COLUMNS = ['count', 'key', 'window_start'];
 
 /**
  * `auth-identity` and `auth-password`, each up / down / up against a database of its own.
@@ -124,6 +135,24 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     `);
   }
 
+  /** `auth_rate_limits`'s columns as the database reports them, or `[]` when it is absent. */
+  async function rateLimitColumns(): Promise<
+    { column_name: string; udt_name: string; is_nullable: string }[]
+  > {
+    return query(`
+      select column_name, udt_name, is_nullable
+      from information_schema.columns
+      where table_name = 'auth_rate_limits'
+      order by column_name
+    `);
+  }
+
+  async function rateLimitIndexes(): Promise<{ indexname: string; indexdef: string }[]> {
+    return query(
+      `select indexname, indexdef from pg_indexes where tablename = 'auth_rate_limits' order by indexname`,
+    );
+  }
+
   async function appliedMigrations(): Promise<string[]> {
     const rows = await query<{ name: string }>(
       `select name from mikro_orm_migrations order by executed_at, name`,
@@ -173,7 +202,10 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       clientUrl,
       entities: [],
       discovery: { warnWhenNoEntities: false },
-      pool: { min: 0, max: 2 },
+      // Room for the concurrency case below to hold several connections at once: with a
+      // pool of two, "twelve simultaneous attempts" would be six pairs and the lost-update
+      // this asserts against could hide behind the queue.
+      pool: { min: 0, max: 12 },
     });
     await orm.connect();
 
@@ -236,7 +268,10 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('applies auth-password: one nullable text column and nothing else', async () => {
-    await migrate();
+    // `--to` again rather than a bare `migrate()`: `auth-rate-limits` sits behind this one
+    // and has to be asserted on its own, the same way `auth-password` is asserted apart
+    // from `auth-identity`.
+    await migrate('--to', AUTH_PASSWORD_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([
       BASE_MIGRATION,
@@ -286,7 +321,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('re-applies auth-password: the second up produces the same column', async () => {
-    await migrate();
+    await migrate('--to', AUTH_PASSWORD_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([
       BASE_MIGRATION,
@@ -303,11 +338,245 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     ]);
   });
 
+  it('applies auth-rate-limits: a three-column counter table with no base columns', async () => {
+    await migrate();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+      AUTH_RATE_LIMITS_MIGRATION,
+    ]);
+    expect(await rateLimitColumns()).toEqual([
+      { column_name: 'count', udt_name: 'int4', is_nullable: 'NO' },
+      { column_name: 'key', udt_name: 'text', is_nullable: 'NO' },
+      { column_name: 'window_start', udt_name: 'timestamptz', is_nullable: 'NO' },
+    ]);
+    // The documented exception, asserted rather than described: no `id`, no `created_at`,
+    // no `updated_at`. Every other table in this schema has all three.
+    expect((await rateLimitColumns()).map((column) => column.column_name)).toEqual(
+      RATE_LIMIT_COLUMNS,
+    );
+    // The primary key is the natural text key — that is what the upsert conflicts on —
+    // and `window_start` carries the index the pruning delete runs on.
+    expect(await rateLimitIndexes()).toEqual([
+      {
+        indexname: 'auth_rate_limits_pkey',
+        indexdef:
+          'CREATE UNIQUE INDEX auth_rate_limits_pkey ON public.auth_rate_limits USING btree (key)',
+      },
+      {
+        indexname: 'auth_rate_limits_window_start_index',
+        indexdef:
+          'CREATE INDEX auth_rate_limits_window_start_index ON public.auth_rate_limits USING btree (window_start)',
+      },
+    ]);
+    // Additive: `users` is exactly where `auth-password` left it.
+    expect((await passwordColumn()).map((column) => column.column_name)).toEqual([
+      PASSWORD_COLUMN,
+    ]);
+  });
+
+  /**
+   * `RateLimiter` against the table the migration above just created.
+   *
+   * This is where the *statement* is proven, as opposed to the module's decisions, which
+   * `packages/core/src/http/rate-limit.test.ts` covers with a fake `EntityManager`. The
+   * window rollover, the pruning delete and the behaviour of `INSERT … ON CONFLICT` under
+   * concurrent connections are PostgreSQL semantics; a unit test could only assert them
+   * against a hand-written model of PostgreSQL, which would prove that the model matches
+   * itself.
+   */
+  describe('the rate limiter against the real table', () => {
+    /** A tight policy, so a case spends three attempts rather than ten. */
+    const POLICY: RateLimitPolicy = { limit: 3, windowMs: 15 * 60_000 };
+    const START = new Date('2026-09-10T12:00:00.000Z');
+
+    let now: Date;
+    const limiter = () =>
+      new RateLimiter({ em: (orm as MikroORM).em as EntityManager, clock: { now: () => now } });
+
+    async function countFor(key: string): Promise<number | undefined> {
+      const rows = await query<{ count: number }>(
+        `select count from auth_rate_limits where key = '${key}'`,
+      );
+      return rows[0]?.count;
+    }
+
+    async function reset(): Promise<void> {
+      now = START;
+      await query(`delete from auth_rate_limits`);
+    }
+
+    it('passes the whole allowance and refuses the next attempt with a 429', async () => {
+      await reset();
+      const key = rateLimitKey('sign-in', 'email', 'ada@devmentor.dev') as string;
+
+      for (let attempt = 0; attempt < POLICY.limit; attempt += 1) {
+        await expect(limiter().consume(key, POLICY)).resolves.toBeUndefined();
+      }
+
+      const refusal = await limiter()
+        .consume(key, POLICY)
+        .catch((error: unknown) => error);
+      expect(refusal).toBeInstanceOf(TooManyRequestsError);
+      // The window opened at `now`, and nothing has advanced the clock, so the caller is
+      // told to wait the whole window out.
+      expect((refusal as TooManyRequestsError).retryAfterSeconds).toBe(900);
+      // The refused attempt was counted too: the counter never decrements.
+      expect(await countFor(key)).toBe(4);
+    });
+
+    it('rolls the window over inside the one statement', async () => {
+      await reset();
+      const key = rateLimitKey('sign-in', 'email', 'rollover@devmentor.dev') as string;
+
+      for (let attempt = 0; attempt < POLICY.limit; attempt += 1) {
+        await limiter().consume(key, POLICY);
+      }
+      await expect(limiter().consume(key, POLICY)).rejects.toThrow(TooManyRequestsError);
+
+      // One second inside the window is still the same window.
+      now = new Date(START.getTime() + POLICY.windowMs - 1000);
+      await expect(limiter().consume(key, POLICY)).rejects.toThrow(TooManyRequestsError);
+
+      // One second past it is a new one, reset to a single attempt rather than incremented.
+      now = new Date(START.getTime() + POLICY.windowMs + 1000);
+      await expect(limiter().consume(key, POLICY)).resolves.toBeUndefined();
+      expect(await countFor(key)).toBe(1);
+    });
+
+    it('deletes rows older than the longest window, and only those', async () => {
+      await reset();
+      const stale = 'sign-in:email:stale';
+      const live = 'sign-in:email:live';
+      const charged = rateLimitKey('register', 'ip', '198.51.100.1') as string;
+
+      // Two hours old: past the longest policy window (one hour), so it can never
+      // influence a decision again.
+      await query(
+        `insert into auth_rate_limits (key, window_start, count)
+         values ('${stale}', '${new Date(START.getTime() - 2 * 60 * 60_000).toISOString()}', 9)`,
+      );
+      // Thirty minutes old: still inside the one-hour registration window.
+      await query(
+        `insert into auth_rate_limits (key, window_start, count)
+         values ('${live}', '${new Date(START.getTime() - 30 * 60_000).toISOString()}', 4)`,
+      );
+
+      await limiter().consume(charged, POLICY);
+
+      expect(await countFor(stale)).toBeUndefined();
+      // Pruning by this policy's fifteen-minute window instead of the longest one would
+      // have handed this registration bucket a free reset.
+      expect(await countFor(live)).toBe(4);
+      expect(await countFor(charged)).toBe(1);
+    });
+
+    it('resets its own expired row rather than deleting it out from under the upsert', async () => {
+      await reset();
+      const key = rateLimitKey('sign-in', 'ip', '203.0.113.7') as string;
+
+      // A row for this very key, old enough that the prune would remove it. Deleting it
+      // and then landing on it with `ON CONFLICT DO UPDATE` in the same command is what
+      // PostgreSQL refuses, which is why the prune excludes the key being charged.
+      await query(
+        `insert into auth_rate_limits (key, window_start, count)
+         values ('${key}', '${new Date(START.getTime() - 5 * 60 * 60_000).toISOString()}', 99)`,
+      );
+
+      await expect(limiter().consume(key, POLICY)).resolves.toBeUndefined();
+      expect(await countFor(key)).toBe(1);
+    });
+
+    it('keeps every concurrent attempt: no two callers share one increment', async () => {
+      await reset();
+      const key = rateLimitKey('sign-in', 'ip', '198.51.100.99') as string;
+      const generous: RateLimitPolicy = { limit: 1000, windowMs: 15 * 60_000 };
+
+      // Twelve attempts issued at once over separate pooled connections. A read-then-write
+      // limiter loses updates here and finishes below twelve; the single
+      // `INSERT … ON CONFLICT DO UPDATE` serialises them on the primary key.
+      await Promise.all(
+        Array.from({ length: 12 }, () => limiter().consume(key, generous)),
+      );
+
+      expect(await countFor(key)).toBe(12);
+    });
+
+    it('keeps the per-IP and per-email buckets apart', async () => {
+      await reset();
+      const email = rateLimitKey('sign-in', 'email', 'ada@devmentor.dev') as string;
+      const ip = rateLimitKey('sign-in', 'ip', '198.51.100.1') as string;
+
+      await limiter().consume(email, POLICY);
+      await limiter().consume(ip, POLICY);
+
+      expect(await countFor(email)).toBe(1);
+      expect(await countFor(ip)).toBe(1);
+      // Two rows, two different hashed keys, and neither one contains the address it was
+      // built from.
+      const keys = await query<{ key: string }>(`select key from auth_rate_limits order by key`);
+      expect(keys).toHaveLength(2);
+      for (const row of keys) {
+        expect(row.key).not.toContain('ada@devmentor.dev');
+        expect(row.key).not.toContain('198.51.100.1');
+        expect(row.key).toMatch(/^sign-in:(email|ip):[0-9a-f]{64}$/);
+      }
+    });
+
+    it('leaves the table empty for the rollback that follows', async () => {
+      await reset();
+      expect(await query(`select key from auth_rate_limits`)).toEqual([]);
+    });
+  });
+
+  it('rolls back auth-rate-limits: the table goes, users is untouched', async () => {
+    await rollbackOne();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+    ]);
+    expect(await rateLimitColumns()).toEqual([]);
+    expect(await rateLimitIndexes()).toEqual([]);
+    // Dropping the counters is the whole cost of this rollback: they are a
+    // fifteen-minute-to-one-hour record the limiter deletes on its own anyway. Nothing
+    // about `users` moves — the table has no foreign key, by design.
+    expect((await passwordColumn()).map((column) => column.column_name)).toEqual([
+      PASSWORD_COLUMN,
+    ]);
+    expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
+  });
+
+  it('re-applies auth-rate-limits: the second up produces the same table', async () => {
+    await migrate();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+      AUTH_RATE_LIMITS_MIGRATION,
+    ]);
+    expect((await rateLimitColumns()).map((column) => column.column_name)).toEqual(
+      RATE_LIMIT_COLUMNS,
+    );
+    expect((await rateLimitIndexes()).map((index) => index.indexname)).toEqual([
+      'auth_rate_limits_pkey',
+      'auth_rate_limits_window_start_index',
+    ]);
+  });
+
   it('rolls back: removes exactly what it added and keeps the pre-existing rows', async () => {
-    // `auth-password` sits on top, so reaching `auth-identity`'s `down` means reverting it
-    // first — the same order a real rollback of both slices would take.
+    // `auth-rate-limits` and `auth-password` sit on top, so reaching `auth-identity`'s
+    // `down` means reverting them first — the same order a real rollback of the slice
+    // would take.
     await rollbackOne();
     await rollbackOne();
+    await rollbackOne();
+
+    expect(await rateLimitColumns()).toEqual([]);
 
     expect(await appliedMigrations()).toEqual([BASE_MIGRATION]);
     expect(await passwordColumn()).toEqual([]);
@@ -333,10 +602,14 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       BASE_MIGRATION,
       AUTH_IDENTITY_MIGRATION,
       AUTH_PASSWORD_MIGRATION,
+      AUTH_RATE_LIMITS_MIGRATION,
     ]);
     expect((await passwordColumn()).map((column) => column.column_name)).toEqual([
       PASSWORD_COLUMN,
     ]);
+    expect((await rateLimitColumns()).map((column) => column.column_name)).toEqual(
+      RATE_LIMIT_COLUMNS,
+    );
     expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
     expect((await newConstraints()).map((constraint) => constraint.conname)).toEqual(
       NEW_CONSTRAINTS,

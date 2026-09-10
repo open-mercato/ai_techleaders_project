@@ -64,6 +64,10 @@ const { GithubIdentityAdapter } = await import('../services/auth/adapters/github
 const { MockGithubIdentityAdapter } = await import(
   '../services/auth/adapters/mock-github-identity'
 );
+const { LogMailerAdapter } = await import('../services/notifications/adapters/log-mailer');
+const { ResendMailerAdapter } = await import(
+  '../services/notifications/adapters/resend-mailer'
+);
 
 /** The container is cached on `globalThis` to survive HMR; tests must clear that cache. */
 const globalForContainer = globalThis as unknown as { __devmentorContainer?: unknown };
@@ -83,6 +87,11 @@ const BASE_ENV = {
   PASSWORD_HASH_CONCURRENCY: 2,
   PASSWORD_HASH_WAIT_MS: 1000,
   INTEGRATION_TEST_RUN: false,
+  // Present in the baseline so the *production* cases below are about the secret each of
+  // them names. `assertProductionSecrets` requires this one too, and a baseline without it
+  // would make every production case fail for the wrong reason; the case that asserts the
+  // requirement unsets it explicitly.
+  MAIL_API_KEY: 'resend-api-key-value',
 } as unknown as AppEnv;
 
 function useEnv(overrides: Partial<AppEnv> = {}): void {
@@ -249,6 +258,29 @@ describe('withScope', () => {
     const service = await withScope((cradle) => cradle.userService);
 
     expect(service).toBeDefined();
+  });
+
+  it('gives the rate limiter its own scope’s EntityManager, never a shared one', async () => {
+    // The lifetime is forced by the dependency: `RateLimiter` holds `em`, and `em` is a
+    // per-request fork. A singleton registration would capture the first request's
+    // EntityManager and hand it to everyone afterwards. Contrast `passwordService`, which
+    // is a singleton *because* its state must be process-global.
+    const [first, second] = await Promise.all([
+      withScope((cradle) => ({ limiter: cradle.rateLimiter, em: cradle.em })),
+      withScope((cradle) => ({ limiter: cradle.rateLimiter, em: cradle.em })),
+    ]);
+    const sameScope = await withScope((cradle) => [cradle.rateLimiter, cradle.rateLimiter]);
+
+    expect(first.limiter).not.toBe(second.limiter);
+    // The instance a scope resolves twice is cached, so a route and a service in one
+    // request share one limiter over one EntityManager.
+    expect(sameScope[0]).toBe(sameScope[1]);
+    // `em` is private on the limiter, so the proof it took *this* scope's fork is that a
+    // statement issued through it lands on that scope's EntityManager.
+    const execute = vi.fn(async () => [{ count: 1, retry_after_seconds: 1 }]);
+    (first.em as unknown as { execute: unknown }).execute = execute;
+    await first.limiter.consume('sign-in:ip:probe', { limit: 5, windowMs: 1000 });
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 
   it('disposes the scope even when the callback throws', async () => {
@@ -418,6 +450,97 @@ describe('selecting the GitHub identity adapter', () => {
   });
 });
 
+describe('selecting the mailer', () => {
+  it('registers Resend when nothing asks for anything else', async () => {
+    useEnv({ NODE_ENV: 'test' } as Partial<AppEnv>);
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('registers the log mailer only when both signals are set', async () => {
+    useEnv({ MAILER_ADAPTER: 'log', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(LogMailerAdapter);
+    // Loud on the way in: this adapter writes live verification links into the log, so a
+    // process that somehow reaches it in a real deployment must say so rather than leave an
+    // operator to discover it from mail that never arrives.
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'log' },
+      expect.stringContaining('log mailer is active'),
+    );
+  });
+
+  it('keeps the real mailer when the switch is set without the integration-run signal', async () => {
+    // The security-relevant direction. `config/env.ts` refuses to parse this combination at
+    // all, so a real deployment never reaches here — but the container is also composable
+    // from a hand-built `AppEnv` (a script, a seeder, a test), and one flag must never be
+    // enough to select a fake that writes credentials to a log.
+    useEnv({ MAILER_ADAPTER: 'log', INTEGRATION_TEST_RUN: false });
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+    expect(container.cradle.mailer).not.toBeInstanceOf(LogMailerAdapter);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('keeps the real mailer in an integration run that did not ask for the log adapter', async () => {
+    useEnv({ MAILER_ADAPTER: 'resend', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+  });
+
+  it('picks the log mailer in development when MAILER_ADAPTER is unset, and warns', async () => {
+    // Edge case 29: registration fails closed on a delivery failure, so `npm run dev` with
+    // the real adapter and no API key would present a form that always 503s. The link ends
+    // up in the terminal the dev server is already printing to.
+    useEnv({ NODE_ENV: 'development', MAILER_ADAPTER: undefined, MAIL_API_KEY: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(LogMailerAdapter);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'log' },
+      expect.stringContaining('no MAILER_ADAPTER is set'),
+    );
+  });
+
+  it('respects an explicit resend choice in development, key or no key', async () => {
+    // Selection is from flags that are *present*, never from credentials that are absent.
+    // A developer who names the real adapter gets it, and finds out about the missing key
+    // at the route rather than by wondering why no mail arrived.
+    useEnv({
+      NODE_ENV: 'development',
+      MAILER_ADAPTER: 'resend',
+      MAIL_API_KEY: undefined,
+    });
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('does not extend the development default to test or production', async () => {
+    // `test` has no `MAILER_ADAPTER` either, and must still get the real adapter: the
+    // convenience is about a human running `npm run dev`, not about any non-production
+    // environment.
+    useEnv({ NODE_ENV: 'test', MAILER_ADAPTER: undefined });
+
+    expect((await getContainer()).cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+  });
+
+  it('shares one mailer for the process, so the boot warning is printed once', async () => {
+    useEnv({ MAILER_ADAPTER: 'log', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBe(container.cradle.mailer);
+    expect(await withScope((cradle) => cradle.mailer)).toBe(container.cradle.mailer);
+    expect(logger.warn).toHaveBeenCalledOnce();
+  });
+});
+
 describe('the production secret gate', () => {
   it('refuses to build a production container without SESSION_SECRET', async () => {
     useEnv({ NODE_ENV: 'production', SESSION_SECRET: undefined });
@@ -438,6 +561,53 @@ describe('the production secret gate', () => {
     // holds because the build never creates a container; only `getEnv()` runs, and the
     // schema has no such requirement (see `env.test.ts`).
     useEnv({ NODE_ENV: 'development', SESSION_SECRET: undefined });
+
+    await expect(getContainer()).resolves.toBeDefined();
+  });
+
+  it('refuses to build a production container without MAIL_API_KEY', async () => {
+    // Edge case 1b, second half. Without it the deployment boots green, serves every page,
+    // and 503s every single sign-up — because registration must not report success for a
+    // verification link it could not deliver (edge case 29).
+    useEnv({ NODE_ENV: 'production', SESSION_SECRET: SECRET, MAIL_API_KEY: undefined });
+
+    await expect(getContainer()).rejects.toThrow(/MAIL_API_KEY is required/);
+  });
+
+  it('exempts a production process that legitimately selected the log mailer', async () => {
+    // The harness runs the app as `NODE_ENV=production` with no mail account at all. That
+    // is legitimate *because* `INTEGRATION_TEST_RUN=1` says so — see `environment.ts`.
+    useEnv({
+      NODE_ENV: 'production',
+      SESSION_SECRET: SECRET,
+      MAIL_API_KEY: undefined,
+      MAILER_ADAPTER: 'log',
+      INTEGRATION_TEST_RUN: true,
+    });
+
+    const container = await getContainer();
+
+    expect(container.cradle.mailer).toBeInstanceOf(LogMailerAdapter);
+  });
+
+  it('does not accept MAILER_ADAPTER=log alone as the exemption', async () => {
+    // One flag is never enough. The env schema refuses this pair outright, and the gate
+    // refuses it again for a hand-built `AppEnv` that never went through the schema.
+    useEnv({
+      NODE_ENV: 'production',
+      SESSION_SECRET: SECRET,
+      MAIL_API_KEY: undefined,
+      MAILER_ADAPTER: 'log',
+      INTEGRATION_TEST_RUN: false,
+    });
+
+    await expect(getContainer()).rejects.toThrow(/MAIL_API_KEY is required/);
+  });
+
+  it('does not require a mail key outside production', async () => {
+    // Same reasoning as the session secret: `npm run dev` must start without a mail account,
+    // and `next build` — production, no environment, in CI — never creates a container.
+    useEnv({ NODE_ENV: 'development', MAIL_API_KEY: undefined });
 
     await expect(getContainer()).resolves.toBeDefined();
   });

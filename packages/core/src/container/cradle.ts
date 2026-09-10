@@ -8,7 +8,9 @@ import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
+import type { Mailer } from '../services/notifications/mailer.port';
 import type { Session } from '../http/auth';
+import type { RateLimiter } from '../http/rate-limit';
 
 /**
  * The typed shape of everything registered in the awilix container. Resolving any
@@ -17,9 +19,9 @@ import type { Session } from '../http/auth';
  *
  * Lifetimes:
  * - `env`, `logger`, `orm`, `eventBus`, `clock`, `sessionService`, `tokenService`,
- *   `passwordService`, `githubIdentity` — SINGLETON (shared for the process).
- * - `em`, `userService`, `sessionCookie`, `session` — SCOPED (created fresh per request
- *   scope).
+ *   `passwordService`, `githubIdentity`, `mailer` — SINGLETON (shared for the process).
+ * - `em`, `userService`, `rateLimiter`, `sessionCookie`, `session` — SCOPED (created fresh
+ *   per request scope).
  *
  * As services grow to ~9 concepts, each new one is a new explicit line here and in
  * `container.ts` — never auto-discovered from a folder scan.
@@ -45,8 +47,23 @@ export interface Cradle {
    * See `container.ts` for the two-signal selection rule.
    */
   githubIdentity: GithubIdentityPort;
+  /**
+   * The outbound-email seam (B14). Resolving `send` and awaiting it is the whole contract:
+   * it settles only when the provider accepted the message, which is what lets registration
+   * fail closed rather than report success for a link nobody received (edge case 29). Which
+   * adapter answers is `container.ts`'s decision — see `selectMailer`.
+   */
+  mailer: Mailer;
   em: EntityManager;
   userService: UserService;
+  /**
+   * Brute-force rate limiting (B8). **SCOPED because it holds `em`**, not because it holds
+   * per-request state — it holds none. The counters are rows in `auth_rate_limits`, which
+   * is what makes one limit apply across process restarts and across every running
+   * instance, and it is the opposite of `passwordService`'s in-memory gate for exactly
+   * that reason.
+   */
+  rateLimiter: RateLimiter;
   /**
    * The raw, still-unverified session cookie this scope was opened for, or `null` when it
    * was not opened for a request at all (`withScope`, i.e. system work). Registered by

@@ -6,10 +6,27 @@ export {
   NotFoundError,
   ConflictError,
   ValidationError,
+  TooManyRequestsError,
   ServiceUnavailableError,
+  RATE_LIMITED_MESSAGE,
   isAppError,
   type FieldErrors,
 } from './errors';
+// The rate limiter (B8). The policies are exported because a route names the one it is
+// enforcing; `RATE_LIMIT_SCOPES` is not a thing — the scope is a literal at the call site,
+// checked against `RateLimitScope`.
+export {
+  RateLimiter,
+  rateLimitKey,
+  clientIpFromHeaders,
+  SIGN_IN_IP_POLICY,
+  SIGN_IN_EMAIL_POLICY,
+  REGISTRATION_IP_POLICY,
+  VERIFICATION_RESEND_EMAIL_POLICY,
+  type RateLimitPolicy,
+  type RateLimitScope,
+  type RateLimitKind,
+} from './rate-limit';
 export { safeReturnTo } from './return-to';
 export {
   serializeCookie,

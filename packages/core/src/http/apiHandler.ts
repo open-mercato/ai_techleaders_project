@@ -1,6 +1,6 @@
 import { createLogger, type Logger } from '../logger';
 import { requireCsrfHeader } from './auth';
-import { type FieldErrors, isAppError } from './errors';
+import { type AppError, type FieldErrors, isAppError } from './errors';
 import { requestPath } from './safe-url';
 
 /**
@@ -12,7 +12,17 @@ import { requestPath } from './safe-url';
 export type ApiSuccess<T> = { ok: true; data: T };
 export type ApiFailure = {
   ok: false;
-  error: { code: string; message: string; fieldErrors?: FieldErrors };
+  error: {
+    code: string;
+    message: string;
+    fieldErrors?: FieldErrors;
+    /**
+     * Present on `429 rate_limited`: how long to wait, in whole seconds. It duplicates
+     * the `Retry-After` header on purpose — a client rendering the failure envelope
+     * should not have to read response headers to know when to offer a retry.
+     */
+    retryAfterSeconds?: number;
+  };
 };
 export type ApiResponseBody<T> = ApiSuccess<T> | ApiFailure;
 
@@ -63,6 +73,34 @@ export function jsonError(
   );
 }
 
+/**
+ * The failure response for a thrown `AppError`, with every envelope field the error
+ * declares.
+ *
+ * Separate from `jsonError` rather than a sixth optional positional parameter on it.
+ * `jsonError` builds an envelope from loose parts for a caller that has no error object;
+ * this builds one from an error that already knows its own status, code, message,
+ * `fieldErrors`, `retryAfterSeconds` and headers. Keeping them apart is what stops the
+ * next envelope field from being another `undefined` in a call site's argument list.
+ */
+function appErrorResponse(error: AppError): Response {
+  return json(
+    error.status,
+    {
+      ok: false,
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(error.fieldErrors ? { fieldErrors: error.fieldErrors } : {}),
+        ...(error.retryAfterSeconds === undefined
+          ? {}
+          : { retryAfterSeconds: error.retryAfterSeconds }),
+      },
+    },
+    error.headers,
+  );
+}
+
 export interface ApiHandlerOptions {
   /**
    * Set `false` to skip the CSRF header check. **Reserved for the payment-webhook route
@@ -102,13 +140,7 @@ export function apiHandler(
       return result instanceof Response ? result : jsonOk(result);
     } catch (error) {
       if (isAppError(error)) {
-        return jsonError(
-          error.status,
-          error.code,
-          error.message,
-          error.fieldErrors,
-          error.headers,
-        );
+        return appErrorResponse(error);
       }
       // `req.url` is the **full** URL, query string included. `/api/auth/github/callback`
       // receives the GitHub authorization `code` and the signed `state` there, and

@@ -16,9 +16,15 @@ export default defineConfig({
       // The `npm run setup` installer lives outside packages/; without this its tests
       // would never be collected and its coverage gate would pass vacuously.
       'scripts/**/*.test.mjs',
+      // The integration *harness* has logic of its own — `waitForMail` parses log lines and
+      // has to time out cleanly — and that logic cannot be proven by the suite it serves: a
+      // broken helper there shows up as a scenario that hangs, in a job that needs Docker
+      // and a browser runtime. `*.test.ts` under `tests/` is collected here and run without
+      // either; the browser scenarios are `*.integration.test.ts` and stay excluded below.
+      'tests/**/*.test.ts',
     ],
     exclude: [
-      'tests/integration/**',
+      'tests/integration/**/*.integration.test.ts',
       '**/.next/**',
       '**/node_modules/**',
       '**/dist/**',
@@ -66,6 +72,7 @@ export default defineConfig({
         'packages/core/src/http/errors.ts',
         'packages/core/src/http/makeCrudRoute.ts',
         'packages/core/src/http/outbound.ts',
+        'packages/core/src/http/rate-limit.ts',
         'packages/core/src/http/return-to.ts',
         'packages/core/src/http/safe-url.ts',
         'packages/core/src/logger.ts',
@@ -79,9 +86,13 @@ export default defineConfig({
         'packages/core/src/services/auth/session.service.ts',
         'packages/core/src/services/auth/token.service.ts',
         'packages/core/src/services/auth/user.service.ts',
+        'packages/core/src/services/notifications/adapters/log-mailer.ts',
+        'packages/core/src/services/notifications/adapters/resend-mailer.ts',
+        'packages/core/src/services/notifications/mailer.port.ts',
         'packages/core/src/time/clock.ts',
         'packages/db/src/config.ts',
         'packages/db/src/env.ts',
+        'packages/db/src/entities/auth/rate-limit.entity.ts',
         'packages/db/src/entities/auth/roles.ts',
         'packages/db/src/entities/auth/user.entity.ts',
         'packages/db/src/seeders/database.seeder.ts',
@@ -144,6 +155,12 @@ export default defineConfig({
         'scripts/setup/index.mjs',
         'scripts/setup/run.mjs',
         'scripts/setup/steps.mjs',
+        // Harness code, under the production gate on purpose: `waitForMail` parses log
+        // lines, tolerates a half-written flush and has to time out rather than hang, and
+        // every one of those branches is a way for an integration failure to be reported as
+        // something it is not. The suite it serves cannot cover it — it needs Docker and a
+        // browser runtime — so the unit gate is the only thing that can.
+        'tests/integration/mail.ts',
       ],
       reportsDirectory: 'coverage/unit',
       reporter: ['text', 'json', 'html', 'lcov'],

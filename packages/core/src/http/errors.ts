@@ -15,6 +15,18 @@ export class AppError extends Error {
    * always stays `application/json`, so an error cannot change the envelope's type.
    */
   readonly headers?: Record<string, string>;
+  /**
+   * How long the caller should wait before retrying, in whole seconds. `apiHandler`
+   * copies it into the failure envelope alongside `code` and `message`.
+   *
+   * It lives on the base class next to `fieldErrors`, for the same reason `fieldErrors`
+   * does: the envelope is one shape, and a field only one subclass populates is still a
+   * field of that shape. It is *duplicated* in the `Retry-After` header rather than left
+   * to it, because a `fetch` caller reading `{ ok: false, error }` should not have to
+   * reach for `response.headers` to render "try again in 4 minutes", and because a
+   * header is easy for an intermediary to strip.
+   */
+  readonly retryAfterSeconds?: number;
 
   constructor(
     message: string,
@@ -24,6 +36,7 @@ export class AppError extends Error {
       fieldErrors?: FieldErrors;
       cause?: unknown;
       headers?: Record<string, string>;
+      retryAfterSeconds?: number;
     },
   ) {
     super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
@@ -33,6 +46,7 @@ export class AppError extends Error {
     this.code = code;
     this.fieldErrors = options?.fieldErrors;
     this.headers = options?.headers;
+    this.retryAfterSeconds = options?.retryAfterSeconds;
   }
 }
 
@@ -69,6 +83,42 @@ export class ConflictError extends AppError {
 export class ValidationError extends AppError {
   constructor(message = 'Validation failed', fieldErrors?: FieldErrors) {
     super(message, 422, 'validation_failed', { fieldErrors });
+  }
+}
+
+/**
+ * The message every rate-limit refusal carries, whatever bucket ran out.
+ *
+ * **Deliberately generic, and it is a security property rather than copy.** The per-email
+ * and per-IP buckets have different limits, so a message that named the bucket — or a
+ * count, or "this address" — would tell an enumerator which addresses have accounts and
+ * which do not, which is the same oracle the identical 401 on a wrong password and an
+ * unknown address exists to close (accounts spec, edge cases 13 and 17). It also says
+ * nothing about *why* the attempt was refused, so it reads the same for a user who
+ * mistyped their password five times and for the attacker sharing their office IP.
+ */
+export const RATE_LIMITED_MESSAGE =
+  'Too many attempts. Please wait a few minutes and try again.';
+
+/**
+ * The caller has spent its allowance of attempts for this window (platform primitives
+ * B8). Always retryable, and `retryAfterSeconds` says when — carried both in the envelope
+ * and as the standard `Retry-After` header.
+ *
+ * The message is not a constructor default a caller is expected to override: overriding
+ * it is how the generic wording above stops being generic. The parameter exists for the
+ * one legitimate case, a future bucket whose refusal is genuinely a different fact, and
+ * changing it is a review question rather than a call-site decision.
+ */
+export class TooManyRequestsError extends AppError {
+  constructor(retryAfterSeconds: number, message = RATE_LIMITED_MESSAGE) {
+    super(message, 429, 'rate_limited', {
+      retryAfterSeconds,
+      // Seconds, the delta-seconds form of `Retry-After`, rather than an HTTP-date: a
+      // date would be read against the *client's* clock, and this bound is measured
+      // against the server's.
+      headers: { 'Retry-After': String(retryAfterSeconds) },
+    });
   }
 }
 

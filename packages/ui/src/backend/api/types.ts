@@ -8,4 +8,17 @@ export type FieldErrors = Record<string, string[]>;
 
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string; fieldErrors?: FieldErrors } };
+  | {
+      ok: false;
+      error: {
+        code: string;
+        message: string;
+        fieldErrors?: FieldErrors;
+        /**
+         * Present on `429 rate_limited`: how long to wait, in whole seconds. It mirrors
+         * the response's `Retry-After` header so a form can say when to try again
+         * without reading headers off the `Response`.
+         */
+        retryAfterSeconds?: number;
+      };
+    };

@@ -2,7 +2,6 @@ import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { createWriteStream, type WriteStream } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import type { TestProject } from 'vitest/node';
@@ -11,6 +10,8 @@ import {
   integrationArtifactsDirectory,
 } from './agent-browser';
 import { integrationChildEnvironment } from './environment';
+// The one definition of where the app's output lands, shared with the reader that polls it.
+import { appLogPath } from './mail';
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
@@ -177,9 +178,8 @@ export default async function setup(project: TestProject) {
     await runNpm(['run', 'db:seed'], environment);
     await runNpm(['run', 'build'], environment);
 
-    appLog = createWriteStream(resolve(integrationArtifactsDirectory, 'app.log'), {
-      flags: 'w',
-    });
+    // `'w'` truncates, so a run never reads a previous run's mail out of a stale file.
+    appLog = createWriteStream(appLogPath, { flags: 'w' });
     app = spawn(
       npmExecutable,
       [

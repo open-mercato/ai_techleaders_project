@@ -125,7 +125,7 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `APP_NAME` | `DevMentor` | Name attached to every log line. |
 | `LOG_LEVEL` | `info` | pino level, from `fatal` to `silent`. |
 | `APP_URL` | `http://localhost:3000` | Absolute origin of this deployment. Builds the OAuth redirect URI and the links in outbound mail, so it must be the address a browser actually reaches. Must be `http://` or `https://`. |
-| `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header. Declared and validated now; the rate limiter that reads it arrives with password sign-in. |
+| `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header, so per-IP limiting is off and only the per-email limits apply (a warning says so once per process). Counting from the right is deliberate: a proxy appends to the header, so a value a client forged always sits to the left of the one infrastructure wrote. |
 
 ### Database
 
