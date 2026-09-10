@@ -229,7 +229,7 @@ describe('prototype access and continuation', () => {
   it('guards each protected screen by its required role and keeps public screens public', () => {
     const menteeOnly = ['s4', 's5', 's13', 's14', 's18'];
     const shared = ['s6', 's7', 's8', 's9', 's10', 's15'];
-    const mentorOnly = ['s11'];
+    const mentorOnly = ['s11', 's27', 's28', 's29'];
     const operatorOnly = ['s24', 's25'];
     for (const screenId of [...menteeOnly, ...shared, ...mentorOnly, ...operatorOnly]) expect(allowedScreen(null, screenId)).toBe(false);
     for (const screenId of menteeOnly) {
@@ -243,7 +243,11 @@ describe('prototype access and continuation', () => {
     }
     expect(allowedScreen(withRoles(['mentee']), 's11')).toBe(false);
     expect(allowedScreen(withRoles(['mentor']), 's24')).toBe(false);
-    for (const screenId of ['s1', 's2', 's3', 's12', 's16', 's17', 's19', 's20', 's21', 's22', 's23']) expect(allowedScreen(null, screenId)).toBe(true);
+    for (const screenId of mentorOnly) {
+      expect(allowedScreen(withRoles(['mentor']), screenId)).toBe(true);
+      expect(allowedScreen(withRoles(['mentee']), screenId)).toBe(false);
+    }
+    for (const screenId of ['s1', 's2', 's3', 's12', 's16', 's17', 's19', 's20', 's21', 's22', 's23', 's26']) expect(allowedScreen(null, screenId)).toBe(true);
     expect(allowedScreen(null, 's999')).toBe(false);
   });
 
@@ -251,11 +255,52 @@ describe('prototype access and continuation', () => {
     const mentee = withRoles(['mentee']);
     expect(safeDestination(mentee, 's4')).toBe('s4');
     expect(safeDestination(mentee, 's19')).toBe('s19');
-    for (const destination of [null, '', 's0', 's26', 's999', 's4?password=x', '#s4', ' s4', 'https://example.test', '//example.test', '/\\example.test', 's24']) {
+    expect(safeDestination(mentee, 's26')).toBe('s26');
+    for (const destination of [null, '', 's0', 's30', 's999', 's4?password=x', '#s4', ' s4', 'https://example.test', '//example.test', '/\\example.test', 's24']) {
       expect(safeDestination(mentee, destination)).toBe('s6');
     }
     expect(safeDestination(withRoles(['mentor']), 's4')).toBe('s11');
     expect(safeDestination(withRoles(['operator']), 's11')).toBe('s24');
     expect(safeDestination(withRoles([]), 's24')).toBe('s17');
+  });
+
+  it('adds mentor only to the current session and preserves roles across repeat grants and sign-in', () => {
+    const demo = createAuthDemo();
+    expect(demo.grantMentor()).toMatchObject({ ok: false, error: { code: 'unauthorized' } });
+    demo.github('jordan', 'success');
+    expect(userOf(demo.grantMentor()).roles).toEqual(['mentee', 'mentor']);
+    expect(userOf(demo.grantMentor()).roles).toEqual(['mentee', 'mentor']);
+    demo.logout();
+    expect(demo.grantMentor().ok).toBe(false);
+    expect(userOf(demo.login(login)).roles).toEqual(['mentee', 'mentor']);
+    expect(userOf(demo.github('sam', 'success')).roles).toEqual(['mentor', 'operator']);
+    expect(userOf(demo.grantMentor()).roles).toEqual(['mentor', 'operator']);
+    demo.reset();
+    expect(userOf(demo.login(login)).roles).toEqual(['mentee']);
+  });
+
+  it('lists current demo users with additive roles, pending registration and live operator eligibility', () => {
+    const demo = createAuthDemo();
+    const initial = demo.getUsers();
+    expect(initial).toHaveLength(DEMO_ACCOUNTS.length - 1);
+    expect(initial.some(user => user.id === 'pending')).toBe(true);
+    expect(initial.some(user => user.id === 'new-github')).toBe(false);
+    for (const user of initial) expect(Object.keys(user).sort()).toEqual(['displayName', 'email', 'id', 'roles']);
+    initial[0].roles.push('operator');
+    initial[0].displayName = 'Changed';
+    initial.push({ ...initial[0], id: 'fake' });
+    expect(demo.getUsers()[0]).toMatchObject({ displayName: 'Jordan Lee', roles: ['mentee'] });
+    expect(demo.getUsers()).toHaveLength(DEMO_ACCOUNTS.length - 1);
+    demo.login(login);
+    demo.grantMentor();
+    expect(demo.getUsers().find(user => user.id === 'jordan')?.roles).toEqual(['mentee', 'mentor']);
+    demo.register(registration);
+    expect(demo.getUsers().find(user => user.email === registration.email)).toMatchObject({ displayName: registration.displayName, roles: ['mentee'] });
+    demo.setOperatorEligible(false);
+    expect(demo.getUsers().find(user => user.id === 'sam')?.roles).toEqual(['mentor']);
+    demo.setOperatorEligible(true);
+    expect(demo.getUsers().find(user => user.id === 'sam')?.roles).toEqual(['mentor', 'operator']);
+    demo.reset();
+    expect(demo.getUsers().some(user => user.email === registration.email)).toBe(false);
   });
 });

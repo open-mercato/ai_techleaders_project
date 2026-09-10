@@ -7,6 +7,8 @@ import { DEMO_NOW } from './flow';
 import { getPrototypeMentors } from './mentors';
 import { navigate } from './navigation';
 import { INITIAL_REVIEWS } from './reviews';
+import { createMentorDemo } from './mentor-model';
+import { DEMO_ACCOUNTS } from './auth-model';
 
 vi.mock('./navigation', () => ({ navigate: vi.fn(), scrollToSection: vi.fn() }));
 beforeEach(() => { vi.mocked(navigate).mockReset(); });
@@ -122,4 +124,25 @@ it('uses Alex’s current prices, submitted reviews and selectable slots in cata
   expect(alex).toMatchObject({ price25: 220, price50: 400, reviewCount: 2, averageRating: 4.5, nextAvailableAt: '2026-09-11T10:00:00Z' });
   expect(alex.availableSlots).toEqual(['2026-09-11T10:00:00Z', '2026-09-11T14:00:00Z']);
   expect(getPrototypeMentors(prices, [], [])[0]).toMatchObject({ reviewCount: 0, averageRating: 0, nextAvailableAt: null, availableSlots: [] });
+});
+
+it('uses saved profile edits for catalogue search, cards and the selected profile details', async () => {
+  const demo = createMentorDemo();
+  const alex = DEMO_ACCOUNTS.find(account => account.id === 'alex')!;
+  const description = 'I help you test Python data imports and trace failed records.';
+  demo.saveProfile(alex, { displayName: 'Alex Rowan', description, publicWorkUrl: 'https://github.com/example', stacks: ['Python'] });
+  const profile = demo.getPublic('alex')!;
+  const mentors = getPrototypeMentors(prices, INITIAL_REVIEWS, profile.slots, profile);
+  expect(mentors[0]).toMatchObject({ name: 'Alex Rowan', headline: 'Python', introduction: description, stacks: ['Python'], topics: ['Python'], bio: [description], initials: 'AR' });
+  const onFullProfile = vi.fn();
+  render(<MentorCatalogueScreen mentors={mentors} now={now} onFullProfile={onFullProfile}/>);
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search mentors' }), { target: { value: 'Rowan Python' } });
+  expect(screen.getAllByRole('article')).toHaveLength(1);
+  expect(screen.queryByRole('button', { name: "View Alex Laurent's profile" })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: "View Alex Rowan's profile" }));
+  const dialog = within(await screen.findByRole('dialog', { name: 'Alex Rowan' }));
+  expect(dialog.getAllByText(description).length).toBeGreaterThan(0);
+  expect(dialog.queryByText('TypeScript types and narrowing')).toBeNull();
+  fireEvent.click(dialog.getByRole('button', { name: 'View full profile' }));
+  await waitFor(() => expect(onFullProfile).toHaveBeenCalledOnce());
 });

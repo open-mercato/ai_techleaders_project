@@ -38,6 +38,8 @@ export default defineConfig({
         'packages/ui/src/components/disputes/DisputeDetail.tsx',
         'packages/ui/src/components/invitations/InvitationBatch.tsx',
         'packages/ui/src/components/mentors/MentorProfileCard.tsx',
+        'packages/ui/src/components/mentors/MentorProfileEditor.tsx',
+        'packages/ui/src/components/mentors/MentorOnboarding.tsx',
         'packages/ui/src/components/mentors/MentorReviews.tsx',
         'packages/ui/src/components/mentors/MentorSearch.tsx',
         'packages/ui/src/components/mentors/mentor-search.ts',

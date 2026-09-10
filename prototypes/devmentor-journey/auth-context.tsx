@@ -39,7 +39,7 @@ export function useAuthController(hasSelectedTime: boolean, hasConfirmedBooking 
     }
   }, [screen, user?.id]);
   function hasDemoSession(current: DemoUser | null) {
-    return !!current && (confirmed.current || ['jordan', 'alex', 'taylor', 'sam'].includes(current.id));
+    return !!current && (confirmed.current || ['jordan', 'alex'].includes(current.id));
   }
   function remember(id: string | null) { destination.current = id; setReturnTo(id); }
   function complete() {
@@ -59,7 +59,7 @@ export function useAuthController(hasSelectedTime: boolean, hasConfirmedBooking 
       } else if (current && sessionDetailScreens.has(next) && !hasDemoSession(current)) {
         setNotice(null); remember(null); redirect = 's6';
       } else if (next === 's12' && !authScreens.has(previous.current)) {
-        if (!redirectingToSignIn.current) remember(previous.current === 's3' && selected.current ? 's4' : null);
+        if (!redirectingToSignIn.current) remember(previous.current === 's26' ? 's26' : previous.current === 's3' && selected.current ? 's4' : null);
         setFormError(null);
       }
       if (next === 's12') redirectingToSignIn.current = false;
@@ -125,7 +125,7 @@ export function useAuthController(hasSelectedTime: boolean, hasConfirmedBooking 
   }
   function setFailure(value: AuthDemoFailure) { authDemo.setFailure(value); setFailureState(value); }
   function switchMode(id: 's12' | 's20') { setNotice(null); setFormError(null); navigate(id); }
-  const hasSession = !!user && (hasConfirmedBooking || ['jordan', 'alex', 'taylor', 'sam'].includes(user.id));
+  const hasSession = !!user && (hasConfirmedBooking || ['jordan', 'alex'].includes(user.id));
   return { user, hasSession, screen, notice, formError, pendingEmail, returnTo, failure, githubAccount, githubOutcome, verification, emailDisabled, busy,
     setFailure, setGithubAccount, setGithubOutcome, setVerification, setEmailDisabled, switchMode, complete, expire, operatorEligible,
     verify: () => request('verify', { mode: verification }),
