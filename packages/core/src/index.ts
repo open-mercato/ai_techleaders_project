@@ -132,6 +132,18 @@ export { EventBus, type EventHandler, type EventId, type EventMap } from './even
 export { systemClock, type Clock } from './time/clock';
 export { defineVocabulary, type VocabularyOption } from './domain/vocabulary';
 export { StackTags, type StackTag } from './domain/vocabularies/stack-tags';
+export {
+  SessionLengths,
+  sessionLengthMinutes,
+  type SessionLength,
+  type SessionLengthMinutes,
+} from './domain/vocabularies/session-lengths';
+export {
+  parseMajorAmount,
+  withinBounds,
+  type Cents,
+  type PriceBounds,
+} from './money/money';
 
 // Reusable HTTP layer (typed errors, route wrappers, auth guards).
 export * from './http/index';
