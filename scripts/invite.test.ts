@@ -14,7 +14,7 @@ vi.mock('@devmentor/db', async (importOriginal) => ({
   closeOrm: harness.closeOrm,
 }));
 
-const { main, runInvite } = await import('./invite');
+const { evalArguments, main, runInvite } = await import('./invite');
 
 function effects() {
   return {
@@ -127,6 +127,13 @@ describe('runInvite', () => {
 });
 
 describe('main', () => {
+  it('keeps the subcommand when invoked through the tsx eval wrapper', () => {
+    expect(evalArguments(['node', 'create', 'ada@example.com'])).toEqual([
+      'create',
+      'ada@example.com',
+    ]);
+  });
+
   it('uses process arguments by default and writes through the system scope', async () => {
     const io = effects();
     const original = process.argv;
