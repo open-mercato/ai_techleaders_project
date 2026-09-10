@@ -75,7 +75,9 @@ error does not carry them — they are never emitted as `null`.
   start times; `DELETE /api/availability/slots/[id]` soft-removes only a slot owned by that
   mentor. The mutating verbs inherit the standard CSRF check. A duplicate active start answers
   the existing 409 `conflict` envelope, and owner responses are explicit `{ id, startsAt }`
-  DTOs rather than entities.
+  DTOs rather than entities. A mentor may retain up to 500 active slots; publication at the
+  cap answers 422 and asks the mentor to remove an existing time. Owner and public reads use
+  that same explicit upper bound.
 - `GET /api/mentors/[slug]` additively includes `slots`, ordered by start time, with
   `{ id, startsAt, meetsLeadTime }`. `meetsLeadTime` is true through the exact two-hour
   boundary. Source-level `MentorProfilePublicDto.slots` remains optional for Slice 2 callers,

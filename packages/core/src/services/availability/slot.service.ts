@@ -19,6 +19,7 @@ import type { SlotCreateInput } from '../../validators/availability/slot-create.
 
 const ACTIVE_SLOT_CONSTRAINT = 'slots_active_mentor_profile_starts_at_unique';
 const LEAD_TIME_MS = 2 * 60 * 60 * 1000;
+export const MAX_ACTIVE_SLOTS = 500;
 
 export interface SlotOwnerDto {
   id: string;
@@ -89,7 +90,7 @@ export class SlotService {
     const slots = await this.em.find(
       Slot,
       { mentorProfile: profile.id, removedAt: null },
-      { orderBy: { startsAt: 'asc' } },
+      { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
     return slots.map(toOwnerDto);
   }
@@ -107,6 +108,15 @@ export class SlotService {
     try {
       const slot = await this.em.transactional(async (tx) => {
         const profile = await this.ownerProfile(tx, session.userId);
+        const activeCount = await tx.count(Slot, {
+          mentorProfile: profile.id,
+          removedAt: null,
+        });
+        if (activeCount >= MAX_ACTIVE_SLOTS) {
+          throw new ValidationError(`You can publish up to ${MAX_ACTIVE_SLOTS} active times.`, {
+            startsAt: ['Remove an existing time before publishing another.'],
+          });
+        }
         const created = tx.create(Slot, { mentorProfile: profile, startsAt, removedAt: null });
         profile.lastPublishedAvailabilityAt = now;
         tx.persist(created);
@@ -150,7 +160,7 @@ export class SlotService {
     const slots = await this.em.find(
       Slot,
       { mentorProfile: mentorProfileId, removedAt: null, startsAt: { $gte: now } },
-      { orderBy: { startsAt: 'asc' } },
+      { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
     return slots.map((slot) => ({
       ...toOwnerDto(slot),
