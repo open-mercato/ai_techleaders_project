@@ -283,6 +283,41 @@ describe('withScope', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
+  it('gives the email verification service its own scope, the container’s mailer and the container’s env', async () => {
+    // SCOPED for the same forced reason as `userService` — it writes `email_verified_at`,
+    // so it holds `em`. The mailer half is the part worth pinning: which adapter answers is
+    // `selectMailer`'s decision, so the service must *resolve* it rather than construct
+    // one, or an integration run would deliver real mail.
+    useEnv({ SESSION_SECRET: SECRET });
+    const container = await getContainer();
+    const send = vi.spyOn(container.cradle.mailer, 'send').mockResolvedValue(undefined);
+
+    const [first, second] = await Promise.all([
+      withScope((cradle) => cradle.emailVerificationService),
+      withScope((cradle) => cradle.emailVerificationService),
+    ]);
+    const sameScope = await withScope((cradle) => [
+      cradle.emailVerificationService,
+      cradle.emailVerificationService,
+    ]);
+
+    expect(first).not.toBe(second);
+    expect(sameScope[0]).toBe(sameScope[1]);
+
+    await withScope((cradle) =>
+      cradle.emailVerificationService.sendVerificationLink({
+        user: { id: 'user-1', email: 'ada@devmentor.dev' },
+      }),
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    // The link is built from the container's `env`, and the token is signed with the
+    // container's `SESSION_SECRET` — both reached through the singleton `tokenService`.
+    expect(send.mock.calls[0]?.[0].text).toContain(
+      'http://localhost:3000/api/auth/verify-email?token=',
+    );
+  });
+
   it('disposes the scope even when the callback throws', async () => {
     const container = await getContainer();
     const createScope = container.createScope.bind(container);

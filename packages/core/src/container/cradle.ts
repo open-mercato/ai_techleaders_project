@@ -3,6 +3,7 @@ import type { AppEnv } from '../config/env';
 import type { Logger } from '../logger';
 import type { EventBus } from '../events/event-bus';
 import type { Clock } from '../time/clock';
+import type { EmailVerificationService } from '../services/auth/email-verification.service';
 import type { PasswordService } from '../services/auth/password.service';
 import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
@@ -20,8 +21,8 @@ import type { RateLimiter } from '../http/rate-limit';
  * Lifetimes:
  * - `env`, `logger`, `orm`, `eventBus`, `clock`, `sessionService`, `tokenService`,
  *   `passwordService`, `githubIdentity`, `mailer` — SINGLETON (shared for the process).
- * - `em`, `userService`, `rateLimiter`, `sessionCookie`, `session` — SCOPED (created fresh
- *   per request scope).
+ * - `em`, `userService`, `emailVerificationService`, `rateLimiter`, `sessionCookie`,
+ *   `session` — SCOPED (created fresh per request scope).
  *
  * As services grow to ~9 concepts, each new one is a new explicit line here and in
  * `container.ts` — never auto-discovered from a folder scan.
@@ -56,6 +57,14 @@ export interface Cradle {
   mailer: Mailer;
   em: EntityManager;
   userService: UserService;
+  /**
+   * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes
+   * `email_verified_at` — exactly like `userService`, and for the same forced reason: a
+   * singleton would capture the first request's EntityManager. Its other dependencies
+   * (`tokenService`, `mailer`, `env`, `clock`, `logger`) are process singletons and are
+   * shared through this scope rather than rebuilt.
+   */
+  emailVerificationService: EmailVerificationService;
   /**
    * Brute-force rate limiting (B8). **SCOPED because it holds `em`**, not because it holds
    * per-request state — it holds none. The counters are rows in `auth_rate_limits`, which

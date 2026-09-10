@@ -23,6 +23,16 @@ export {
   clearOauthStateCookie,
   readOauthStateCookie,
 } from './services/auth/oauth-state';
+// Email verification. `VERIFY_EMAIL_PATH` is exported for the same reason as
+// `GITHUB_CALLBACK_PATH`: `core` builds the link that goes in the mail and `app` mounts the
+// route it lands on, so the path is named once rather than copied into both.
+export {
+  EmailVerificationService,
+  VERIFY_EMAIL_PATH,
+  type SendVerificationLinkInput,
+  type VerificationRecipient,
+  type VerifiedAccount,
+} from './services/auth/email-verification.service';
 export { PasswordService, type PasswordWork } from './services/auth/password.service';
 export {
   TokenService,
@@ -40,6 +50,14 @@ export {
 // `userCreateSchema` and `UserCreateInput` are deliberately absent: `POST /api/users` is
 // gone, and `UserService.create` now names its two writable fields itself rather than
 // depending on a schema to strip everything else. See BACKWARD_COMPATIBILITY.md §2.
+// The two shared auth bodies. Each is parsed twice — by the route through `apiHandler` and
+// by `CrudForm` in the browser — which is what the `./validators/*` subpath is for: `ui`
+// depends on `zod` directly so a schema can cross that boundary without `ui` importing
+// `core`. Additive, unlike the removal above. The field rules they share live in
+// `validators/auth/fields.ts` and are deliberately not exported: the contract is the two
+// bodies, not the pieces they are built from.
+export { registerSchema, type RegisterInput } from './validators/auth/register.schema';
+export { loginSchema, type LoginInput } from './validators/auth/login.schema';
 // The GitHub OAuth seam. The **port** is exported; the two adapters deliberately are not.
 // `container.ts` is the only thing allowed to choose between them, and a module that
 // cannot be imported cannot be constructed by a route that thinks it knows better.

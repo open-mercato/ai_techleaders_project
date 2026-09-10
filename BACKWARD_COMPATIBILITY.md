@@ -123,9 +123,9 @@ API between packages. `npm run typecheck` is the consumer check.
 - `@devmentor/core` declares five subpaths and they are **not** interchangeable: `.` is the
   full barrel; `./http` and `./events` re-export their folders; `./container` exports only
   `getContainer`, `withScope`, `withRequestScope`, `withCookieScope` and `Cradle`;
-  `./services` exports only `UserService`; `./validators/*` is declared with no folder behind
-  it (see below). Moving a name between subpaths is a breaking change even when `.` still
-  exports it.
+  `./services` exports only `UserService`; `./validators/*` maps to `src/validators/*.ts`
+  and is how a shared client/server schema reaches `packages/ui` (see below). Moving a name
+  between subpaths is a breaking change even when `.` still exports it.
 
   From `.`: `getEnv` with `AppEnv`, `createLogger` with `Logger`, `getContainer`, `withScope`,
   `withRequestScope`, `withCookieScope`, the `Cradle` keys (`env`, `logger`, `orm`, `eventBus`,
@@ -138,8 +138,9 @@ API between packages. `npm run typecheck` is the consumer check.
   (`/api/auth/github/callback` — the value a deployed OAuth app is registered with), the
   OAuth-state cookie helpers (`OAUTH_STATE_COOKIE_NAME`, `OAUTH_STATE_TTL_SECONDS`,
   `issueOauthStateCookie`, `clearOauthStateCookie`, `readOauthStateCookie`), `systemClock`
-  with `Clock`, `EventBus`, `EventMap`, `EventId`, `EventHandler`, and the re-exported
-  `checkDbConnection`.
+  with `Clock`, `EventBus`, `EventMap`, `EventId`, `EventHandler`, the two shared auth
+  bodies (`registerSchema` with `RegisterInput`, `loginSchema` with `LoginInput`), and the
+  re-exported `checkDbConnection`.
 
   From `./http`, also re-exported by `.`: the `AppError` family (`BadRequestError`,
   `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ValidationError`,
@@ -172,6 +173,22 @@ API between packages. `npm run typecheck` is the consumer check.
   make `create` a mass-assignment surface for `roles`, `emailVerifiedAt`, `sessionVersion`
   and `githubId` whose safety depended on whatever schema the caller happened to validate
   with.
+
+  `registerSchema` with `RegisterInput` and `loginSchema` with `LoginInput`
+  (`./validators/auth/register.schema`, `./validators/auth/login.schema`, both also on `.`)
+  are **additive** — they are the concept the subpath was kept for, and they do have the two
+  call sites `userCreateSchema` never had: the route parses the body with them and the
+  sign-up/sign-in `CrudForm` validates with the same object. What is protected is the field
+  set (`email`, `password`, `displayName`, optional `returnTo` for register; `email`,
+  `password`, optional `returnTo` for login) and the limits: 254 characters of email, 12
+  characters minimum on a *new* password, **72 bytes** maximum on either, 120 characters of
+  trimmed display name. Tightening any of them refuses input that used to be accepted and
+  takes the breaking-change path. `loginSchema` deliberately has **no** password minimum;
+  adding one would reject correct passwords set under an older policy and give sign-in a
+  second refusal shape next to the generic 401, so it is a breaking change and not a fix.
+  The rules the two share live in `./validators/auth/fields.ts`; it is reachable through the
+  `./validators/*` wildcard but is not on the barrel and is not part of this contract — the
+  contract is the two bodies, not the pieces they are built from.
 
   Two removals came with the canonical live session: `readSession` (a cookie-only
   parser is no longer part of the authorization surface — see §7) and `Session.role`,

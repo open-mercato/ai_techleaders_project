@@ -11,6 +11,7 @@ import { getEnv, type AppEnv } from '../config/env';
 import { createLogger } from '../logger';
 import { EventBus } from '../events/event-bus';
 import { systemClock } from '../time/clock';
+import { EmailVerificationService } from '../services/auth/email-verification.service';
 import { PasswordService } from '../services/auth/password.service';
 import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
@@ -224,6 +225,14 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),
+    // SCOPED for the same forced reason as `userService`: it writes `email_verified_at`,
+    // so it holds `em`, and a singleton would hand every later request the first request's
+    // fork. Everything else it needs — `tokenService`, `mailer`, `env`, `clock`, `logger` —
+    // is a process singleton reached through this scope, so the per-scope cost is five
+    // field assignments. Note in particular that it must resolve `mailer` from the
+    // container rather than construct one: which adapter that is, is `selectMailer`'s
+    // decision and nothing else's.
+    emailVerificationService: asClass(EmailVerificationService).scoped(),
     // SCOPED, and the lifetime is forced rather than chosen: this depends on `em`, which
     // is a per-request fork, so a singleton would capture the *first* request's
     // EntityManager and hand every later request someone else's identity map and unit of
