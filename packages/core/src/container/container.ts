@@ -107,7 +107,16 @@ async function build(): Promise<AwilixContainer<Cradle>> {
 
   container.register({
     env: asValue(env),
-    logger: asFunction(createLogger).singleton(),
+    // The arrow is NOT redundant — do not "simplify" it to `asFunction(createLogger)`.
+    // This container is `InjectionMode.PROXY`, so awilix invokes every `asFunction`
+    // factory with the **cradle proxy as its first argument**. A bare function reference
+    // therefore receives the cradle in whatever its first parameter happens to be. That is
+    // exactly how a `createLogger(destination?)` overload once passed the cradle to pino as
+    // a destination stream, whereupon pino probed `stream.emit`, the proxy tried to resolve
+    // a registration named `emit`, and every request that built the container 500'd.
+    // `createLogger` is zero-arity now; this pins the call site at zero arguments so that
+    // re-adding a parameter to it cannot resurrect the bug here.
+    logger: asFunction(() => createLogger()).singleton(),
     orm: asValue(orm),
     eventBus: asClass(EventBus).singleton(),
     clock: asValue(systemClock),

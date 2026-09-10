@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { REDACT_CENSOR, REDACT_PATHS, createLogger, loggerOptions } from './logger';
+import {
+  REDACT_CENSOR,
+  REDACT_PATHS,
+  createLogger,
+  createLoggerTo,
+  loggerOptions,
+} from './logger';
 
 /**
  * Collects the JSON lines a logger emits. pino writes a string per record, so the
@@ -19,7 +25,7 @@ function capture(): { lines: string[]; write(chunk: string): void } {
 
 function logRecord(payload: Record<string, unknown>): { text: string; parsed: Record<string, unknown> } {
   const destination = capture();
-  const logger = createLogger(destination);
+  const logger = createLoggerTo(destination);
   logger.error(payload, 'test record');
   const text = destination.lines.join('');
   return { text, parsed: JSON.parse(text) as Record<string, unknown> };
@@ -128,5 +134,16 @@ describe('createLogger redaction', () => {
 
   it('writes to stdout when no destination is given', () => {
     expect(typeof createLogger().error).toBe('function');
+  });
+
+  it('keeps the container-registered factory at zero arity', () => {
+    // Not pedantry: `container.ts` registers `createLogger` in an `InjectionMode.PROXY`
+    // container, which calls every factory with the cradle proxy as its first argument.
+    // The optional `destination` parameter this function used to carry was therefore
+    // filled with the cradle and handed to pino as a stream, and every request that built
+    // the container threw `Could not resolve 'emit'`. A test destination goes through
+    // `createLoggerTo`, which nothing registers, so its parameter can be required.
+    expect(createLogger).toHaveLength(0);
+    expect(createLoggerTo).toHaveLength(1);
   });
 });

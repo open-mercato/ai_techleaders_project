@@ -52,12 +52,32 @@ export function loggerOptions(): LoggerOptions {
 
 /**
  * Root application logger. In development we keep raw JSON (no `pino-pretty` dep in
- * the base install); wire up a transport later if desired.
+ * the base install); wire up a transport later if desired. pino writes to stdout.
  *
- * `destination` exists for tests, which need somewhere to read the emitted line back
- * from; production calls this with no argument and pino writes to stdout.
+ * **This factory takes no parameters, and must not grow one.** It is registered on the
+ * awilix container (`container/container.ts`), which runs in `InjectionMode.PROXY`: awilix
+ * calls every `asFunction` factory with the *cradle proxy* as its first argument. A first
+ * parameter here therefore silently receives the cradle — and when that parameter was an
+ * optional `destination`, the cradle was handed to pino as a stream, pino probed
+ * `stream.emit`, the proxy tried to resolve a registration named `emit`, and **every
+ * request that built the container threw `AwilixResolutionError: Could not resolve
+ * 'emit'`**. See the 2026-09-10 entry in `.ai/lessons.md`.
+ *
+ * A test that needs to read the emitted line back uses `createLoggerTo` below, which is
+ * never registered on a container and so can never be handed a cradle.
  */
-export function createLogger(destination?: DestinationStream): Logger {
+export function createLogger(): Logger {
+  return pino(loggerOptions());
+}
+
+/**
+ * The same logger, writing to `destination` instead of stdout.
+ *
+ * A deliberate, separately named seam rather than an optional parameter on `createLogger`:
+ * the cradle-injected factory has to stay zero-arity (see above), and a required parameter
+ * on a function nothing registers cannot be filled by accident.
+ */
+export function createLoggerTo(destination: DestinationStream): Logger {
   return pino(loggerOptions(), destination);
 }
 
