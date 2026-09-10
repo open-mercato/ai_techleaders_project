@@ -312,6 +312,12 @@ API between packages. `npm run typecheck` is the consumer check.
   `DataTablePagination`, `AppShell` with `AppShellProps`, `AuthLayout` with
   `AuthLayoutProps`, `LoadingMessage`, `ErrorMessage`, `EmptyState`.
 
+  `CrudFieldType` additively includes `money`, and the interface additively exposes its
+  fixed `currency` label. A money field renders a text control with decimal input mode
+  and preserves the exact major-unit string through validation and submission. It never coerces or rounds
+  through a JavaScript number. All existing `CrudForm` props, interface extensions and
+  field behavior remain source-compatible.
+
   From `./tokens.css`: the CSS variable names (`--background`, `--foreground`, `--primary`,
   `--destructive`, `--border`, `--ring`, ...) that Tailwind utilities map onto.
 

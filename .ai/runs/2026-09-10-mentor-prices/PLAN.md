@@ -18,7 +18,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 1 | 1.2 | Add approved platform price configuration and settings service | dispatch:capable | done | 571e9c2 |
 | 1 | 1.3 | Add price persistence, atomic service updates and offer readiness | dispatch:capable | done | e920a19 |
 | 1 | 1.4 | Add the owner-scoped mentor-prices route | dispatch:standard | done | e3c396f |
-| 2 | 2.1 | Add the CrudForm money field | dispatch:standard | todo | — |
+| 2 | 2.1 | Add the CrudForm money field | dispatch:standard | done | bc10b5b |
 | 2 | 2.2 | Add mentor price management and public price presentation | dispatch:capable | todo | — |
 | 3 | 3.1 | Add offer-ready fixtures, integration coverage and browser proof | dispatch:capable | todo | — |
 

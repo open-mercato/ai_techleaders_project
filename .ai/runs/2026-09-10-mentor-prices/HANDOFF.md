@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T19:02:47Z
+**Last updated:** 2026-09-10T19:10:18Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
-**Current phase/step:** Phase 2; Step 2.1 ready
-**Last commit:** e3c396f — feat(prices): add owner price update route
+**Current phase/step:** Phase 2; Step 2.2 ready
+**Last commit:** bc10b5b — feat(ui): add exact money form fields
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -35,9 +35,15 @@
   delegates to the independently owner-scoped `MentorProfileService.updatePrices` method.
 - Route tests prove its exact module exports, helper configuration, schema boundary, successful
   projection and unchanged policy/unexpected error propagation at 100% coverage.
+- Step 2.1 additively extends `CrudForm` with a money field that renders fixed currency, uses a
+  text control with decimal input mode and keeps the exact decimal string through validation and requests.
+- User-event coverage proves empty, valid, invalid, server-refused, network-failed, pending and keyboard
+  paths retain values and preserve helper/error associations. Storybook documents and demonstrates PLN.
+- Full unit coverage passes 1,729 tests at 100% statements, branches, functions and lines; focused tests,
+  typecheck, Storybook typecheck and lint pass.
 
 ## Next concrete action
-- Implement Step 2.1: the source-compatible `CrudForm` money field.
+- Implement Step 2.2: mentor price management, readiness navigation and public price presentation.
 
 ## Blockers / open questions
 - none
