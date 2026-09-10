@@ -470,6 +470,40 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "price_25_cents": {
+          "name": "price_25_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "price_50_cents": {
+          "name": "price_50_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "public_work_url": {
           "name": "public_work_url",
           "type": "text",
@@ -628,6 +662,16 @@
         }
       ],
       "checks": [
+        {
+          "name": "mentor_profiles_price_25_positive",
+          "expression": "\"price_25_cents\" > 0",
+          "definition": "check (\"price_25_cents\" > 0)"
+        },
+        {
+          "name": "mentor_profiles_price_50_positive",
+          "expression": "\"price_50_cents\" > 0",
+          "definition": "check (\"price_50_cents\" > 0)"
+        },
         {
           "name": "mentor_profiles_publication_has_slug",
           "expression": "\"published_at\" is null or \"slug\" is not null",

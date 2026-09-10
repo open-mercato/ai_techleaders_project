@@ -74,17 +74,23 @@ export {
   toPublicDto,
   type MentorProfileOwnerDto,
   type MentorProfilePublicDto,
+  type MentorPricesDto,
 } from './services/mentors/mentor-profile.service';
 export {
   SlotService,
   type SlotOwnerDto,
   type SlotPublicDto,
 } from './services/availability/slot.service';
-export { mentorPagePublishable } from './services/mentors/readiness';
+export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,
   type MentorProfileUpdateInput,
 } from './validators/mentors/mentor-profile-update.schema';
+export {
+  exactMajorDecimalString,
+  mentorPricesUpdateSchema,
+  type MentorPricesUpdateInput,
+} from './validators/mentors/mentor-prices-update.schema';
 export {
   slotCreateSchema,
   type SlotCreateInput,

@@ -54,4 +54,21 @@ describe('MentorProfile entity', () => {
     expect(typeName(properties.lastPublishedAvailabilityAt)).toBe('DateTimeType');
     expect(properties.lastPublishedAvailabilityAt.nullable).toBe(true);
   });
+
+  it('stores both optional prices as positive PostgreSQL integers', () => {
+    expect(typeName(properties.price25Cents)).toBe('IntegerType');
+    expect(properties.price25Cents.fieldNames).toEqual(['price_25_cents']);
+    expect(properties.price25Cents.nullable).toBe(true);
+    expect(typeName(properties.price50Cents)).toBe('IntegerType');
+    expect(properties.price50Cents.fieldNames).toEqual(['price_50_cents']);
+    expect(properties.price50Cents.nullable).toBe(true);
+    expect(meta.checks).toContainEqual({
+      name: 'mentor_profiles_price_25_positive',
+      expression: '"price_25_cents" > 0',
+    });
+    expect(meta.checks).toContainEqual({
+      name: 'mentor_profiles_price_50_positive',
+      expression: '"price_50_cents" > 0',
+    });
+  });
 });

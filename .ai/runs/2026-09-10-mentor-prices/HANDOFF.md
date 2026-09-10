@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T18:50:06Z
+**Last updated:** 2026-09-10T19:00:12Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
-**Current phase/step:** Phase 1; Step 1.3 ready
-**Last commit:** 571e9c2 — feat(platform): add approved price settings
+**Current phase/step:** Phase 1; Step 1.4 ready
+**Last commit:** e920a19 — feat(mentors): add atomic price persistence
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -20,9 +20,19 @@
   malformed resolved policy.
 - The production build remains database- and credential-independent; 1,675 unit tests pass at 100%
   statements, branches, functions and lines.
+- Step 1.3 adds nullable positive 25-/50-minute integer-cent prices with an ordered reversible
+  migration and generated snapshot. The real PostgreSQL migration suite proves up/down/reapply while
+  retaining Slice 3 availability.
+- `MentorProfileService.updatePrices` authorizes before policy resolution, validates both exact
+  amounts before mutating either value, locks the owner row and flushes both prices once. Owner and
+  public projections remain source-compatible; the public allowlist never exposes bounds.
+- `mentorOfferReady` is exactly publication plus both stored prices. It deliberately ignores current
+  bounds and future slots, whose mentor-home checklist item remains owned by Step 2.2.
+- Full unit coverage now passes 1,721 tests with 100% statements, branches, functions and lines;
+  typecheck, lint, production build and the focused migration integration suite pass.
 
 ## Next concrete action
-- Implement Step 1.3: price persistence, atomic service updates and offer readiness.
+- Implement Step 1.4: the owner-scoped mentor-prices route.
 
 ## Blockers / open questions
 - none
@@ -30,7 +40,7 @@
 ## Environment caveats
 - Dev runtime runnable: yes
 - Browser / UI checks: pending Phase 3
-- Database/migration state: Slice 3 schema verified; Slice 4 migration not created yet
+- Database/migration state: Slice 4 mentor-prices migration verified up/down/up on owned PostgreSQL
 
 ## Worktree
 - Path: /Users/piotrkarwatka/Projects/ai_techleaders_project/.ai/tmp/om-auto-create-pr/invitations-20260910-142700

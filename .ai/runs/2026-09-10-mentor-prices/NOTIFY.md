@@ -25,3 +25,16 @@
 ## 2026-09-10T18:50:06Z — important decision
 - Kept B16′ in its architecture-authoritative `services/operator/platform-settings.service.ts` concept path.
 - Both environment schemas reject unsupported, oversized, malformed, incomplete and inconsistent policy; the service independently fails closed if resolved policy is invalid.
+
+## 2026-09-10T18:51:00Z — subagent delegation
+- Dispatched Step 1.3 to a capable-tier executor: price persistence, atomic owner updates, projections and offer readiness.
+
+## 2026-09-10T19:00:12Z — step completed
+- Added the generated, ordered mentor-prices migration and snapshot; real PostgreSQL proof covers its
+  positive constraints, rollback, availability preservation and reapplication.
+- Both prices are parsed and checked against the server-owned policy before either managed value is
+  changed, then persisted under one owner-row lock and flush.
+- Owner/public DTO additions remain optional at the TypeScript boundary, while configured live reads
+  provide cents and PLN and keep operator bounds out of the public allowlist.
+- `mentorOfferReady` covers exactly publication and both stored prices; all eight states are tested.
+- Typecheck, lint, full 100% unit coverage, production build and focused migration integration pass.
