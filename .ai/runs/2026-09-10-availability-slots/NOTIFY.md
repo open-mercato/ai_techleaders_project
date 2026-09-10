@@ -32,5 +32,8 @@
 ## 2026-09-10T17:36:00Z — subagent delegation
 - Dispatched Step 2.2 to a capable-tier executor: mentor slot management and public availability presentation.
 
+## 2026-09-10T18:02:00Z — subagent delegation
+- Dispatched Step 3.1 to a capable-tier executor: owned availability integration fixture and scenario; live browser evidence remains the main session's final-gate responsibility.
+
 ## 2026-09-10T17:31:00Z — subagent delegation
 - Dispatched Step 1.2 to a capable-tier executor: slot validation, service behavior and container wiring.

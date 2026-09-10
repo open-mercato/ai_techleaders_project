@@ -1,0 +1,141 @@
+import { EventBus, SlotService, type Logger } from '@devmentor/core';
+import { MikroORM, Slot, entities } from '@devmentor/db';
+import { describe, expect, inject, it } from 'vitest';
+import {
+  captureBrowserFailure,
+  closeAgentBrowser,
+  runAgentBrowser,
+  signInCookieHeader,
+} from './agent-browser';
+import {
+  resetPublishedMentorProfile,
+  seedPublishedMentorProfile,
+} from './fixtures/mentor';
+
+const CSRF_HEADERS = {
+  'content-type': 'application/json',
+  'x-devmentor-request': '1',
+};
+const EXACT_BOUNDARY_NOW = new Date('2030-01-15T16:00:00.000Z');
+
+function browserSession(scenario: string): string {
+  return `devmentor-availability-${scenario}-${process.pid}`;
+}
+
+describe('TC-AVAILABILITY-001 published slot lifecycle', () => {
+  it('publishes, shows, removes and republishes the same start time', async () => {
+    const baseUrl = inject('integrationBaseUrl');
+    const databaseUrl = inject('integrationDatabaseUrl');
+    const session = browserSession('lifecycle');
+    const mentor = await seedPublishedMentorProfile(databaseUrl);
+    const startsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    try {
+      const cookie = await signInCookieHeader(baseUrl, 'mock-mentor');
+      const publish = await fetch(`${baseUrl}/api/availability/slots`, {
+        method: 'POST',
+        headers: { ...CSRF_HEADERS, cookie },
+        body: JSON.stringify({ startsAt }),
+      });
+      expect(publish.status).toBe(200);
+      const first = (await publish.json()) as { data: { id: string; startsAt: string } };
+      expect(first.data.startsAt).toBe(startsAt);
+
+      let publicResponse = await fetch(`${baseUrl}/api/mentors/${mentor.slug}`);
+      expect(publicResponse.status).toBe(200);
+      let publicPayload = (await publicResponse.json()) as {
+        data: { slots: { id: string; startsAt: string; meetsLeadTime: boolean }[] };
+      };
+      expect(publicPayload.data.slots).toEqual([
+        { id: first.data.id, startsAt, meetsLeadTime: true },
+      ]);
+
+      await runAgentBrowser(session, 'open', `${baseUrl}/m/${mentor.slug}`);
+      let snapshot = await runAgentBrowser(session, 'snapshot');
+      expect(snapshot).toContain('heading "Available times"');
+      expect(snapshot).toContain('Available');
+
+      const remove = await fetch(`${baseUrl}/api/availability/slots/${first.data.id}`, {
+        method: 'DELETE',
+        headers: { ...CSRF_HEADERS, cookie },
+      });
+      expect(remove.status).toBe(200);
+
+      publicResponse = await fetch(`${baseUrl}/api/mentors/${mentor.slug}`);
+      expect(publicResponse.status).toBe(200);
+      publicPayload = (await publicResponse.json()) as typeof publicPayload;
+      expect(publicPayload.data.slots).toEqual([]);
+      await runAgentBrowser(session, 'open', `${baseUrl}/m/${mentor.slug}`);
+      snapshot = await runAgentBrowser(session, 'snapshot');
+      expect(snapshot).toContain('No future times are published. Check this page again later.');
+
+      const republish = await fetch(`${baseUrl}/api/availability/slots`, {
+        method: 'POST',
+        headers: { ...CSRF_HEADERS, cookie },
+        body: JSON.stringify({ startsAt }),
+      });
+      expect(republish.status).toBe(200);
+      const second = (await republish.json()) as { data: { id: string; startsAt: string } };
+      expect(second.data.id).not.toBe(first.data.id);
+      expect(second.data.startsAt).toBe(startsAt);
+
+      publicResponse = await fetch(`${baseUrl}/api/mentors/${mentor.slug}`);
+      expect(publicResponse.status).toBe(200);
+      publicPayload = (await publicResponse.json()) as typeof publicPayload;
+      expect(publicPayload.data.slots).toEqual([
+        { id: second.data.id, startsAt, meetsLeadTime: true },
+      ]);
+    } catch (error) {
+      await captureBrowserFailure(session, 'availability-lifecycle');
+      throw error;
+    } finally {
+      await closeAgentBrowser(session);
+      await resetPublishedMentorProfile(databaseUrl);
+    }
+  });
+});
+
+describe('TC-AVAILABILITY-002 inclusive two-hour lead time', () => {
+  it('keeps an exact two-hour slot available and disables it one millisecond later', async () => {
+    const databaseUrl = inject('integrationDatabaseUrl');
+    const mentor = await seedPublishedMentorProfile(databaseUrl);
+    const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+    await orm.connect();
+
+    try {
+      const em = orm.em.fork();
+      const startsAt = new Date(EXACT_BOUNDARY_NOW.getTime() + 2 * 60 * 60 * 1000);
+      const slot = em.create(Slot, {
+        mentorProfile: mentor.profileId,
+        startsAt,
+        removedAt: null,
+      });
+      em.persist(slot);
+      await em.flush();
+
+      let now = EXACT_BOUNDARY_NOW;
+      const logger = { error: () => undefined } as unknown as Logger;
+      const service = new SlotService({
+        em: orm.em.fork(),
+        clock: { now: () => now },
+        eventBus: new EventBus({ logger }),
+        session: Promise.resolve(null),
+      });
+
+      expect(await service.listPublic(mentor.profileId)).toEqual([
+        { id: slot.id, startsAt: startsAt.toISOString(), meetsLeadTime: true },
+      ]);
+
+      now = new Date(EXACT_BOUNDARY_NOW.getTime() + 1);
+      expect(await service.listPublic(mentor.profileId)).toEqual([
+        { id: slot.id, startsAt: startsAt.toISOString(), meetsLeadTime: false },
+      ]);
+    } finally {
+      try {
+        await orm.close(true);
+      } finally {
+        await resetPublishedMentorProfile(databaseUrl);
+      }
+    }
+  });
+});

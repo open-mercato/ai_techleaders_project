@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { type StackTag } from '@devmentor/core';
-import { Invitation, MentorProfile, MikroORM, User, entities } from '@devmentor/db';
+import { Invitation, MentorProfile, MikroORM, Slot, User, entities } from '@devmentor/db';
 
 export interface PublishedMentorFixture {
+  profileId: string;
   slug: string;
   publicWorkUrl: string;
   bio: string;
@@ -19,6 +20,7 @@ export async function seedPublishedMentorProfile(
     const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
     const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
     const fixture = {
+      profileId: profile.id,
       slug: `mock-mentor-${process.pid}`,
       publicWorkUrl: 'https://github.com/open-mercato',
       bio: 'I build TypeScript systems and help engineers make reliable architecture choices.',
@@ -43,11 +45,13 @@ export async function resetPublishedMentorProfile(databaseUrl: string): Promise<
     const em = orm.em.fork();
     const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
     const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
+    await em.nativeDelete(Slot, { mentorProfile: profile.id });
     profile.slug = null;
     profile.publicWorkUrl = null;
     profile.bio = 'Seeded so a mock GitHub sign-in lands on a mentor that already has a profile.';
     profile.stackTags = [];
     profile.publishedAt = null;
+    profile.lastPublishedAvailabilityAt = null;
     await em.flush();
   } finally {
     await orm.close(true);
