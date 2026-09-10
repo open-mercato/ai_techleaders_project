@@ -9,6 +9,18 @@ export interface PublishedMentorFixture {
   bio: string;
 }
 
+export interface FutureMentorSlotFixture {
+  slotId: string;
+  startsAt: string;
+}
+
+export interface OfferReadyMentorFixture
+  extends PublishedMentorFixture, FutureMentorSlotFixture {
+  price25Cents: number;
+  price50Cents: number;
+  currency: 'PLN';
+}
+
 /** Seed the signed-in mock mentor's complete public page and return its stable URL fields. */
 export async function seedPublishedMentorProfile(
   databaseUrl: string,
@@ -30,11 +42,62 @@ export async function seedPublishedMentorProfile(
     profile.bio = fixture.bio;
     profile.stackTags = ['TypeScript', 'AI agents'];
     profile.publishedAt = new Date();
+    profile.price25Cents = null;
+    profile.price50Cents = null;
+    profile.lastPublishedAvailabilityAt = null;
+    await em.nativeDelete(Slot, { mentorProfile: profile.id });
     await em.flush();
     return fixture;
   } finally {
     await orm.close(true);
   }
+}
+
+/** Seed one future slot owned by a fixture profile. */
+export async function seedFutureMentorSlot(
+  databaseUrl: string,
+  profileId: string,
+  startsAt = new Date(Date.now() + 24 * 60 * 60 * 1000),
+): Promise<FutureMentorSlotFixture> {
+  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+  await orm.connect();
+  try {
+    const em = orm.em.fork();
+    const profile = await em.findOneOrFail(MentorProfile, { id: profileId });
+    const slot = em.create(Slot, { mentorProfile: profile, startsAt, removedAt: null });
+    profile.lastPublishedAvailabilityAt = new Date();
+    em.persist(slot);
+    await em.flush();
+    return { slotId: slot.id, startsAt: startsAt.toISOString() };
+  } finally {
+    await orm.close(true);
+  }
+}
+
+/** Compose a published page, exact approved prices and one future slot. */
+export async function seedOfferReadyMentor(
+  databaseUrl: string,
+): Promise<OfferReadyMentorFixture> {
+  const mentor = await seedPublishedMentorProfile(databaseUrl);
+  const slot = await seedFutureMentorSlot(databaseUrl, mentor.profileId);
+  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+  await orm.connect();
+  try {
+    const em = orm.em.fork();
+    const profile = await em.findOneOrFail(MentorProfile, { id: mentor.profileId });
+    profile.price25Cents = 9_000;
+    profile.price50Cents = 18_000;
+    await em.flush();
+  } finally {
+    await orm.close(true);
+  }
+  return {
+    ...mentor,
+    ...slot,
+    price25Cents: 9_000,
+    price50Cents: 18_000,
+    currency: 'PLN',
+  };
 }
 
 /** Restore the mock mentor's page fields without touching its long-lived seed profile. */
@@ -52,6 +115,8 @@ export async function resetPublishedMentorProfile(databaseUrl: string): Promise<
     profile.stackTags = [];
     profile.publishedAt = null;
     profile.lastPublishedAvailabilityAt = null;
+    profile.price25Cents = null;
+    profile.price50Cents = null;
     await em.flush();
   } finally {
     await orm.close(true);

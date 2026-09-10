@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T19:20:38Z
+**Last updated:** 2026-09-10T19:38:00Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
-**Current phase/step:** Phase 3; Step 3.1 ready
-**Last commit:** bdaa9bb — feat(prices): add mentor price screens
+**Current phase/step:** complete; all eight plan steps are done
+**Last commit:** a89c593 — test(prices): prove offer-ready integration (pre-amend reference)
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -50,16 +50,28 @@
   `Not bookable yet` while keeping availability visible and exposing no booking or checkout action.
 - Full unit coverage passes 1,742 tests at 100% statements, branches, functions and lines. Typecheck,
   lint, production build, Storybook typecheck/build and 209 prototype checks pass.
+- Step 3.1's code proof adds owned published/future-slot/offer-ready fixtures and resets prices and
+  slots around every scenario. API coverage proves both accepted boundaries, all four bound refusals,
+  atomic unchanged storage, and exact owner/public projections.
+- Signed-out browser scenarios prove the priced offer-ready page and the unpriced-with-future-slot
+  state, including private-field, reputation and premature booking-action negatives. The full
+  integration suite passes 60 tests across 11 files.
+- The independent live walkthrough verified the price form at 1440px light and 320px dark, exact
+  decimal persistence after reload, invalid-value preservation and focus recovery, keyboard submit,
+  zero horizontal overflow, empty browser error logs and zero axe WCAG A/AA violations after theme
+  transitions settle. A signed-out offer-ready page showed both exact PLN prices and its future slot
+  with no booking action. Durable screenshots and the redacted checklist are in `final-gate-artifacts/`.
 
 ## Next concrete action
-- Implement Step 3.1: owned offer-ready fixtures, integration coverage and live browser proof.
+- Run the repository-wide final gate, publish the PR evidence, and route the risk-high stacked PR to
+  an independent reviewer and separate manual QA.
 
 ## Blockers / open questions
 - none
 
 ## Environment caveats
 - Dev runtime runnable: yes
-- Browser / UI checks: pending Phase 3
+- Browser / UI checks: desktop/mobile, light/dark, keyboard, responsive and accessibility proof pass
 - Database/migration state: Slice 4 mentor-prices migration verified up/down/up on owned PostgreSQL
 
 ## Worktree

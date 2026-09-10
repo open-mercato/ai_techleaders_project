@@ -64,7 +64,7 @@ describe('TC-MENTOR-PAGE-001 stable public mentor page', () => {
       expect(publicResponse.status).toBe(200);
       const publicPayload = (await publicResponse.json()) as { data: Record<string, unknown> };
       expect(Object.keys(publicPayload.data).sort()).toEqual([
-        'bio', 'displayName', 'publicWorkUrl', 'slots', 'slug', 'stackTags',
+        'bio', 'displayName', 'prices', 'publicWorkUrl', 'slots', 'slug', 'stackTags',
       ]);
 
       await runAgentBrowser(session, 'open', `${baseUrl}/m/${seeded.slug}`);
