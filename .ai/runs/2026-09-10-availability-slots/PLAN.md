@@ -18,7 +18,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 1 | 1.3 | Add owner-scoped availability routes | dispatch:standard | done | 72b2c64 |
 | 2 | 2.1 | Add the datetime CrudForm field and local-to-UTC conversion | dispatch:standard | done | 9400043 |
 | 2 | 2.2 | Add mentor slot management and public availability presentation | dispatch:capable | done | c55138f |
-| 3 | 3.1 | Add availability integration coverage and browser proof | dispatch:capable | todo | — |
+| 3 | 3.1 | Add availability integration coverage and browser proof | dispatch:capable | done | 11141b9 |
 
 ## Goal
 
