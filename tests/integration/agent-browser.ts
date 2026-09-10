@@ -133,7 +133,7 @@ export async function signInCookieHeader(baseUrl: string, login: string): Promis
     throw new Error(`Starting a mock sign-in answered ${start.status} with no redirect.`);
   }
 
-  const callback = await fetch(authorizeUrl, {
+  const callback = await fetch(new URL(authorizeUrl, baseUrl), {
     redirect: 'manual',
     headers: { cookie: cookieHeader(jar) },
   });
