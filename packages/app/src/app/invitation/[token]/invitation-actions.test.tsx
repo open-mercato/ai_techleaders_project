@@ -30,7 +30,9 @@ describe('AcceptInvitationAction', () => {
   it('posts through apiCall and hard-navigates to the mentor home', async () => {
     request.mockResolvedValue({ ok: true, data: {} });
     render(<AcceptInvitationAction token="raw token" />);
-    await userEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+    const action = screen.getByRole('button', { name: 'Accept invitation' });
+    expect(action.classList).toContain('dm-button');
+    await userEvent.click(action);
     expect(request).toHaveBeenCalledWith('/api/invitations/raw%20token/accept', {
       method: 'POST',
     });
@@ -46,7 +48,9 @@ describe('AcceptInvitationAction', () => {
       (screen.getByRole('button', { name: 'Accepting invitation…' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     release({ ok: false, error: { code: 'forbidden', message: 'Use the invited account.' } });
-    expect((await screen.findByRole('alert')).textContent).toContain('Use the invited account.');
+    const error = await screen.findByRole('alert');
+    expect(error.textContent).toContain('Use the invited account.');
+    expect(error.classList).toContain('dm-error-message');
     expect(
       (screen.getByRole('button', { name: 'Accept invitation' }) as HTMLButtonElement).disabled,
     ).toBe(false);
@@ -72,7 +76,9 @@ describe('InvitationSignOutAction', () => {
       true,
     );
     release({ ok: false, error: { code: 'network_error', message: 'Try again.' } });
-    expect((await screen.findByRole('alert')).textContent).toContain('Try again.');
+    const error = await screen.findByRole('alert');
+    expect(error.textContent).toContain('Try again.');
+    expect(error.classList).toContain('dm-error-message');
     expect((screen.getByRole('button', { name: 'Sign out' }) as HTMLButtonElement).disabled).toBe(
       false,
     );

@@ -14,6 +14,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./backend": "./src/backend/index.ts",
+    "./time": "./src/time/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./lib/utils": "./src/lib/utils.ts",
     "./components/*": "./src/components/ui/*.tsx"

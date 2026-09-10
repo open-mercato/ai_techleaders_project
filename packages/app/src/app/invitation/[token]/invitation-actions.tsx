@@ -1,12 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { apiCall } from '@devmentor/ui/backend';
-
-const primaryClass =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60';
-const secondaryClass =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900';
+import { Button } from '@devmentor/ui';
+import { apiCall, ErrorMessage } from '@devmentor/ui/backend';
 
 export function AcceptInvitationAction({ token }: { token: string }) {
   const [pending, setPending] = useState(false);
@@ -30,20 +26,16 @@ export function AcceptInvitationAction({ token }: { token: string }) {
 
   return (
     <div className="flex flex-col items-start gap-3">
-      <button
+      <Button
         type="button"
-        className={primaryClass}
+        className="min-h-11"
         disabled={pending}
         aria-busy={pending}
         onClick={() => void accept()}
       >
         {pending ? 'Accepting invitation…' : 'Accept invitation'}
-      </button>
-      {error === null ? null : (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      </Button>
+      {error === null ? null : <ErrorMessage className="w-full" message={error} />}
     </div>
   );
 }
@@ -67,20 +59,18 @@ export function InvitationSignOutAction({ returnTo }: { returnTo: string }) {
 
   return (
     <div className="flex flex-col items-start gap-3">
-      <button
+      <Button
         type="button"
-        className={secondaryClass}
+        intent="neutral"
+        appearance="stroke"
+        className="min-h-11"
         disabled={pending}
         aria-busy={pending}
         onClick={() => void signOut()}
       >
         {pending ? 'Signing out…' : 'Sign out'}
-      </button>
-      {error === null ? null : (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-300">
-          {error}
-        </p>
-      )}
+      </Button>
+      {error === null ? null : <ErrorMessage className="w-full" message={error} />}
     </div>
   );
 }

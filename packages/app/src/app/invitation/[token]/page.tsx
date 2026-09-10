@@ -6,6 +6,8 @@ import {
   type InvitationPublicDto,
   type InvitationViewer,
 } from '@devmentor/core';
+import { Button, Card } from '@devmentor/ui';
+import { ErrorMessage } from '@devmentor/ui/backend';
 import { AcceptInvitationAction, InvitationSignOutAction } from './invitation-actions';
 
 export const dynamic = 'force-dynamic';
@@ -50,9 +52,10 @@ export default async function InvitationPage({
   if (state === null) {
     return (
       <main className="mx-auto flex min-h-[70vh] max-w-2xl items-center px-5 py-16">
-        <p className="text-base leading-7 text-slate-700 dark:text-slate-300">
-          This invitation is not valid.
-        </p>
+        <ErrorMessage
+          className="w-full text-base leading-7"
+          message="This invitation is not valid."
+        />
       </main>
     );
   }
@@ -104,21 +107,28 @@ export default async function InvitationPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-8">
+      <Card className="self-start rounded-2xl border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-8">
         {viewer === null ? (
           <div className="flex flex-col gap-4">
             <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
               Sign in to continue
             </h2>
-            <a className={primaryClass} href={githubHref(token)}>
-              Sign in with GitHub
-            </a>
-            <span
-              aria-disabled="true"
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-500 dark:border-slate-700 dark:text-slate-400"
+            <Button
+              asChild
+              intent="neutral"
+              appearance="stroke"
+              className="min-h-11 w-full"
             >
-              Email sign-in is not available yet
-            </span>
+              <a href={githubHref(token)}>Sign in with GitHub</a>
+            </Button>
+            <Button
+              asChild
+              className="min-h-11 w-full"
+            >
+              <a href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}>
+                Sign in with email
+              </a>
+            </Button>
           </div>
         ) : matching ? (
           <div className="flex flex-col gap-5">
@@ -138,18 +148,15 @@ export default async function InvitationPage({
               <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                 Use the invited account
               </h2>
-              <p role="alert" className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">
-                This invitation was sent to {invitation.email}. You are signed in as{' '}
-                {viewer.email}. Sign out, then sign in with {invitation.email} to accept it.
-              </p>
+              <ErrorMessage
+                className="mt-2 text-sm leading-6"
+                message={`This invitation was sent to ${invitation.email}. You are signed in as ${viewer.email}. Sign out, then sign in with ${invitation.email} to accept it.`}
+              />
             </div>
             <InvitationSignOutAction returnTo={returnTo} />
           </div>
         )}
-      </section>
+      </Card>
     </main>
   );
 }
-
-const primaryClass =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600';
