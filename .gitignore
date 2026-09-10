@@ -59,9 +59,7 @@ yarn-error.log*
 # It stays in both tsconfig `include` arrays, as those docs also require.
 packages/app/next-env.d.ts
 
-# agent pipeline (om-setup-agent-pipeline): per-run QA state, never source
-.ai/qa/artifacts_*/
-.ai/qa/test-env.json
+# agent pipeline: commit durable `.ai` records, but never generated credentials
 .ai/qa/test-env.env
 
 # skills installer staging copy (unrendered upstream download of .agents/skills)
