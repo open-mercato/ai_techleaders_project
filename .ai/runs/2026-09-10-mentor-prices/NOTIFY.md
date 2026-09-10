@@ -1,0 +1,16 @@
+# Notify — 2026-09-10-mentor-prices
+
+> Append-only log. Every entry is UTC-timestamped. Never rewrite prior entries.
+
+## 2026-09-10T18:36:00Z — run started
+- Brief: Complete Epic02 with Slice 4 mentor prices and offer readiness as a stacked PR.
+- External skill URLs: none
+
+## 2026-09-10T18:36:00Z — important decision
+- Founder approval supplied by the user: PLN with 25-minute PLN 90–600 and 50-minute PLN 180–1,200 bounds.
+- The one-PR-per-slice contract is retained: this branch targets Slice 3 PR #46.
+- Stripe Connect issue #19 remains separate iteration 1.1 work; it is not Slice 5 of Epic02.
+
+## 2026-09-10T18:43:00Z — plan review
+- A skeptical staff review found the stale blocked story spec, an over-broad offer-readiness gate, the missing mentor-home readiness union, an invalid persistence example, an underspecified route helper and incomplete compatibility/negative criteria.
+- The plan now resolves the active spec first, keeps `mentorOfferReady` to publication plus both stored prices, treats future availability as a separate checklist item, pins the JSON bounds grammar and makes all protected/public boundary checks explicit.
