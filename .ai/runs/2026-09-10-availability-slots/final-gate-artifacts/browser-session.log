@@ -1,0 +1,9 @@
+2026-09-10T18:03:19Z
+Provider: repository-pinned agent-browser 0.36.0
+Environment: disposable local app and PostgreSQL; credentials and database URL omitted
+Mentor flow: mock sign-in -> /mentor/slots -> publish future time -> table assertion PASS
+Public flow: /m/<ephemeral-fixture-slug> -> localized time -> Available state PASS
+Responsive check: 390x844 public mentor page PASS
+Accessibility: WCAG A/AA, mentor screen 0 violations/0 incomplete; public screen 0 violations/0 incomplete
+Console/page errors: none
+Cleanup: browser session and disposable environment closed
