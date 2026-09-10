@@ -39,6 +39,10 @@
 - The full integration suite exposed that `TC-DB-001` stopped at the mentor-page migration before asserting the complete entity model, so it reported the availability schema as missing.
 - Appended Step 3.2-gate-fix to make the shared harness apply all migrations before the complete-schema assertion, then rerun the gate.
 
+## 2026-09-10T17:55:00Z — final-gate blocker
+- The full coverage run exposed a timing-sensitive existing `CrudForm` focus assertion: it awaited the rendered server error but not the subsequent focus effect.
+- Appended Step 3.3-gate-fix to await the observable focus outcome, matching the same test's existing general-error assertion.
+
 ## 2026-09-10T18:02:00Z — subagent delegation
 - Dispatched Step 3.1 to a capable-tier executor: owned availability integration fixture and scenario; live browser evidence remains the main session's final-gate responsibility.
 
