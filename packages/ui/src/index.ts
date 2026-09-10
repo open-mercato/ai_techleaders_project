@@ -50,3 +50,5 @@ export * from './components/ui/switch';
 export * from './components/ui/tabs';
 export * from './components/ui/textarea';
 export * from './components/ui/tooltip';
+export * from './time/formatInstant';
+export * from './time/LocalTime';

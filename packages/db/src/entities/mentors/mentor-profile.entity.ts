@@ -27,6 +27,9 @@ export const MentorProfile = defineSingletonEntity('MentorProfile', () =>
       headline: p.string(),
       bio: p.text().nullable(),
       yearsOfExperience: p.integer().default(0),
+      // Snapshotted from the first accepted invitation. Later invitations may carry a
+      // new reporting deadline, but never reset this original mentor obligation.
+      initialPublishDueAt: p.datetime().nullable(),
     },
   }),
 );

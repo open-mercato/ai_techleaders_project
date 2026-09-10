@@ -43,6 +43,47 @@ function tamperSignature(token: string): string {
   return `${header}.${payload}.${flipped}`;
 }
 
+describe('stored opaque tokens', () => {
+  it('mints a 32-byte URL-safe token together with its storage hash', () => {
+    const service = makeService();
+
+    const pair = service.mintOpaqueToken();
+
+    expect(pair.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(Buffer.from(pair.token, 'base64url')).toHaveLength(32);
+    expect(pair.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(pair.tokenHash).toBe(service.hashToken(pair.token));
+  });
+
+  it('mints distinct bearer secrets and hashes', () => {
+    const service = makeService();
+
+    const first = service.mintOpaqueToken();
+    const second = service.mintOpaqueToken();
+
+    expect(second.token).not.toBe(first.token);
+    expect(second.tokenHash).not.toBe(first.tokenHash);
+  });
+
+  it('hashes the same token deterministically with SHA-256', () => {
+    const service = makeService();
+    const token = 'opaque-token_example';
+
+    expect(service.hashToken(token)).toBe(
+      'c1f61fe38117bd3cb8b670233939ad139ea1a2b373302cdb1cef47d80f427e74',
+    );
+    expect(service.hashToken(token)).toBe(service.hashToken(token));
+  });
+
+  it('hashes the exact UTF-8 token without trimming or case folding', () => {
+    const service = makeService();
+
+    expect(service.hashToken('Token')).not.toBe(service.hashToken('token'));
+    expect(service.hashToken('token ')).not.toBe(service.hashToken('token'));
+    expect(service.hashToken('żółć')).toHaveLength(64);
+  });
+});
+
 /** Sign a token directly, bypassing the service, to build inputs it would never produce. */
 async function signRaw(
   secret: string,

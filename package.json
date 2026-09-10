@@ -11,6 +11,7 @@
   },
   "scripts": {
     "setup": "node scripts/setup/index.mjs",
+    "invite": "tsx -e \"import('./scripts/invite.ts').then(({ main }) => main())\" --",
     "storybook": "npm run prototype && npm run storybook --workspace @devmentor/ui --",
     "build-storybook": "npm run prototype && npm run build-storybook --workspace @devmentor/ui",
     "typecheck:storybook": "npm run typecheck:storybook --workspace @devmentor/ui",
@@ -46,6 +47,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "jsdom": "26.1.0",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "4.1.11"
   }

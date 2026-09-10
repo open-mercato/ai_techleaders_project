@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmptyState } from '@devmentor/ui/backend';
 import { elements, text } from '../../../test/element-tree';
+import { MentorOnboardingStatus } from './mentor-onboarding-status';
 
 /** `/mentor` invoked directly — the mentor half of the same page-level enforcement. */
 
@@ -28,6 +29,7 @@ describe('mentor home page', () => {
     const empty = elements(tree).find((element) => element.type === EmptyState);
 
     expect(text(tree)).toContain('Mentor workspace');
+    expect(elements(tree).some((element) => element.type === MentorOnboardingStatus)).toBe(true);
     expect((empty?.props as { title: string }).title).toBe('No session requests yet');
     expect((empty?.props as { description: string }).description).toContain(
       'not available yet',

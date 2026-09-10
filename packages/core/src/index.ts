@@ -36,6 +36,7 @@ export {
 export { PasswordService, type PasswordWork } from './services/auth/password.service';
 export {
   TokenService,
+  type OpaqueTokenPair,
   type PurposeTokenClaims,
   type SignPurposeTokenInput,
   type TokenPurpose,
@@ -56,6 +57,16 @@ export {
   type SignedInUser,
   type UserDto,
 } from './services/auth/user.service';
+export {
+  InvitationService,
+  INVALID_INVITATION_MESSAGE,
+  type AcceptedInvitation,
+  type CreatedInvitation,
+  type InvitationCreateInput,
+  type InvitationPublicDto,
+  type InvitationViewer,
+  type ResentInvitation,
+} from './services/invitations/invitation.service';
 // `userCreateSchema` and `UserCreateInput` are deliberately absent: `POST /api/users` is
 // gone, and `UserService.create` now names its two writable fields itself rather than
 // depending on a schema to strip everything else. See BACKWARD_COMPATIBILITY.md §2.
@@ -85,6 +96,8 @@ export { MAIL_SENT_MESSAGE } from './services/notifications/adapters/log-mailer'
 export type { Mailer, MailMessage } from './services/notifications/mailer.port';
 export { EventBus, type EventHandler, type EventId, type EventMap } from './events/index';
 export { systemClock, type Clock } from './time/clock';
+export { defineVocabulary, type VocabularyOption } from './domain/vocabulary';
+export { StackTags, type StackTag } from './domain/vocabularies/stack-tags';
 
 // Reusable HTTP layer (typed errors, route wrappers, auth guards).
 export * from './http/index';

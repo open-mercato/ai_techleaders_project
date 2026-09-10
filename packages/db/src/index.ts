@@ -19,6 +19,7 @@ export { SEED_PASSWORD, SEED_PASSWORD_HASH } from './seeders/seed-password';
 // `db` depends on `@mikro-orm/*` directly.
 export {
   EntityRepository,
+  LockMode,
   type FilterQuery,
   type Loaded,
   type RequiredEntityData,

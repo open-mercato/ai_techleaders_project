@@ -48,6 +48,18 @@ describe('requestPath', () => {
     expect(requestPath('http://devmentor.test')).toBe('/');
   });
 
+  it('redacts invitation tokens carried in API and page path segments', () => {
+    expect(requestPath('https://devmentor.test/api/invitations/SECRET/accept')).toBe(
+      '/api/invitations/[token]/accept',
+    );
+    expect(requestPath('https://devmentor.test/invitation/SECRET')).toBe(
+      '/invitation/[token]',
+    );
+    expect(requestPath('/api/invitations/SECRET?attempt=1')).toBe(
+      '/api/invitations/[token]',
+    );
+  });
+
   it('degrades to the query-stripped input when the URL cannot be parsed', () => {
     // The non-throwing contract: this runs inside `apiHandler`'s catch block, where a
     // second throw would replace a clean 500 with an unhandled rejection. A `Request`

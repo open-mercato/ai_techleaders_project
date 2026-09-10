@@ -58,6 +58,11 @@ export {
   type CrudService,
   type MakeCrudRouteOptions,
 } from './makeCrudRoute';
+export {
+  ownedAction,
+  type OwnedActionOptions,
+  type OwnedRouteParams,
+} from './owned-route';
 // `resolveSessionFromCookie` is deliberately absent: the scoped `session` cradle key and
 // `requireSession` are the two sanctioned ways to obtain a session, so the resolver behind
 // them is not part of the package's authorization surface.

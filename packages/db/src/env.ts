@@ -16,6 +16,11 @@ const dbEnvSchema = z.object({
   DB_POOL_MIN: z.coerce.number().int().nonnegative().default(2),
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
   DB_POOL_IDLE_MS: z.coerce.number().int().positive().default(30_000),
+  // Kept in step with the application schema. The CLI does not calculate these
+  // deadlines, but validating one shared deployment environment must not give the
+  // app and migration commands different answers about malformed values.
+  INVITATION_TTL_DAYS: z.coerce.number().int().positive().default(14),
+  MENTOR_PUBLISH_WINDOW_DAYS: z.coerce.number().int().positive().default(14),
   DB_DEBUG: z
     .enum(['true', 'false'])
     .default('false')

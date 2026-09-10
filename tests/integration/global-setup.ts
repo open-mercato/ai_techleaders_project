@@ -25,6 +25,7 @@ let appStartError: Error | undefined;
 declare module 'vitest' {
   export interface ProvidedContext {
     integrationBaseUrl: string;
+    integrationDatabaseUrl: string;
     homeBrowserSession: string;
     adminBrowserSession: string;
   }
@@ -209,6 +210,7 @@ export default async function setup(project: TestProject) {
 
     await waitForReady(baseUrl);
     project.provide('integrationBaseUrl', baseUrl);
+    project.provide('integrationDatabaseUrl', postgres.getConnectionUri());
     project.provide('homeBrowserSession', homeSession);
     project.provide('adminBrowserSession', adminSession);
 
