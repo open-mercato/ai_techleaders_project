@@ -156,7 +156,8 @@ export default async function setup(project: TestProject) {
       .start();
 
     // The port is reserved **before** the child environment is built, because `APP_URL` is
-    // part of that environment and the app resolves its own OAuth callback against it. The
+    // part of that environment and must describe the address the app is actually served on
+    // (the OAuth callback no longer depends on it — see the note in `environment.ts`). The
     // reservation is a hint rather than a lock — `availablePort` closes the probe socket so
     // the app can bind it — and this order widens the gap between reserving and binding to
     // include migrate, seed and build. That is acceptable here: the suite owns its machine

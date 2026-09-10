@@ -1,4 +1,3 @@
-import type { AppEnv } from '../../../config/env';
 import { ServiceUnavailableError } from '../../../http/errors';
 import {
   GITHUB_CALLBACK_PATH,
@@ -33,6 +32,11 @@ import {
  * `UserService.findOrCreateFromGithub`'s second branch. Ada Lovelace is deliberately not
  * reachable: her address is `ada@devmentor.dev`, no login can produce it, and
  * `users.email` is never rewritten.
+ *
+ * **It has no dependencies at all**, deliberately. It used to take `env` for one reason —
+ * to resolve its callback against `APP_URL` — and that was the bug `authorizeUrl` now
+ * documents. A fake that redirects the browser back into the same app needs to know nothing
+ * about where that app thinks it lives.
  */
 
 /** The persona a sign-in with no `?login=` lands on: the seeded mentee. */
@@ -51,6 +55,12 @@ const MOCK_EMAIL_DOMAIN = 'devmentor.test';
  * real user someone else's row.
  */
 const ID_PREFIX = 'mock-';
+
+/**
+ * A base `new URL()` can resolve `GITHUB_CALLBACK_PATH` against so `URLSearchParams` does
+ * the query encoding. It is discarded before anything is returned — see `authorizeUrl`.
+ */
+const RELATIVE_BASE = 'https://mock-github.invalid';
 
 /** Prefixes so a value this adapter never minted is recognisable rather than decoded. */
 const CODE_PREFIX = 'mock-code-';
@@ -82,23 +92,34 @@ function identityFor(login: string): GithubIdentity {
 }
 
 export class MockGithubIdentityAdapter implements GithubIdentityPort {
-  private readonly env: AppEnv;
-
-  constructor({ env }: { env: AppEnv }) {
-    this.env = env;
-  }
-
   /**
    * Points back at the app's own callback instead of github.com, so the browser completes
    * the flow in one navigation with no network call. `state` is carried through unchanged
    * because the callback compares it against the state cookie before anything else — the
    * mock stands in for GitHub, not for the CSRF defence.
+   *
+   * **Deliberately origin-relative, and this is the whole point of the method.** The real
+   * adapter builds an *absolute* callback from `APP_URL` because it has to: GitHub requires
+   * a `redirect_uri` that matches the OAuth app's registered, absolute URL. The mock has the
+   * opposite requirement. It is not a third party — it *is* this application — so it has no
+   * reason to name an origin, and naming one is actively wrong: `APP_URL` describes the
+   * deployment's canonical public origin, not "the origin this browser is currently talking
+   * to". Whenever the two differ — `127.0.0.1` instead of `localhost`, a preview hostname, a
+   * tunnel, the integration harness's ephemeral port — an absolute `Location` moves the
+   * browser to another origin mid-flow, the `devmentor_oauth_state` cookie set on the
+   * original origin is not sent to the new one, and the callback correctly refuses a state
+   * it cannot match. The user sees `/sign-in?error=state`, which describes the symptom and
+   * hides the cause. A relative `Location` (RFC 7231 §7.1.2) resolves against whatever
+   * origin the browser is already on, so the flow is same-origin by construction and the
+   * cookie always comes back. Never "simplify" this into an absolute URL.
    */
   authorizeUrl({ state, login }: AuthorizeUrlInput): string {
-    const url = new URL(GITHUB_CALLBACK_PATH, this.env.APP_URL);
+    // Resolved against a placeholder base purely to get the query encoding right; only the
+    // path-and-query is returned, so no origin ever reaches the `Location` header.
+    const url = new URL(GITHUB_CALLBACK_PATH, RELATIVE_BASE);
     url.searchParams.set('code', `${CODE_PREFIX}${login ?? DEFAULT_MOCK_LOGIN}`);
     url.searchParams.set('state', state);
-    return url.toString();
+    return `${url.pathname}${url.search}`;
   }
 
   async exchangeCode(code: string): Promise<string> {

@@ -45,16 +45,18 @@ export function integrationChildEnvironment(
     AUTH_IDENTITY_ADAPTER: 'mock',
     INTEGRATION_TEST_RUN: '1',
     OPERATOR_EMAILS: process.env.OPERATOR_EMAILS ?? MOCK_OPERATOR_EMAIL,
-    // The app must know its own address, because one of its own routes builds an absolute
-    // URL back to itself: `MockGithubIdentityAdapter.authorizeUrl` resolves
-    // `/api/auth/github/callback` against `APP_URL` to stand in for github.com. Left at the
-    // schema default the harness would start a sign-in on its ephemeral port and hand the
-    // browser a callback on `http://localhost:3000`, which nothing is listening on — every
-    // signed-in scenario would fail with a connection error rather than an assertion.
+    // The app's own address, so nothing it emits can name an origin the harness is not
+    // serving. **No route in a mock-adapter run reads this any more** (2026-09-10):
+    // `MockGithubIdentityAdapter.authorizeUrl` used to resolve `/api/auth/github/callback`
+    // against `APP_URL` and therefore handed the browser a callback on
+    // `http://localhost:3000` — nothing listening, every signed-in scenario failing with a
+    // connection error rather than an assertion. It now returns an origin-relative callback,
+    // so the flow stays on the harness's ephemeral port by construction.
     //
-    // Which is why this is a **required parameter**, and why `global-setup.ts` reserves the
-    // port before it builds this environment rather than just before it spawns the app: an
-    // optional `appUrl` would be one forgotten argument away from the same silent default.
+    // Still threaded, and still a **required parameter**, because `APP_URL` remains the real
+    // adapter's `redirect_uri` and is the natural input for any later absolute self-URL (a
+    // verification-mail link, say). Leaving it correct costs one argument; an optional
+    // `appUrl` would be one forgotten call site away from the schema default again.
     APP_URL: appUrl,
   };
 }

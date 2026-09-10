@@ -93,6 +93,18 @@ describe('authorizeUrl', () => {
     expect(url.searchParams.get('state')).toBe('state-token');
   });
 
+  it('stays absolute, unlike the mock, because GitHub requires it', () => {
+    // The mock deliberately returns an origin-relative callback so the browser never
+    // changes origin. This adapter must never be "simplified" the same way: the browser has
+    // to be sent to github.com, and GitHub compares `redirect_uri` byte-for-byte against
+    // the OAuth app's registered *absolute* URL, so `APP_URL` is genuinely the right input
+    // here and only here.
+    const location = adapter().authorizeUrl({ state: 'state-token' });
+
+    expect(location.startsWith('https://github.com/login/oauth/authorize?')).toBe(true);
+    expect(new URL(location).searchParams.get('redirect_uri')).toMatch(/^https:\/\//);
+  });
+
   it('omits the account hint when none was asked for', () => {
     const url = new URL(adapter().authorizeUrl({ state: 'state-token' }));
 

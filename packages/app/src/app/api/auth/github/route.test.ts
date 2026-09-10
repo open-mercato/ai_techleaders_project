@@ -84,6 +84,27 @@ describe('starting the GitHub flow', () => {
     );
   });
 
+  it('emits an origin-relative Location verbatim when the mock adapter answers', async () => {
+    // REGRESSION (2026-09-10). The state cookie set below is bound to the origin the
+    // browser is actually on, so the callback the mock sends it to must be on that same
+    // origin. `MockGithubIdentityAdapter.authorizeUrl` returns exactly this shape; the
+    // route's job is to put it in `Location` untouched, adding no origin of its own.
+    container.authorizeUrl.mockReturnValue(
+      '/api/auth/github/callback?code=mock-code-mock-mentee&state=state.token',
+    );
+
+    const response = await start();
+    const location = response.headers.get('location') as string;
+
+    expect(location).toBe('/api/auth/github/callback?code=mock-code-mock-mentee&state=state.token');
+    expect(location).not.toMatch(/^[a-zA-Z][a-zA-Z0-9+.-]*:/);
+    expect(location.startsWith('//')).toBe(false);
+    // The request was made to `devmentor.test`; the redirect resolves back to it, which is
+    // the same origin the `devmentor_oauth_state` cookie was just set on.
+    expect(new URL(location, 'http://devmentor.test').origin).toBe('http://devmentor.test');
+    expect(cookies(response)[0]).toContain('devmentor_oauth_state=state.token;');
+  });
+
   it('mints a ten-minute oauth-state token and pins it to this browser', async () => {
     const response = await start();
 

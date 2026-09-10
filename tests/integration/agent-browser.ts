@@ -85,8 +85,9 @@ function signInUrl(baseUrl: string, login: string): string {
  *
  * One navigation completes the whole flow: the start route mints the state and redirects to
  * the mock adapter's authorize URL, which is this same app's callback, which sets the session
- * cookie and redirects to `homeFor(roles)`. That only works because the app knows its own
- * address — see the `APP_URL` note in `environment.ts`.
+ * cookie and redirects to `homeFor(roles)`. That works on the harness's ephemeral port
+ * because the mock's authorize URL is origin-relative and so never leaves the origin the
+ * state cookie was set on — see the `APP_URL` note in `environment.ts`.
  *
  * **The cookie assertion is load-bearing** (edge case 32). The app runs here as production,
  * so its session cookie is `Secure`, and a browser accepts a `Secure` cookie over plain HTTP

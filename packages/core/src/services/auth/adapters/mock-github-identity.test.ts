@@ -1,49 +1,89 @@
 import { describe, expect, it } from 'vitest';
-import type { AppEnv } from '../../../config/env';
 import { AppError, ServiceUnavailableError } from '../../../http/errors';
 import type { GithubIdentity } from '../github-identity.port';
 import { DEFAULT_MOCK_LOGIN, MockGithubIdentityAdapter } from './mock-github-identity';
 
-const env = { APP_URL: 'http://127.0.0.1:3000' } as unknown as AppEnv;
-
 function adapter(): MockGithubIdentityAdapter {
-  return new MockGithubIdentityAdapter({ env });
+  // No constructor arguments at all: the mock's callback is origin-relative, so unlike the
+  // real adapter it has nothing to learn from `env`.
+  return new MockGithubIdentityAdapter();
+}
+
+/**
+ * The returned value parsed the way a browser would: relative to the origin the browser is
+ * *already on*, which for these tests is a host that is deliberately not `APP_URL`.
+ */
+const BROWSER_ORIGIN = 'https://preview.example.test';
+
+function authorized(input: { state: string; login?: string }): URL {
+  return new URL(adapter().authorizeUrl(input), BROWSER_ORIGIN);
 }
 
 /** The whole flow, as the start route and the callback route will drive it. */
 async function signIn(login?: string): Promise<GithubIdentity> {
   const port = adapter();
   const start = login === undefined ? { state: 's' } : { state: 's', login };
-  const url = new URL(port.authorizeUrl(start));
+  const url = new URL(port.authorizeUrl(start), BROWSER_ORIGIN);
   const code = url.searchParams.get('code') as string;
   return port.fetchIdentity(await port.exchangeCode(code));
 }
 
 describe('authorizeUrl', () => {
   it('bounces the browser straight back to the callback instead of github.com', async () => {
-    const url = new URL(adapter().authorizeUrl({ state: 'state-token' }));
+    const url = authorized({ state: 'state-token' });
 
-    // Same origin as the app, so CI completes a sign-in with no network call at all.
-    expect(url.origin).toBe('http://127.0.0.1:3000');
+    // Same origin as the browser already is, so CI completes a sign-in with no network call.
     expect(url.pathname).toBe('/api/auth/github/callback');
+  });
+
+  it('names no origin, so the browser never leaves the one it is on', async () => {
+    // REGRESSION (2026-09-10). This used to be `new URL(callbackPath, env.APP_URL)`, an
+    // absolute URL. `APP_URL` is the deployment's canonical origin, not the origin this
+    // browser is talking to, so on any other host — `127.0.0.1`, a preview hostname, a
+    // tunnel, the harness's ephemeral port — the `Location` moved the browser to a
+    // different origin. `devmentor_oauth_state` was set on the *original* origin, so it
+    // was not sent to the new one, and the callback refused a state it could not match:
+    // every sign-in ended on `/sign-in?error=state`.
+    const location = adapter().authorizeUrl({ state: 'state-token', login: 'mock-mentor' });
+
+    // A path-absolute reference: one leading slash, no scheme, no authority.
+    expect(location.startsWith('/')).toBe(true);
+    expect(location.startsWith('//')).toBe(false);
+    expect(location).not.toMatch(/^[a-zA-Z][a-zA-Z0-9+.-]*:/);
+    expect(location).not.toContain('//');
+    // Nothing about the app's configured address survives into what the browser follows.
+    expect(location).not.toContain('localhost');
+    // Whatever origin the browser is on is the origin it stays on.
+    expect(new URL(location, BROWSER_ORIGIN).origin).toBe(BROWSER_ORIGIN);
+    expect(new URL(location, 'http://localhost:3000').origin).toBe('http://localhost:3000');
+    // ...and the flow's two payloads survive being made relative.
+    expect(location).toBe('/api/auth/github/callback?code=mock-code-mock-mentor&state=state-token');
   });
 
   it('carries the state through unchanged', async () => {
     // The callback compares `?state` against the state cookie before anything else. The
     // mock stands in for GitHub, never for the login-CSRF defence.
-    const url = new URL(adapter().authorizeUrl({ state: 'signed-state-token' }));
+    const url = authorized({ state: 'signed-state-token' });
 
     expect(url.searchParams.get('state')).toBe('signed-state-token');
   });
 
+  it('encodes a state that needs escaping without corrupting it', async () => {
+    // Signed tokens are dot-separated base64url today, but the query is still built through
+    // `URLSearchParams` rather than string concatenation, and stays that way when relative.
+    const state = 'a b/c+d=e&f';
+
+    expect(authorized({ state }).searchParams.get('state')).toBe(state);
+  });
+
   it('encodes the requested login into the code it mints', async () => {
-    const url = new URL(adapter().authorizeUrl({ state: 's', login: 'mock-operator' }));
+    const url = authorized({ state: 's', login: 'mock-operator' });
 
     expect(url.searchParams.get('code')).toBe('mock-code-mock-operator');
   });
 
   it('falls back to the seeded mentee when no login was asked for', async () => {
-    const url = new URL(adapter().authorizeUrl({ state: 's' }));
+    const url = authorized({ state: 's' });
 
     expect(DEFAULT_MOCK_LOGIN).toBe('mock-mentee');
     expect(url.searchParams.get('code')).toBe('mock-code-mock-mentee');

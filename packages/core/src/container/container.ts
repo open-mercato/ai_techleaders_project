@@ -86,7 +86,9 @@ function selectGithubIdentity({ env, logger }: Cradle): GithubIdentityPort {
       'the mock GitHub identity adapter is active: sign-in accepts any login without ' +
         'contacting GitHub',
     );
-    return new MockGithubIdentityAdapter({ env });
+    // No dependencies: the mock redirects the browser to its own origin-relative callback,
+    // so unlike the real adapter it needs nothing from `env` — see `authorizeUrl` there.
+    return new MockGithubIdentityAdapter();
   }
   return new GithubIdentityAdapter({ env, logger });
 }
