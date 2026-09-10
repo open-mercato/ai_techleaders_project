@@ -224,17 +224,68 @@ describe('CrudForm', () => {
     const utcInstant = {
       getTime: vi.fn(() => 1_789_063_800_000),
       toISOString: vi.fn(() => '2026-09-10T17:30:00.000Z'),
+      getFullYear: () => 2026,
+      getMonth: () => 8,
+      getDate: () => 10,
+      getHours: () => 19,
+      getMinutes: () => 30,
+      getSeconds: () => 0,
+      getMilliseconds: () => 0,
+      getTimezoneOffset: () => -120,
     };
     const parseLocal = vi.fn(() => utcInstant);
-    expect(localDateTimeToUtc('2026-09-10T19:30', parseLocal)).toBe('2026-09-10T17:30:00.000Z');
+    const adjacentInstant = { ...utcInstant, getTimezoneOffset: () => -120 };
+    expect(localDateTimeToUtc('2026-09-10T19:30', parseLocal, () => adjacentInstant)).toBe('2026-09-10T17:30:00.000Z');
     expect(parseLocal).toHaveBeenCalledExactlyOnceWith('2026-09-10T19:30');
     expect(utcInstant.toISOString).toHaveBeenCalledOnce();
 
-    const invalid = { getTime: () => Number.NaN, toISOString: vi.fn() };
-    expect(localDateTimeToUtc('not-a-date', () => invalid)).toBe('not-a-date');
+    const invalid = { ...utcInstant, getTime: () => Number.NaN, toISOString: vi.fn() };
+    expect(localDateTimeToUtc('2026-09-10T19:30', () => invalid)).toBe('2026-09-10T19:30');
     expect(invalid.toISOString).not.toHaveBeenCalled();
+    expect(localDateTimeToUtc('not-a-date')).toBe('not-a-date');
     expect(localDateTimeToUtc('')).toBe('');
     expect(localDateTimeToUtc(null)).toBeNull();
+
+    const shiftedOffset = { ...utcInstant, getTimezoneOffset: () => -60, getHours: () => 20 };
+    expect(localDateTimeToUtc('2026-09-10T19:30', () => utcInstant, () => shiftedOffset))
+      .toBe('2026-09-10T17:30:00.000Z');
+  });
+
+  it('preserves nonexistent and ambiguous local times for schema feedback', () => {
+    const base = {
+      getTime: () => 1_000_000,
+      toISOString: vi.fn(() => '2026-03-29T01:30:00.000Z'),
+      getFullYear: () => 2026,
+      getMonth: () => 2,
+      getDate: () => 29,
+      getHours: () => 3,
+      getMinutes: () => 30,
+      getSeconds: () => 0,
+      getMilliseconds: () => 0,
+      getTimezoneOffset: () => -120,
+    };
+    expect(localDateTimeToUtc('2026-03-29T02:30', () => base)).toBe('2026-03-29T02:30');
+    expect(base.toISOString).not.toHaveBeenCalled();
+
+    const fold = {
+      ...base,
+      getMonth: () => 9,
+      getDate: () => 25,
+      getHours: () => 2,
+      getTimezoneOffset: () => -120,
+    };
+    const otherSide = {
+      ...fold,
+      getTime: () => 4_600_000,
+      getTimezoneOffset: () => -60,
+    };
+    const adjacent = { ...fold, getTimezoneOffset: () => -60 };
+    expect(localDateTimeToUtc(
+      '2026-10-25T02:30',
+      () => fold,
+      (timestamp) => timestamp === 4_600_000 ? otherSide : adjacent,
+    )).toBe('2026-10-25T02:30');
+    expect(fold.toISOString).not.toHaveBeenCalled();
   });
 
   it('renders all field types with empty defaults and submits the schema output with POST', async () => {

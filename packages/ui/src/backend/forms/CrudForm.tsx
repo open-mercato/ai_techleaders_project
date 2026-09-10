@@ -83,9 +83,65 @@ function defaultValueFor(field: CrudField): unknown {
 interface LocalDateTimeInstant {
   getTime: () => number;
   toISOString: () => string;
+  getFullYear: () => number;
+  getMonth: () => number;
+  getDate: () => number;
+  getHours: () => number;
+  getMinutes: () => number;
+  getTimezoneOffset: () => number;
 }
 
 type ParseLocalDateTime = (value: string) => LocalDateTimeInstant;
+type InstantFromTimestamp = (value: number) => LocalDateTimeInstant;
+
+interface LocalWallClock {
+  year: number;
+  month: number;
+  day: number;
+  hours: number;
+  minutes: number;
+}
+
+function parseLocalWallClock(value: string): LocalWallClock | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (match === null) return null;
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+    hours: Number(match[4]),
+    minutes: Number(match[5]),
+  };
+}
+
+function sameLocalWallClock(instant: LocalDateTimeInstant, wallClock: LocalWallClock): boolean {
+  return [
+    [instant.getFullYear(), wallClock.year],
+    [instant.getMonth() + 1, wallClock.month],
+    [instant.getDate(), wallClock.day],
+    [instant.getHours(), wallClock.hours],
+    [instant.getMinutes(), wallClock.minutes],
+  ].every(([actual, expected]) => actual === expected);
+}
+
+function isAmbiguousLocalWallClock(
+  instant: LocalDateTimeInstant,
+  wallClock: LocalWallClock,
+  fromTimestamp: InstantFromTimestamp,
+): boolean {
+  const timestamp = instant.getTime();
+  const offset = instant.getTimezoneOffset();
+  const adjacentOffsets = new Set([
+    fromTimestamp(timestamp - 24 * 60 * 60 * 1000).getTimezoneOffset(),
+    fromTimestamp(timestamp + 24 * 60 * 60 * 1000).getTimezoneOffset(),
+  ]);
+  for (const adjacentOffset of adjacentOffsets) {
+    if (adjacentOffset === offset) continue;
+    const alternative = fromTimestamp(timestamp + (adjacentOffset - offset) * 60 * 1000);
+    if (alternative.getTime() !== timestamp && sameLocalWallClock(alternative, wallClock)) return true;
+  }
+  return false;
+}
 
 /**
  * Converts the browser's local wall-clock representation to the UTC instant sent to
@@ -95,10 +151,16 @@ type ParseLocalDateTime = (value: string) => LocalDateTimeInstant;
 export function localDateTimeToUtc(
   value: unknown,
   parseLocalDateTime: ParseLocalDateTime = (localValue) => new Date(localValue),
+  fromTimestamp: InstantFromTimestamp = (timestamp) => new Date(timestamp),
 ): unknown {
   if (typeof value !== 'string' || value === '') return value;
+  const wallClock = parseLocalWallClock(value);
+  if (wallClock === null) return value;
   const instant = parseLocalDateTime(value);
-  return Number.isNaN(instant.getTime()) ? value : instant.toISOString();
+  if (Number.isNaN(instant.getTime()) || !sameLocalWallClock(instant, wallClock)) return value;
+  return isAmbiguousLocalWallClock(instant, wallClock, fromTimestamp)
+    ? value
+    : instant.toISOString();
 }
 
 const fieldClassName = 'dm-input w-full';
