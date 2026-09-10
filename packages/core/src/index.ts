@@ -67,6 +67,31 @@ export {
   type InvitationViewer,
   type ResentInvitation,
 } from './services/invitations/invitation.service';
+export {
+  MentorProfileService,
+  MAX_SLUG_ATTEMPTS,
+  toOwnerDto,
+  toPublicDto,
+  type MentorProfileOwnerDto,
+  type MentorProfilePublicDto,
+} from './services/mentors/mentor-profile.service';
+export { mentorPagePublishable } from './services/mentors/readiness';
+export {
+  mentorProfileUpdateSchema,
+  type MentorProfileUpdateInput,
+} from './validators/mentors/mentor-profile-update.schema';
+export {
+  MAX_SLUG_LENGTH,
+  RESERVED_SLUGS,
+  slugify,
+  uniqueSlug,
+} from './domain/slug';
+export {
+  defineReadiness,
+  type Readiness,
+  type ReadinessItem,
+  type ReadinessRequirement,
+} from './domain/readiness';
 // `userCreateSchema` and `UserCreateInput` are deliberately absent: `POST /api/users` is
 // gone, and `UserService.create` now names its two writable fields itself rather than
 // depending on a schema to strip everything else. See BACKWARD_COMPATIBILITY.md §2.

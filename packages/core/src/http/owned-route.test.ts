@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Cradle } from '../container/cradle';
 import type { ApiRouteContext } from './apiHandler';
 import { ForbiddenError, UnauthorizedError } from './errors';
-import { ownedAction } from './owned-route';
+import { z } from 'zod';
+import { makeOwnedCollectionRoute, makeOwnedResourceRoute, ownedAction } from './owned-route';
 
 const testState = vi.hoisted(() => ({
   cradle: {} as unknown,
@@ -156,5 +157,93 @@ describe('ownedAction', () => {
     expect(testState.withRequestScope).not.toHaveBeenCalled();
     expect(testState.requireSession).not.toHaveBeenCalled();
     expect(run).not.toHaveBeenCalled();
+  });
+});
+
+describe('makeOwnedResourceRoute', () => {
+  it('guards, reads, parses and updates an owner singleton without an owner id', async () => {
+    const get = vi.fn(() => ({ name: 'Ada' }));
+    const update = vi.fn((_req, _cradle, _params, input: { name: string }) => input);
+    const handlers = makeOwnedResourceRoute({
+      role: 'mentor',
+      get,
+      update,
+      updateSchema: z.object({ name: z.string().min(1) }),
+    });
+
+    const getResponse = await handlers.GET(
+      new Request('http://devmentor.test/api/mentors/me'),
+      context(),
+    );
+    expect(await getResponse.json()).toEqual({ ok: true, data: { name: 'Ada' } });
+
+    const putRequest = new Request('http://devmentor.test/api/mentors/me', {
+      method: 'PUT',
+      headers: { 'x-devmentor-request': '1', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Grace' }),
+    });
+    const putResponse = await handlers.PUT(putRequest, context());
+    expect(await putResponse.json()).toEqual({ ok: true, data: { name: 'Grace' } });
+    expect(update).toHaveBeenCalledWith(putRequest, testState.cradle, undefined, { name: 'Grace' });
+    expect(testState.requireRole).toHaveBeenCalledWith(testState.session, 'mentor');
+  });
+
+  it('returns standard failures for unsupported and invalid updates', async () => {
+    const unsupported = makeOwnedResourceRoute<object, { name: string }>({});
+    expect((await unsupported.GET(request(), context())).status).toBe(400);
+    expect((await unsupported.PUT(request(), context())).status).toBe(400);
+
+    const noSchema = makeOwnedResourceRoute({ update: () => ({}) });
+    expect((await noSchema.PUT(request(), context())).status).toBe(400);
+
+    const invalid = makeOwnedResourceRoute({
+      update: () => ({}),
+      updateSchema: z.object({ name: z.string() }),
+    });
+    const response = await invalid.PUT(
+      new Request('http://devmentor.test/api/mentors/me', {
+        method: 'PUT',
+        headers: { 'x-devmentor-request': '1', 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 42 }),
+      }),
+      context(),
+    );
+    expect(response.status).toBe(422);
+  });
+});
+
+describe('makeOwnedCollectionRoute', () => {
+  it('lists and creates caller-owned resources with route params', async () => {
+    const list = vi.fn(() => [{ id: 'one' }]);
+    const create = vi.fn((_req, _cradle, _params, input: { value: string }) => ({ id: input.value }));
+    const handlers = makeOwnedCollectionRoute({
+      role: 'mentor',
+      list,
+      create,
+      createSchema: z.object({ value: z.string() }),
+    });
+    const params = { parent: 'mine' };
+    const getResponse = await handlers.GET(
+      new Request('http://devmentor.test/api/resources'),
+      context(params),
+    );
+    expect(await getResponse.json()).toEqual({ ok: true, data: [{ id: 'one' }] });
+
+    const postRequest = new Request('http://devmentor.test/api/resources', {
+      method: 'POST',
+      headers: { 'x-devmentor-request': '1', 'content-type': 'application/json' },
+      body: JSON.stringify({ value: 'two' }),
+    });
+    const postResponse = await handlers.POST(postRequest, context(params));
+    expect(await postResponse.json()).toEqual({ ok: true, data: { id: 'two' } });
+    expect(create).toHaveBeenCalledWith(postRequest, testState.cradle, params, { value: 'two' });
+  });
+
+  it('returns standard failures for unsupported collection operations', async () => {
+    const unsupported = makeOwnedCollectionRoute<object, { value: string }>({});
+    expect((await unsupported.GET(request(), context())).status).toBe(400);
+    expect((await unsupported.POST(request(), context())).status).toBe(400);
+    const noSchema = makeOwnedCollectionRoute({ create: () => ({}) });
+    expect((await noSchema.POST(request(), context())).status).toBe(400);
   });
 });

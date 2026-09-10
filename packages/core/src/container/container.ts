@@ -17,6 +17,7 @@ import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
 import { InvitationService } from '../services/invitations/invitation.service';
+import { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
 import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
@@ -243,6 +244,7 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // so constructing one per scope costs two field assignments.
     rateLimiter: asClass(RateLimiter).scoped(),
     invitationService: asClass(InvitationService).scoped(),
+    mentorProfileService: asClass(MentorProfileService).scoped(),
     // The default for a scope nobody opened for a request: no cookie, so no session. Each
     // of `withRequestScope`/`withCookieScope` overrides it on its own scope. Registering it
     // at the root keeps the key resolvable in a `strict` container, which is what lets a
@@ -281,6 +283,12 @@ async function build(): Promise<AwilixContainer<Cradle>> {
         { invitationId, userId, publishDueAt },
         'invitations.invitation.accepted',
       );
+    },
+  );
+  container.cradle.eventBus.on(
+    'mentors.profile.published',
+    ({ mentorProfileId, slug }) => {
+      container.cradle.logger.info({ mentorProfileId, slug }, 'mentors.profile.published');
     },
   );
 

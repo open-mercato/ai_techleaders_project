@@ -31,6 +31,10 @@ export interface EventMap {
     userId: string;
     publishDueAt: string;
   };
+  'mentors.profile.published': {
+    mentorProfileId: string;
+    slug: string;
+  };
 }
 
 export type EventId = keyof EventMap;

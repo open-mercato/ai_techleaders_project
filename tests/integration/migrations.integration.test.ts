@@ -10,6 +10,7 @@ import {
   rateLimitKey,
   type RateLimitPolicy,
 } from '@devmentor/core';
+import { entities } from '@devmentor/db';
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
@@ -21,6 +22,7 @@ const AUTH_IDENTITY_MIGRATION = 'Migration20260909222320_auth_identity';
 const AUTH_PASSWORD_MIGRATION = 'Migration20260910092433_auth_password';
 const AUTH_RATE_LIMITS_MIGRATION = 'Migration20260910095701_auth_rate_limits';
 const INVITATIONS_MIGRATION = 'Migration20260910130526_invitations';
+const MENTOR_PAGE_MIGRATION = 'Migration20260910163000_mentor_page';
 
 /** A row created before `auth-identity` — the population the backfill exists for. */
 const LEGACY_EMAIL = 'legacy@devmentor.test';
@@ -88,6 +90,7 @@ const INVITATION_CONSTRAINTS = [
 describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   let postgres: StartedPostgreSqlContainer | undefined;
   let orm: MikroORM | undefined;
+  let clientUrl: string;
   let childEnvironment: NodeJS.ProcessEnv;
 
   async function migrate(...extraArgs: string[]): Promise<void> {
@@ -217,6 +220,33 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     `);
   }
 
+  async function mentorPageColumns(): Promise<
+    { column_name: string; udt_name: string; is_nullable: string; column_default: string | null }[]
+  > {
+    return query(`
+      select column_name, udt_name, is_nullable, column_default
+      from information_schema.columns
+      where table_name = 'mentor_profiles'
+        and column_name in ('slug', 'public_work_url', 'stack_tags', 'published_at')
+      order by column_name
+    `);
+  }
+
+  async function mentorPageConstraints(): Promise<{ conname: string; def: string }[]> {
+    return query(`
+      select con.conname, pg_get_constraintdef(con.oid) as def
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      where rel.relname = 'mentor_profiles'
+        and con.conname in (
+          'mentor_profiles_slug_unique',
+          'mentor_profiles_stack_tags_check',
+          'mentor_profiles_publication_has_slug'
+        )
+      order by con.conname
+    `);
+  }
+
   async function constraintFrom(operation: () => Promise<unknown>): Promise<string> {
     try {
       await operation();
@@ -254,7 +284,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       .withPassword('devmentor')
       .start();
 
-    const clientUrl = postgres.getConnectionUri();
+    clientUrl = postgres.getConnectionUri();
     childEnvironment = {
       ...process.env,
       DATABASE_URL: clientUrl,
@@ -412,7 +442,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('applies auth-rate-limits: a three-column counter table with no base columns', async () => {
-    await migrate();
+    await migrate('--to', AUTH_RATE_LIMITS_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([
       BASE_MIGRATION,
@@ -624,7 +654,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('re-applies auth-rate-limits: the second up produces the same table', async () => {
-    await migrate();
+    await migrate('--to', AUTH_RATE_LIMITS_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([
       BASE_MIGRATION,
@@ -642,7 +672,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('applies invitations with its exact columns, constraints, partial index and deadline', async () => {
-    await migrate();
+    await migrate('--to', INVITATIONS_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([
       BASE_MIGRATION,
@@ -797,7 +827,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('re-applies invitations to the same schema', async () => {
-    await migrate();
+    await migrate('--to', INVITATIONS_MIGRATION);
 
     expect((await invitationColumns()).map((column) => column.column_name)).toEqual(
       INVITATION_COLUMNS,
@@ -808,10 +838,63 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     expect(await mentorDeadlineColumn()).toHaveLength(1);
   });
 
+  it('applies the mentor-page fields and enforces publication and vocabulary constraints', async () => {
+    await migrate('--to', MENTOR_PAGE_MIGRATION);
+
+    expect(await appliedMigrations()).toContain(MENTOR_PAGE_MIGRATION);
+    expect(await mentorPageColumns()).toEqual([
+      { column_name: 'public_work_url', udt_name: 'text', is_nullable: 'YES', column_default: null },
+      { column_name: 'published_at', udt_name: 'timestamptz', is_nullable: 'YES', column_default: null },
+      { column_name: 'slug', udt_name: 'varchar', is_nullable: 'YES', column_default: null },
+      { column_name: 'stack_tags', udt_name: '_text', is_nullable: 'NO', column_default: "'{}'::text[]" },
+    ]);
+    expect((await mentorPageConstraints()).map(({ conname }) => conname)).toEqual([
+      'mentor_profiles_publication_has_slug',
+      'mentor_profiles_slug_unique',
+      'mentor_profiles_stack_tags_check',
+    ]);
+
+    const { id: userId } = await queryOne<{ id: string }>(
+      `select id from users where email = '${LEGACY_EMAIL}'`,
+    );
+    await query(`
+      insert into mentor_profiles
+        (id, created_at, updated_at, user_id, headline, years_of_experience)
+      values (gen_random_uuid(), now(), now(), '${userId}', 'Draft', 0)
+      on conflict (user_id) do update set headline = excluded.headline
+    `);
+    expect(
+      await constraintFrom(() =>
+        query(`update mentor_profiles set stack_tags = '{Rust}' where user_id = '${userId}'`),
+      ),
+    ).toBe('mentor_profiles_stack_tags_check');
+    expect(
+      await constraintFrom(() =>
+        query(`update mentor_profiles set published_at = now(), slug = null where user_id = '${userId}'`),
+      ),
+    ).toBe('mentor_profiles_publication_has_slug');
+    await expect(
+      query(`update mentor_profiles set slug = 'legacy', published_at = now() where user_id = '${userId}'`),
+    ).resolves.toBeDefined();
+  });
+
+  it('rolls mentor-page back without removing invitation state, then reapplies it', async () => {
+    await rollbackOne();
+    expect(await mentorPageColumns()).toEqual([]);
+    expect(await mentorPageConstraints()).toEqual([]);
+    expect(await invitationColumns()).toHaveLength(INVITATION_COLUMNS.length);
+    expect(await mentorDeadlineColumn()).toHaveLength(1);
+
+    await migrate('--to', MENTOR_PAGE_MIGRATION);
+    expect(await mentorPageColumns()).toHaveLength(4);
+    expect(await appliedMigrations()).toContain(MENTOR_PAGE_MIGRATION);
+  });
+
   it('rolls back: removes exactly what it added and keeps the pre-existing rows', async () => {
     // `auth-rate-limits` and `auth-password` sit on top, so reaching `auth-identity`'s
     // `down` means reverting them first — the same order a real rollback of the slice
     // would take.
+    await rollbackOne();
     await rollbackOne();
     await rollbackOne();
     await rollbackOne();
@@ -839,7 +922,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('re-applies: the second up produces the same schema and backfills again', async () => {
-    await migrate();
+    await migrate('--to', MENTOR_PAGE_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([
       BASE_MIGRATION,
@@ -847,6 +930,7 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       AUTH_PASSWORD_MIGRATION,
       AUTH_RATE_LIMITS_MIGRATION,
       INVITATIONS_MIGRATION,
+      MENTOR_PAGE_MIGRATION,
     ]);
     expect((await passwordColumn()).map((column) => column.column_name)).toEqual([
       PASSWORD_COLUMN,
@@ -867,5 +951,15 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       `select email_verified_at is not null as verified from users where email = '${LEGACY_EMAIL}'`,
     );
     expect(legacy.verified).toBe(true);
+  });
+
+  it('matches the complete entity model after all migrations', async () => {
+    const verifier = await MikroORM.init({ clientUrl, entities });
+    await verifier.connect();
+    try {
+      expect((await verifier.schema.getUpdateSchemaSQL()).trim()).toBe('');
+    } finally {
+      await verifier.close(true);
+    }
   });
 });

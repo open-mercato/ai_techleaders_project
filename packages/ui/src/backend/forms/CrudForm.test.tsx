@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { apiCall } from '../api/apiCall';
 import type { ApiResult } from '../api/types';
@@ -27,6 +27,14 @@ const allFields: CrudField[] = [
 const allSchema = z.object({
   name: z.string(), headline: z.string(), email: z.string(), price: z.number().optional(),
   description: z.string(), available: z.boolean(), stack: z.string(),
+});
+
+beforeAll(() => {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 });
 
 function input(label: string) {
@@ -135,6 +143,26 @@ describe('CrudForm', () => {
     expect(document.activeElement).toBe(alert);
   });
 
+  it('associates and focuses field errors supplied by a related transition', () => {
+    const props = {
+      schema: textSchema,
+      fields: textFields,
+      endpoint: '/api/profile',
+      initialValues: { name: 'Ada' },
+    };
+    const { rerender } = render(<CrudForm {...props} />);
+    rerender(<CrudForm {...props} externalFieldErrors={{ name: ['Add your public name.'] }} />);
+    const name = input('Name');
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(name.getAttribute('aria-describedby')!)?.textContent).toBe('Add your public name.');
+    expect(document.activeElement).toBe(name);
+
+    rerender(<CrudForm {...props} externalFieldErrors={{ _root: ['Complete the missing details.'] }} />);
+    expect(document.activeElement).toBe(screen.getByText('Complete the missing details.').closest('[role="alert"]'));
+    rerender(<CrudForm {...props} externalFieldErrors={{ name: [] }} />);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('marks required fields visibly and semantically while validating with the schema', () => {
     render(<CrudForm schema={z.object({ name: z.string().min(1, 'Enter a name.') })}
       fields={[{ name: 'name', label: 'Name', required: true }]} endpoint="/api/profile" />);
@@ -217,6 +245,41 @@ describe('CrudForm', () => {
       },
     }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalledExactlyOnceWith({ id: 'created' }));
+  });
+
+  it('renders a multiselect as an accessible checkbox group and submits selected option values', async () => {
+    render(<CrudForm schema={z.object({ stackTags: z.array(z.string()) })} endpoint="/api/mentors/me"
+      fields={[{
+        name: 'stackTags', label: 'Technology stacks', type: 'multiselect',
+        description: 'Choose up to four.',
+        options: [
+          { label: 'TypeScript', value: 'typescript' },
+          { label: 'React', value: 'react' },
+        ],
+      }]}
+      initialValues={{ stackTags: 'invalid stored value' }} />);
+
+    const group = screen.getByRole('group', { name: 'Technology stacks' });
+    expect(group.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TypeScript' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'React' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TypeScript' }));
+    submitForm();
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/mentors/me', {
+      method: 'POST', body: { stackTags: ['react'] },
+    }));
+  });
+
+  it('defaults a multiselect to an empty array and permits a field with no options', async () => {
+    render(<CrudForm schema={z.object({ stackTags: z.array(z.string()) })} endpoint="/api/mentors/me"
+      fields={[{ name: 'stackTags', label: 'Technology stacks', type: 'multiselect' }]} />);
+    expect(screen.getByRole('group', { name: 'Technology stacks' }).children).toHaveLength(0);
+    submitForm();
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/mentors/me', {
+      method: 'POST', body: { stackTags: [] },
+    }));
   });
 
   it('coerces a cleared numeric field to undefined and lets the schema supply its default', async () => {

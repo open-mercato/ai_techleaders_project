@@ -262,6 +262,18 @@ describe('getContainer', () => {
       'invitations.invitation.accepted',
     );
   });
+
+  it('logs the default mentors.profile.published subscriber', async () => {
+    const container = await getContainer();
+    await container.cradle.eventBus.emit('mentors.profile.published', {
+      mentorProfileId: 'profile-1',
+      slug: 'ada-lovelace',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      { mentorProfileId: 'profile-1', slug: 'ada-lovelace' },
+      'mentors.profile.published',
+    );
+  });
 });
 
 describe('withScope', () => {
@@ -274,9 +286,13 @@ describe('withScope', () => {
   });
 
   it('resolves scoped services against the scope', async () => {
-    const services = await withScope((cradle) => [cradle.userService, cradle.invitationService]);
+    const services = await withScope((cradle) => [
+      cradle.userService,
+      cradle.invitationService,
+      cradle.mentorProfileService,
+    ]);
 
-    expect(services).toHaveLength(2);
+    expect(services).toHaveLength(3);
     expect(services.every(Boolean)).toBe(true);
   });
 
