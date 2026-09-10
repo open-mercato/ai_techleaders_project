@@ -370,6 +370,39 @@ export class UserService {
   }
 
   /**
+   * End every session this user holds, by bumping `session_version`.
+   *
+   * The sign-out half of the closed list of `session_version` triggers (the other is
+   * `grantRole`/`revokeRole`). Bumping the column is what makes a *copied* cookie stop
+   * working at sign-out rather than surviving for the rest of its 24 hours (edge case 11);
+   * the cost, accepted in D19, is that signing out on one device signs the user out
+   * everywhere, because there is one logical session per user.
+   *
+   * **Only called when a live session was actually presented.** `POST /api/auth/logout`
+   * requires CSRF but not a session (edge case 27), so signing out with an expired or
+   * tampered cookie clears the cookie and never reaches this method — there is no row to
+   * attribute the bump to, and nothing to revoke.
+   *
+   * A missing row is not an error. The session was resolved from a `findOne` a moment ago,
+   * so this is the vanishingly narrow window where the account was deleted in between; the
+   * caller's cookie is being expired regardless and there is nothing left to revoke.
+   *
+   * Read-modify-write without a lock is deliberate. Two concurrent sign-outs may both read
+   * `n` and both write `n + 1`, which is the correct answer either way: what has to hold is
+   * that every token carrying `n` stops verifying, not that the counter reaches `n + 2`.
+   */
+  async endAllSessions(userId: string): Promise<void> {
+    const user = await this.em.findOne(User, { id: userId });
+    if (user === null) {
+      return;
+    }
+
+    user.sessionVersion += 1;
+    await this.em.flush();
+    this.logger.info({ userId }, 'ended every session for a user');
+  }
+
+  /**
    * The scoped caller, or the matching refusal: `UnauthorizedError` (401) when nobody is
    * signed in, `ForbiddenError` (403) — from `requireRole` — when somebody is but holds no
    * `operator` role. The same two errors `requireSession` and `requireRole` produce at a

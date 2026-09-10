@@ -765,3 +765,54 @@ describe('grantRole / revokeRole', () => {
     expect(result.user.roles).toEqual(['mentee', 'operator']);
   });
 });
+
+describe('endAllSessions', () => {
+  it('bumps session_version, ending every session the user holds', async () => {
+    db.rows.push(row({ id: 'user-1', sessionVersion: 7 }));
+
+    await expect(makeService().endAllSessions('user-1')).resolves.toBeUndefined();
+
+    expect(db.rows[0]?.sessionVersion).toBe(8);
+  });
+
+  it('leaves the role set and every other column alone', async () => {
+    db.rows.push(row({ id: 'user-1', roles: ['mentee', 'operator'], sessionVersion: 0 }));
+
+    await makeService(['ada@devmentor.dev']).endAllSessions('user-1');
+
+    // Sign-out is not a reconciliation: it revokes tokens and says nothing about roles.
+    expect(db.rows[0]?.roles).toEqual(['mentee', 'operator']);
+    expect(db.rows[0]?.email).toBe('ada@devmentor.dev');
+    expect(emitted).toEqual([]);
+  });
+
+  it('touches no other user', async () => {
+    db.rows.push(row({ id: 'user-1', sessionVersion: 1 }));
+    db.rows.push(row({ id: 'user-2', email: 'grace@devmentor.dev', sessionVersion: 1 }));
+
+    await makeService().endAllSessions('user-1');
+
+    expect(db.rows[1]?.sessionVersion).toBe(1);
+  });
+
+  it('does nothing, and does not throw, when the row has since been deleted', async () => {
+    // The session was resolved from a `findOne` a moment ago, so this is the narrow window
+    // where the account was deleted in between. The caller's cookie is expired regardless.
+    await expect(makeService().endAllSessions('missing')).resolves.toBeUndefined();
+
+    expect(db.rows).toEqual([]);
+  });
+
+  it('is safe to run twice concurrently: every old token still stops verifying', async () => {
+    db.rows.push(row({ id: 'user-1', sessionVersion: 4 }));
+
+    await Promise.all([
+      makeService().endAllSessions('user-1'),
+      makeService().endAllSessions('user-1'),
+    ]);
+
+    // Both may read 4 and both may write 5. What has to hold is that nothing carrying 4
+    // verifies any more, not that the counter reached 6.
+    expect(db.rows[0]?.sessionVersion).toBeGreaterThan(4);
+  });
+});

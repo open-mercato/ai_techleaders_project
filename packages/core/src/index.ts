@@ -14,6 +14,15 @@ export {
   type SessionClaims,
   type SessionUser,
 } from './services/auth/session.service';
+// The OAuth `state` cookie, shared by the two halves of the GitHub flow: the start route
+// mints and sets it, the callback route reads, compares and clears it.
+export {
+  OAUTH_STATE_COOKIE_NAME,
+  OAUTH_STATE_TTL_SECONDS,
+  issueOauthStateCookie,
+  clearOauthStateCookie,
+  readOauthStateCookie,
+} from './services/auth/oauth-state';
 export {
   TokenService,
   type PurposeTokenClaims,

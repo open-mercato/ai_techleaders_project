@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import type { AppEnv } from '../../config/env';
 import type { Clock } from '../../time/clock';
+import { readCookie, serializeCookie } from '../../http/cookies';
 import { signingKey, verificationKeys } from './session-secret';
 
 /**
@@ -215,64 +216,25 @@ export class SessionService {
    * anyone who could set a cookie.
    */
   readCookie(req: Request): string | null {
-    const header = req.headers.get('cookie');
-    if (!header) {
-      return null;
-    }
-
-    for (const pair of header.split(';')) {
-      const separator = pair.indexOf('=');
-      if (separator === -1) {
-        // A bare attribute with no `=`. Not a cookie; skip it rather than reading the
-        // whole segment as a name.
-        continue;
-      }
-      if (pair.slice(0, separator).trim() === SESSION_COOKIE_NAME) {
-        return pair.slice(separator + 1).trim();
-      }
-    }
-
-    return null;
+    return readCookie(req, SESSION_COOKIE_NAME);
   }
 
   /**
-   * The hand-rolled serializer — B2's "20 lines of local code" case, so no `cookie`
-   * package. Five attributes, one place, one test.
+   * The `Set-Cookie` value for this service's one cookie.
    *
-   * `Max-Age` rather than `Expires`: it is relative, so a client whose clock is days out
-   * still drops the cookie on time. Matching it to the token's lifetime means the
-   * browser's copy dies exactly when the signature stops verifying, instead of a
-   * long-lived browser session replaying a token that expired yesterday. `clear` passes
-   * `0`, which is the "delete now" value in every browser we target.
-   *
-   * `Secure` is set only in production. `npm run dev` serves plain HTTP on localhost, so
-   * an unconditional `Secure` would make sign-in impossible locally. The integration
-   * harness runs as production over plain-HTTP loopback and still works because Chrome
-   * treats loopback origins as trustworthy — that is browser behaviour, not something we
-   * implement here (edge case 32).
-   *
-   * The `__Host-` prefix, which would let the browser enforce `Secure` + `Path=/` + no
-   * `Domain`, was weighed and rejected in B2: it forbids `Secure`-less cookies outright,
-   * which is the local-development case above. Revisit if a staging environment on a
-   * real hostname appears.
+   * The attribute list itself lives in `http/cookies.ts`, shared with the OAuth `state`
+   * cookie, so the `SameSite=Lax` and `Secure`-in-production rules are decided once. What
+   * stays here is the only part that is this service's decision: the name, and matching
+   * `Max-Age` to the token's lifetime so the browser's copy dies exactly when the
+   * signature stops verifying, instead of a long-lived browser session replaying a token
+   * that expired yesterday.
    */
   private serializeCookie(value: string, maxAgeSeconds: number): string {
-    const attributes = [
-      `${SESSION_COOKIE_NAME}=${value}`,
-      'Path=/',
-      `Max-Age=${maxAgeSeconds}`,
-      // Unreadable to `document.cookie`, so an XSS bug cannot exfiltrate a session.
-      'HttpOnly',
-      // `Lax`, never `Strict`: the OAuth callback and the post-sign-in landing are
-      // top-level navigations that may arrive cross-site, and a `Strict` cookie is not
-      // sent on those (see the 2026-09-04 lesson).
-      'SameSite=Lax',
-    ];
-
-    if (this.env.NODE_ENV === 'production') {
-      attributes.push('Secure');
-    }
-
-    return attributes.join('; ');
+    return serializeCookie({
+      name: SESSION_COOKIE_NAME,
+      value,
+      maxAgeSeconds,
+      env: this.env,
+    });
   }
 }

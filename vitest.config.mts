@@ -26,14 +26,21 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
-        // The only `route.ts` with a decision in it: `/api/users` guards `GET` at the
-        // route as well as in the service, so the hook that denies is production behavior
+        // Route files with a decision in them. `/api/users` guards `GET` at the route as
+        // well as in the service; the three auth routes decide the whole OAuth ordering,
+        // the `?login` rule and the sign-out contract, so all of it is production behavior
         // and is covered like any other.
+        'packages/app/src/app/api/auth/github/route.ts',
+        'packages/app/src/app/api/auth/github/callback/route.ts',
+        'packages/app/src/app/api/auth/logout/route.ts',
         'packages/app/src/app/api/users/route.ts',
+        'packages/app/src/lib/session.ts',
+        'packages/app/src/lib/sign-in-redirect.ts',
         'packages/core/src/config/env.ts',
         'packages/core/src/container/container.ts',
         'packages/core/src/http/apiHandler.ts',
         'packages/core/src/http/auth.ts',
+        'packages/core/src/http/cookies.ts',
         'packages/core/src/http/errors.ts',
         'packages/core/src/http/makeCrudRoute.ts',
         'packages/core/src/http/outbound.ts',
@@ -41,6 +48,7 @@ export default defineConfig({
         'packages/core/src/services/auth/adapters/github-identity.ts',
         'packages/core/src/services/auth/adapters/mock-github-identity.ts',
         'packages/core/src/services/auth/github-identity.port.ts',
+        'packages/core/src/services/auth/oauth-state.ts',
         'packages/core/src/services/auth/operator-authority.ts',
         'packages/core/src/services/auth/session-secret.ts',
         'packages/core/src/services/auth/session.service.ts',
