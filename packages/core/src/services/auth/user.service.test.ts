@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppEnv } from '../../config/env';
 import { EventBus } from '../../events/event-bus';
 import type { EventMap } from '../../events/event-map';
-import { ConflictError, NotFoundError } from '../../http/errors';
+import type { Session } from '../../http/auth';
+import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../../http/errors';
 import type { Logger } from '../../logger';
 import type { Clock } from '../../time/clock';
-import { UserService, type GithubIdentityInput } from './user.service';
+import { UserService, type GithubIdentityInput, type UserCreateInput } from './user.service';
 
 /**
  * Test seam for `UserService`.
@@ -84,6 +85,8 @@ class FakeDb {
   attempts = 0;
   /** Queued failures, one per `flush`, standing in for a concurrent writer. */
   flushFailures: unknown[] = [];
+  /** Every collection read, so "denied before the data was touched" is observable. */
+  finds = 0;
   private nextId = 1;
 
   em(): EntityManager {
@@ -117,6 +120,7 @@ class FakeDb {
         );
       },
       find: async (): Promise<Row[]> => {
+        this.finds += 1;
         await tick();
         return [...this.rows];
       },
@@ -179,13 +183,29 @@ let db: FakeDb;
 let eventBus: EventBus;
 let emitted: Array<{ id: string; payload: unknown }>;
 
-function makeService(operatorEmails: readonly string[] = []): UserService {
+/**
+ * The scoped `session` key, as awilix hands it over: a promise, resolved at most once per
+ * request. `null` — nobody signed in — is the default, because every method except `list`
+ * is reached from an unauthenticated path (sign-in) or from no route at all.
+ */
+function sessionOf(...roles: Role[]): Promise<Session | null> {
+  const [first, ...rest] = roles;
+  return Promise.resolve(
+    first === undefined ? null : { userId: 'caller-1', roles: [first, ...rest] },
+  );
+}
+
+function makeService(
+  operatorEmails: readonly string[] = [],
+  session: Promise<Session | null> = sessionOf(),
+): UserService {
   return new UserService({
     em: db.em(),
     logger,
     eventBus,
     env: { OPERATOR_EMAILS: operatorEmails } as unknown as AppEnv,
     clock,
+    session,
   });
 }
 
@@ -219,7 +239,7 @@ describe('list', () => {
       }),
     );
 
-    await expect(makeService().list()).resolves.toEqual([
+    await expect(makeService([], sessionOf('operator')).list()).resolves.toEqual([
       {
         id: 'user-1',
         email: 'ada@devmentor.dev',
@@ -236,9 +256,51 @@ describe('list', () => {
   it('reports absent identity columns as null rather than dropping them', async () => {
     db.rows.push(row({ id: 'user-1' }));
 
-    const [dto] = await makeService().list();
+    const [dto] = await makeService([], sessionOf('operator')).list();
 
     expect(dto).toMatchObject({ githubLogin: null, avatarUrl: null, mentorProfile: null });
+  });
+
+  it('serves an operator who also holds another role', async () => {
+    // Membership, not equality: mentor and operator are independent assignments.
+    db.rows.push(row({ id: 'user-1' }));
+
+    await expect(
+      makeService([], sessionOf('mentee', 'mentor', 'operator')).list(),
+    ).resolves.toHaveLength(1);
+  });
+
+  it('refuses an anonymous caller with 401, before reading a single row', async () => {
+    db.rows.push(row({ id: 'user-1' }));
+
+    await expect(makeService([], sessionOf()).list()).rejects.toThrow(UnauthorizedError);
+    // The refusal is the service's own, not the route's, and it happens before the query:
+    // `/api/users` is guarded twice on purpose (edge case 21).
+    expect(db.finds).toBe(0);
+  });
+
+  it.each<[string, Role[]]>([
+    ['mentee', ['mentee']],
+    ['mentor', ['mentor']],
+    ['mentee and mentor', ['mentee', 'mentor']],
+  ])('refuses a signed-in %s with 403, before reading a single row', async (_label, roles) => {
+    db.rows.push(row({ id: 'user-1' }));
+
+    // 403 rather than 401: the caller is authenticated, so signing in again would not help.
+    await expect(makeService([], sessionOf(...roles)).list()).rejects.toThrow(ForbiddenError);
+    expect(db.finds).toBe(0);
+  });
+
+  it('propagates a failure to resolve the session rather than serving the list', async () => {
+    // The two things `resolveSessionFromCookie` can throw are a missing SESSION_SECRET and
+    // a corrupt role set (edge case 30b). Neither is an answer to "may this caller list
+    // users?", so neither may be swallowed — and the constructor's `catch` marks the
+    // rejection handled without changing what `list` sees.
+    const failure = new Error('SESSION_SECRET is not set');
+    const service = makeService([], Promise.reject(failure));
+
+    await expect(service.list()).rejects.toThrow(failure);
+    expect(db.finds).toBe(0);
   });
 });
 
@@ -265,6 +327,50 @@ describe('create', () => {
     expect(emitted).toEqual([
       { id: 'auth.user.created', payload: { userId: dto.id, email: 'grace@devmentor.dev' } },
     ]);
+  });
+
+  it('cannot set roles or any other privileged column, whatever the caller passes', async () => {
+    // The mass-assignment regression. `em.create(User, data)` would have written every one
+    // of these, and TypeScript would not have stopped it: the excess-property check only
+    // fires on object *literals*, so a widened object assigned to `UserCreateInput` reaches
+    // the method with its extra keys intact. Modelled here as exactly that — a value the
+    // compiler has already lost sight of.
+    const widened = {
+      email: 'mallory@devmentor.dev',
+      displayName: 'Mallory',
+      roles: ['operator'],
+      sessionVersion: 99,
+      githubId: '4242',
+      githubLogin: 'mallory',
+      emailVerifiedAt: NOW,
+    } as unknown as UserCreateInput;
+
+    const dto = await makeService().create(widened);
+
+    expect(dto.roles).toEqual(['mentee']);
+    expect(db.rows).toEqual([
+      expect.objectContaining({
+        email: 'mallory@devmentor.dev',
+        displayName: 'Mallory',
+        roles: ['mentee'],
+        sessionVersion: 0,
+        githubId: null,
+        githubLogin: null,
+        // Unverified, which is what keeps the row unlinkable by a GitHub identity.
+        emailVerifiedAt: null,
+      }),
+    ]);
+  });
+
+  it('does not require a session: registration is a public path', async () => {
+    // `create` is not the guarded surface — `list` is. Slice 4's password registration is
+    // the next caller and has no session by definition.
+    await expect(
+      makeService([], sessionOf()).create({
+        email: 'grace@devmentor.dev',
+        displayName: 'Grace Hopper',
+      }),
+    ).resolves.toMatchObject({ email: 'grace@devmentor.dev' });
   });
 });
 

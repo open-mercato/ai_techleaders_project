@@ -26,6 +26,10 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
+        // The only `route.ts` with a decision in it: `/api/users` guards `GET` at the
+        // route as well as in the service, so the hook that denies is production behavior
+        // and is covered like any other.
+        'packages/app/src/app/api/users/route.ts',
         'packages/core/src/config/env.ts',
         'packages/core/src/container/container.ts',
         'packages/core/src/http/apiHandler.ts',

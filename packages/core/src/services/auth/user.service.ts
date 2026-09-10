@@ -10,9 +10,9 @@ import type { Logger } from '../../logger';
 import type { Clock } from '../../time/clock';
 import type { EventBus } from '../../events/event-bus';
 import type { EventMap } from '../../events/event-map';
-import { ConflictError, NotFoundError } from '../../http/errors';
+import { requireRole, type Session } from '../../http/auth';
+import { ConflictError, NotFoundError, UnauthorizedError } from '../../http/errors';
 import { normalizeRoles, resolveLiveRoles } from './operator-authority';
-import type { UserCreateInput } from '../../validators/auth/user-create.schema';
 
 /**
  * Plain, JSON-safe shape a user is exposed as over the API. Services own their output
@@ -56,6 +56,28 @@ export interface UserDto {
 export interface SignedInUser {
   user: UserDto;
   sessionVersion: number;
+}
+
+/**
+ * Everything `create` is allowed to decide about a new account — and, by construction,
+ * nothing else.
+ *
+ * Declared here rather than inferred from a Zod schema, and consumed field by field in
+ * `create` rather than spread into `em.create`, because `users` now carries `roles`,
+ * `emailVerifiedAt`, `sessionVersion` and `githubId`. A spread makes the method a
+ * mass-assignment surface whose safety depends on whatever the *caller* validated with:
+ * TypeScript's excess-property check only fires on object literals, so a widened object
+ * reaching this signature would carry its extra keys straight into the entity. Naming the
+ * two writable fields at the `em.create` call site removes that surface from the method
+ * instead of delegating it to a schema (edge case 4 / Slice 2 "Breaking changes" 3).
+ *
+ * `roles`, `emailVerifiedAt` and every identity column are therefore *not* here. A row
+ * made by this method is a `['mentee']` (the column default), unverified account with no
+ * provider identity, which is exactly what Slice 4's password registration needs.
+ */
+export interface UserCreateInput {
+  email: string;
+  displayName: string;
 }
 
 /**
@@ -177,6 +199,7 @@ export class UserService {
   private readonly eventBus: EventBus;
   private readonly env: AppEnv;
   private readonly clock: Clock;
+  private readonly session: Promise<Session | null>;
 
   constructor({
     em,
@@ -184,22 +207,46 @@ export class UserService {
     eventBus,
     env,
     clock,
+    session,
   }: {
     em: EntityManager;
     logger: Logger;
     eventBus: EventBus;
     env: AppEnv;
     clock: Clock;
+    session: Promise<Session | null>;
   }) {
     this.em = em;
     this.logger = logger;
     this.eventBus = eventBus;
     this.env = env;
     this.clock = clock;
+    // A `Promise<Session | null>`, not a `Session`: the scoped `session` key is lazy and
+    // awilix caches the promise, which is what keeps the guard and this service sharing a
+    // single `findOne(User)`. Destructured synchronously with everything else — walking
+    // the PROXY cradle after an `await` resolves against a scope that may already be
+    // disposed.
+    this.session = session;
+    // Resolving the key here starts the lookup, so a rejection (a missing SESSION_SECRET,
+    // or the corrupt role set of edge case 30b) would otherwise be unhandled for any
+    // caller that never awaits it. This marks it handled without swallowing anything: the
+    // rejection is still delivered to `await this.session` below.
+    void session.catch(() => undefined);
   }
 
-  /** List users with their mentor profile eagerly populated. */
+  /**
+   * List every user, with their mentor profile eagerly populated.
+   *
+   * **Operator-only, and this check is the guarantee.** `/api/users` also denies in its
+   * `authorize` hook, but that is defence in depth: a layout does not re-run on a
+   * client-side navigation and a future caller may reach the service by another route, so
+   * the authority sits next to the data (edge case 21). Anonymous is 401 and a mentee or
+   * mentor is 403, matching `requireSession`/`requireRole` exactly — a caller who is signed
+   * in learns that signing in again will not help.
+   */
   async list(): Promise<UserDto[]> {
+    await this.requireOperator();
+
     const users = await this.em.find(
       User,
       {},
@@ -212,9 +259,22 @@ export class UserService {
     return this.em.findOne(User, { email });
   }
 
-  /** Create and persist a user, then emit `auth.user.created`. */
+  /**
+   * Create and persist a user, then emit `auth.user.created`.
+   *
+   * **No route calls this in E01** — `POST /api/users` was removed with this slice, and
+   * the GitHub path creates its row inside `findOrCreateFromGithub`'s transaction because
+   * it must also set the identity columns. It is kept because Slice 4's
+   * `registerWithPassword` is its next caller, and because the safe construction below is
+   * the thing worth keeping: `em.create` receives an object literal naming the two
+   * writable fields, so `roles`, `emailVerifiedAt`, `sessionVersion` and `githubId` cannot
+   * be reached through this method whatever the caller passes.
+   */
   async create(data: UserCreateInput): Promise<UserDto> {
-    const user = this.em.create(User, data);
+    const user = this.em.create(User, {
+      email: data.email,
+      displayName: data.displayName,
+    });
     this.em.persist(user);
     await this.em.flush();
     this.logger.info({ userId: user.id }, 'created user');
@@ -307,6 +367,21 @@ export class UserService {
    */
   async revokeRole(userId: string, role: Role): Promise<SignedInUser> {
     return this.changeRoleMembership(userId, role, 'revoked');
+  }
+
+  /**
+   * The scoped caller, or the matching refusal: `UnauthorizedError` (401) when nobody is
+   * signed in, `ForbiddenError` (403) — from `requireRole` — when somebody is but holds no
+   * `operator` role. The same two errors `requireSession` and `requireRole` produce at a
+   * route, because a service-level refusal must not be distinguishable from a route-level
+   * one by anything the caller can see.
+   */
+  private async requireOperator(): Promise<Session> {
+    const session = await this.session;
+    if (session === null) {
+      throw new UnauthorizedError();
+    }
+    return requireRole(session, 'operator');
   }
 
   /** One attempt at the matching order, inside its own transaction. */

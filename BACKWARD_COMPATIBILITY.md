@@ -46,10 +46,19 @@ failure response; `content-type: application/json` is written last and always wi
   `{ status: "ok", app, environment, database: "up" | "down", databaseError? }`, HTTP
   200 even when the database is down. `tests/integration/global-setup.ts` polls it and
   waits for `status === "ok"` and `database === "up"`; `README.md` documents it.
-- `GET /api/users` returns `UserDto[]`; `POST /api/users` takes
-  `{ email, displayName }` (`userCreateSchema`) and returns `UserDto`, where
-  `UserDto = { id, email, displayName, createdAt (ISO string), mentorProfile: { id, headline } | null }`.
-  The route is intentionally public until the `auth` concept lands.
+- `GET /api/users` returns `UserDto[]`, where
+  `UserDto = { id, email, displayName, roles, githubLogin, avatarUrl, createdAt (ISO string), mentorProfile: { id, headline } | null }`.
+  **It requires an operator session**: no session is 401 `unauthorized`, a signed-in
+  mentee or mentor is 403 `forbidden`. The collection is guarded twice on purpose — the
+  route's `authorize` hook denies before the service is resolved, and `UserService.list`
+  refuses independently. The service check is the authority; the route check is defence in
+  depth, because a caller can reach a service by another route (E01 spec, edge case 21).
+- `POST /api/users` **was removed** (E01 Slice 2). It was public, had zero in-repo callers,
+  and let anyone create an unverified row for an address they did not own — the
+  account-takeover vector the GitHub linking rule closes. No `POST` is exported from
+  `users/route.ts`, so Next answers 405 rather than an envelope. Creating a user is
+  `UserService.create` (email and display name only), reached from GitHub sign-in and,
+  from Slice 4, password registration.
 - `makeCrudRoute` behavior asserted by `packages/core/src/http/makeCrudRoute.test.ts`:
   the default id parameter `id`, and the messages "This operation is not supported",
   "Missing resource id", and "Request body must be valid JSON".
@@ -81,7 +90,20 @@ API between packages. `npm run typecheck` is the consumer check.
   `assertOwnership`, `requireCsrfHeader`, `CSRF_HEADER`, `Session`
   (`{ userId, roles: readonly [Role, ...Role[]] }`), `Role`
   (`'mentee' | 'mentor' | 'operator'`, re-exported from `@devmentor/db`), `EventBus`,
-  `EventMap`, `userCreateSchema`, and the re-exported `checkDbConnection`.
+  `EventMap`, and the re-exported `checkDbConnection`.
+
+  `userCreateSchema` and `UserCreateInput` were removed with `POST /api/users`, and the
+  module behind them (`./validators/auth/user-create.schema`) is deleted — it was the only
+  file under the `./validators/*` subpath, which stays declared for the next concept that
+  needs a shared client/server schema. Both had zero in-repo consumers (the schema's
+  docblock named a `CrudForm` call site that never existed), so §2's required path is
+  satisfied by deleting them in the same PR as the route verb. `UserService.create` now
+  declares its own `UserCreateInput` (`{ email, displayName }`) next to the service and
+  writes those two fields by name into `em.create`; it is deliberately *not* exported from
+  the barrel, because the guarantee is the field-by-field construction — a spread would
+  make `create` a mass-assignment surface for `roles`, `emailVerifiedAt`, `sessionVersion`
+  and `githubId` whose safety depended on whatever schema the caller happened to validate
+  with.
 
   Two removals came with the canonical live session: `readSession` (a cookie-only
   parser is no longer part of the authorization surface — see §7) and `Session.role`,

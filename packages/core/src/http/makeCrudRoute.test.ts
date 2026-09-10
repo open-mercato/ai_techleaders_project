@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { Cradle } from '../container/cradle';
 import type { ApiRouteContext } from './apiHandler';
+import { UnauthorizedError } from './errors';
 import {
   makeCrudRoute,
   type CrudService,
@@ -99,6 +100,31 @@ describe('makeCrudRoute GET', () => {
     });
     expect(authorize).toHaveBeenCalledWith(req, testState.cradle);
     expect(currentService.list).toHaveBeenCalledOnce();
+  });
+
+  it('denies before the service is resolved when authorization throws', async () => {
+    // The ordering guarantee every guarded route depends on: `/api/users` refuses an
+    // anonymous caller here *and* inside `UserService.list`, and the route half is only
+    // defence in depth if it runs first. `resolve` is spied on too, because a service that
+    // is never resolved is a database query that never happens.
+    const currentService = service();
+    const resolve = vi.fn(() => currentService);
+    const handlers = route(currentService, {
+      resolve,
+      authorize: () => {
+        throw new UnauthorizedError();
+      },
+    });
+
+    const response = await handlers.GET(request('GET'), context());
+
+    expect(response.status).toBe(401);
+    expect(await body(response)).toEqual({
+      ok: false,
+      error: { code: 'unauthorized', message: 'Authentication required' },
+    });
+    expect(resolve).not.toHaveBeenCalled();
+    expect(currentService.list).not.toHaveBeenCalled();
   });
 
   it('lists when an empty params object is provided', async () => {
