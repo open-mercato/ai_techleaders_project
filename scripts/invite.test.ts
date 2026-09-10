@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const harness = vi.hoisted(() => ({ withScope: vi.fn(), write: vi.spyOn(console, 'log') }));
+const harness = vi.hoisted(() => ({
+  withScope: vi.fn(),
+  closeOrm: vi.fn(),
+  write: vi.spyOn(console, 'log'),
+}));
 vi.mock('@devmentor/core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@devmentor/core')>()),
   withScope: harness.withScope,
+}));
+vi.mock('@devmentor/db', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@devmentor/db')>()),
+  closeOrm: harness.closeOrm,
 }));
 
 const { main, runInvite } = await import('./invite');
@@ -31,6 +39,7 @@ function effects() {
 beforeEach(() => {
   vi.clearAllMocks();
   harness.write.mockImplementation(() => undefined);
+  harness.closeOrm.mockResolvedValue(undefined);
 });
 
 describe('runInvite', () => {
@@ -131,6 +140,7 @@ describe('main', () => {
       process.argv = original;
     }
     expect(harness.write).toHaveBeenCalledWith('operator=A action=revoke invitation=inv-1');
+    expect(harness.closeOrm).toHaveBeenCalledOnce();
   });
 
   it('accepts explicit arguments', async () => {
@@ -140,5 +150,14 @@ describe('main', () => {
     );
     await main(['resend', 'inv-1', '--operator', 'A']);
     expect(harness.write).toHaveBeenCalledWith('https://devmentor.test/invitation/NEW-SECRET');
+    expect(harness.closeOrm).toHaveBeenCalledOnce();
+  });
+
+  it('closes the ORM when a command fails', async () => {
+    harness.withScope.mockRejectedValueOnce(new Error('database failure'));
+    await expect(main(['revoke', 'inv-1', '--operator', 'A'])).rejects.toThrow(
+      'database failure',
+    );
+    expect(harness.closeOrm).toHaveBeenCalledOnce();
   });
 });

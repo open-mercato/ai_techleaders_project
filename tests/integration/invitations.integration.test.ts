@@ -8,7 +8,7 @@ import {
   signInAs,
 } from './agent-browser';
 import { expectAbsent } from './assertions';
-import { seedPendingInvitation } from './fixtures/mentor';
+import { resetInvitationInvitee, seedPendingInvitation } from './fixtures/mentor';
 
 function browserSession(scenario: string): string {
   return `devmentor-invitations-${scenario}-${process.pid}`;
@@ -65,6 +65,11 @@ describe('TC-INVITE-001 invitation acceptance', () => {
       throw error;
     } finally {
       await closeAgentBrowser(session);
+      await resetInvitationInvitee(
+        databaseUrl,
+        seeded.id,
+        'mock-mentee@devmentor.test',
+      );
     }
   });
 });
@@ -87,7 +92,7 @@ describe('TC-INVITE-002 invalid and absent invitation paths', () => {
     const baseUrl = inject('integrationBaseUrl');
     const session = browserSession('no-open-path');
     try {
-      await signInAs(session, baseUrl, 'mock-mentee');
+      await signInAs(session, baseUrl, 'uninvited-mentee');
       const snapshot = await runAgentBrowser(session, 'snapshot');
       expectAbsent(
         snapshot,

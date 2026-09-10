@@ -1,4 +1,5 @@
 import { StackTags, withScope, type InvitationService, type StackTag } from '@devmentor/core';
+import { closeOrm } from '@devmentor/db';
 
 type InviteService = Pick<InvitationService, 'create' | 'revoke' | 'resend'>;
 
@@ -103,10 +104,14 @@ export async function runInvite(args: string[], effects: InviteEffects): Promise
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
-  await withScope(({ invitationService }) =>
-    runInvite(args, {
-      invitationService,
-      writeLine: (value) => console.log(value),
-    }),
-  );
+  try {
+    await withScope(({ invitationService }) =>
+      runInvite(args, {
+        invitationService,
+        writeLine: (value) => console.log(value),
+      }),
+    );
+  } finally {
+    await closeOrm();
+  }
 }
