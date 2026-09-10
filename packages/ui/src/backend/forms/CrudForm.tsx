@@ -10,7 +10,7 @@ import { Label } from '../../components/ui/label';
 import { apiCall } from '../api/apiCall';
 import type { FieldErrors } from '../api/types';
 
-export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime-local' | 'textarea' | 'checkbox' | 'select' | 'multiselect';
+export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime' | 'datetime-local' | 'textarea' | 'checkbox' | 'select' | 'multiselect';
 
 export interface CrudFieldRenderProps {
   inputProps: {
@@ -80,6 +80,27 @@ function defaultValueFor(field: CrudField): unknown {
   return '';
 }
 
+interface LocalDateTimeInstant {
+  getTime: () => number;
+  toISOString: () => string;
+}
+
+type ParseLocalDateTime = (value: string) => LocalDateTimeInstant;
+
+/**
+ * Converts the browser's local wall-clock representation to the UTC instant sent to
+ * the API. Invalid and non-string values remain untouched so the shared schema can
+ * report the field error instead of the form replacing the user's input.
+ */
+export function localDateTimeToUtc(
+  value: unknown,
+  parseLocalDateTime: ParseLocalDateTime = (localValue) => new Date(localValue),
+): unknown {
+  if (typeof value !== 'string' || value === '') return value;
+  const instant = parseLocalDateTime(value);
+  return Number.isNaN(instant.getTime()) ? value : instant.toISOString();
+}
+
 const fieldClassName = 'dm-input w-full';
 
 /**
@@ -114,6 +135,14 @@ export function CrudForm<T>({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [timeZone, setTimeZone] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fields.some((field) => field.type === 'datetime')) {
+      const browserTimeZone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+      queueMicrotask(() => setTimeZone(browserTimeZone));
+    }
+  }, [fields]);
 
   useEffect(() => {
     if (!focusError.current) return;
@@ -142,7 +171,11 @@ export function CrudForm<T>({
     for (const field of fields) {
       const raw = values[field.name];
       candidate[field.name] =
-        field.type === 'number' && raw === '' ? undefined : raw;
+        field.type === 'number' && raw === ''
+          ? undefined
+          : field.type === 'datetime'
+            ? localDateTimeToUtc(raw)
+            : raw;
     }
 
     const parsed = schema.safeParse(candidate);
@@ -207,6 +240,9 @@ export function CrudForm<T>({
         const id = `${formId}-${field.name}`;
         const errorId = `${id}-errors`;
         const descriptionId = `${id}-description`;
+        const description = field.type === 'datetime'
+          ? [field.description, `Times use ${timeZone ?? 'your current timezone'}.`].filter(Boolean).join(' ')
+          : field.description;
         const inputProps = {
           id,
           name: field.name,
@@ -215,7 +251,7 @@ export function CrudForm<T>({
           autoComplete: field.autoComplete,
           'aria-required': Boolean(field.required),
           'aria-invalid': Boolean(errors?.length),
-          'aria-describedby': [field.description && descriptionId, errors?.length && errorId].filter(Boolean).join(' ') || undefined,
+          'aria-describedby': [description && descriptionId, errors?.length && errorId].filter(Boolean).join(' ') || undefined,
         };
         return (
           <div key={field.name} className="dm-field">
@@ -291,7 +327,7 @@ export function CrudForm<T>({
             ) : (
               <Input
                 {...inputProps}
-                type={field.type === 'number' ? 'number' : field.type ?? 'text'}
+                type={field.type === 'number' ? 'number' : field.type === 'datetime' ? 'datetime-local' : field.type ?? 'text'}
                 className="w-full"
                 placeholder={field.placeholder}
                 value={String(value ?? '')}
@@ -308,7 +344,7 @@ export function CrudForm<T>({
               />
             )}
 
-            {field.description && <p id={descriptionId} className="dm-field-description">{field.description}</p>}
+            {description && <p id={descriptionId} className="dm-field-description">{description}</p>}
 
             {errors?.length ? (
               <div id={errorId} role="alert">
