@@ -65,7 +65,8 @@ function slot(startsAt: Date, overrides: Partial<ISlot> = {}): ISlot {
 
 function uniqueViolation(constraint?: string): UniqueConstraintViolationException {
   const error = Object.create(UniqueConstraintViolationException.prototype) as
-    UniqueConstraintViolationException & { constraint?: string };
+    UniqueConstraintViolationException & { code: string; constraint?: string };
+  error.code = '23505';
   if (constraint !== undefined) error.constraint = constraint;
   return error;
 }
@@ -214,10 +215,28 @@ describe('SlotService publication', () => {
     expect(h.eventBus.emit).not.toHaveBeenCalled();
   });
 
+  it('maps a duplicate from another module graph without relying on class identity', async () => {
+    const h = makeHarness();
+    const foreignDriverError = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'slots_active_mentor_profile_starts_at_unique',
+    });
+    h.tx.flush.mockRejectedValueOnce(foreignDriverError);
+
+    await expect(h.service.publish({ startsAt: NOW.toISOString() })).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'This start time is already published.',
+    });
+  });
+
   it.each([
     new Error('database unavailable'),
     uniqueViolation(),
     uniqueViolation('some_other_unique'),
+    Object.assign(new Error('wrong database code'), {
+      code: '23503',
+      constraint: 'slots_active_mentor_profile_starts_at_unique',
+    }),
   ])('does not disguise an unrelated publication failure', async (failure) => {
     const h = makeHarness();
     h.tx.flush.mockRejectedValueOnce(failure);

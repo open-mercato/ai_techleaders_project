@@ -35,7 +35,8 @@ export interface MentorProfilePublicDto {
   bio: string;
   stackTags: readonly StackTag[];
   slug: string;
-  slots: SlotPublicDto[];
+  /** Additive availability projection; optional for source compatibility with Slice 2 consumers. */
+  slots?: SlotPublicDto[];
 }
 
 export function toOwnerDto(profile: IMentorProfile): MentorProfileOwnerDto {
@@ -56,7 +57,7 @@ export function toOwnerDto(profile: IMentorProfile): MentorProfileOwnerDto {
 
 export function toPublicDto(
   profile: IMentorProfile,
-  slots: SlotPublicDto[],
+  slots: SlotPublicDto[] = [],
 ): MentorProfilePublicDto {
   return {
     displayName: profile.user.displayName,
@@ -79,20 +80,20 @@ export class MentorProfileService {
   private readonly clock: Clock;
   private readonly eventBus: EventBus;
   private readonly session: Promise<Session | null>;
-  private readonly slotService: SlotService;
+  private readonly slotService: Pick<SlotService, 'listPublic'>;
 
   constructor({
     em,
     clock,
     eventBus,
     session,
-    slotService,
+    slotService = { listPublic: async () => [] },
   }: {
     em: EntityManager;
     clock: Clock;
     eventBus: EventBus;
     session: Promise<Session | null>;
-    slotService: SlotService;
+    slotService?: Pick<SlotService, 'listPublic'>;
   }) {
     // Destructure the PROXY cradle synchronously. Retaining it and resolving a key after
     // an await can reach a request scope that has already been disposed.
