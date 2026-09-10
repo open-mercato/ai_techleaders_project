@@ -103,6 +103,15 @@ export async function runInvite(args: string[], effects: InviteEffects): Promise
   effects.writeLine(result.link);
 }
 
+/**
+ * `tsx -e` has no script filename in `process.argv`: its first user argument is at
+ * index 1. Keep that wrapper-specific shift explicit so `npm run invite -- create …`
+ * does not silently discard the subcommand.
+ */
+export function evalArguments(argv: readonly string[]): string[] {
+  return argv.slice(1);
+}
+
 export async function main(args = process.argv.slice(2)): Promise<void> {
   try {
     await withScope(({ invitationService }) =>
