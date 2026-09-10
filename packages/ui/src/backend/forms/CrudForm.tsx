@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { z } from 'zod';
 import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { apiCall } from '../api/apiCall';
 import type { FieldErrors } from '../api/types';
 
-export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime-local' | 'textarea' | 'checkbox' | 'select';
+export type CrudFieldType = 'text' | 'email' | 'password' | 'number' | 'date' | 'datetime-local' | 'textarea' | 'checkbox' | 'select' | 'multiselect';
 
 export interface CrudFieldRenderProps {
   inputProps: {
@@ -37,7 +38,7 @@ export interface CrudField {
   autoComplete?: string;
   /** Marks a required control; the schema remains the validation authority. */
   required?: boolean;
-  /** Options for `select` fields. */
+  /** Options for `select` and `multiselect` fields. */
   options?: { label: string; value: string }[];
   /** Custom controls reuse this form's values, validation, errors and submission.
    * Associate the visible label using labelId and make the invalid target focusable.
@@ -59,6 +60,8 @@ export interface CrudFormProps<T> {
   onCancel?: () => void;
   /** Lets a composition disable competing actions while this request is pending. */
   onSubmittingChange?: (submitting: boolean) => void;
+  /** Field errors returned by a related transition, such as publishing this resource. */
+  externalFieldErrors?: FieldErrors;
 }
 
 function flattenZodError(error: z.ZodError): FieldErrors {
@@ -71,6 +74,7 @@ function flattenZodError(error: z.ZodError): FieldErrors {
 }
 
 function defaultValueFor(field: CrudField): unknown {
+  if (field.type === 'multiselect') return [];
   if (field.type === 'checkbox') return false;
   if (field.type === 'number') return '';
   return '';
@@ -94,6 +98,7 @@ export function CrudForm<T>({
   onSuccess,
   onCancel,
   onSubmittingChange,
+  externalFieldErrors,
 }: CrudFormProps<T>) {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -117,6 +122,13 @@ export function CrudForm<T>({
       ?? formRef.current!.querySelector<HTMLElement>('[data-form-error]');
     target?.focus();
   }, [fieldErrors, formError]);
+
+  useEffect(() => {
+    if (!externalFieldErrors || !Object.values(externalFieldErrors).some((errors) => errors.length > 0)) return;
+    const target = formRef.current!.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?? formRef.current!.querySelector<HTMLElement>('[data-form-error]');
+    target?.focus();
+  }, [externalFieldErrors]);
 
   const setValue = useCallback((name: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -190,7 +202,7 @@ export function CrudForm<T>({
       }}
     >
       {fields.map((field) => {
-        const errors = fieldErrors[field.name];
+        const errors = fieldErrors[field.name] ?? externalFieldErrors?.[field.name];
         const value = values[field.name];
         const id = `${formId}-${field.name}`;
         const errorId = `${id}-errors`;
@@ -207,7 +219,7 @@ export function CrudForm<T>({
         };
         return (
           <div key={field.name} className="dm-field">
-            <Label id={`${id}-label`} htmlFor={id}>
+            <Label id={`${id}-label`} htmlFor={field.type === 'multiselect' ? undefined : id}>
               {field.label}
               {field.required && <span className="dm-field-required" aria-hidden="true"> *</span>}
             </Label>
@@ -228,6 +240,38 @@ export function CrudForm<T>({
                 checked={Boolean(value)}
                 onChange={(event) => setValue(field.name, event.target.checked)}
               />
+            ) : field.type === 'multiselect' ? (
+              <fieldset
+                id={id}
+                disabled={submitting}
+                aria-labelledby={`${id}-label`}
+                aria-invalid={inputProps['aria-invalid']}
+                aria-describedby={inputProps['aria-describedby']}
+                tabIndex={-1}
+                className="grid gap-2 rounded-md border p-3 sm:grid-cols-2"
+              >
+                {field.options?.map((option) => {
+                  const selected = Array.isArray(value) ? value : [];
+                  const optionId = `${id}-${option.value}`;
+                  return (
+                    <label key={option.value} htmlFor={optionId} className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
+                      <Checkbox
+                        id={optionId}
+                        name={field.name}
+                        value={option.value}
+                        checked={selected.includes(option.value)}
+                        onCheckedChange={(checked) => setValue(
+                          field.name,
+                          checked === true
+                            ? [...selected, option.value]
+                            : selected.filter((selectedValue) => selectedValue !== option.value),
+                        )}
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  );
+                })}
+              </fieldset>
             ) : field.type === 'select' ? (
               <select
                 {...inputProps}
@@ -280,8 +324,8 @@ export function CrudForm<T>({
         );
       })}
 
-      {fieldErrors._root?.length ? <div role="alert" tabIndex={-1} data-form-error className="dm-form-error">
-        {fieldErrors._root.map((message) => <p key={message}>{message}</p>)}
+      {(fieldErrors._root ?? externalFieldErrors?._root)?.length ? <div role="alert" tabIndex={-1} data-form-error className="dm-form-error">
+        {(fieldErrors._root ?? externalFieldErrors?._root)!.map((message) => <p key={message}>{message}</p>)}
       </div> : null}
       {formError ? <p role="alert" tabIndex={-1} data-form-error className="dm-form-error">{formError}</p> : null}
 

@@ -33,4 +33,20 @@ describe('MentorProfile entity', () => {
     expect(typeName(properties.initialPublishDueAt)).toBe('DateTimeType');
     expect(properties.initialPublishDueAt.nullable).toBe(true);
   });
+
+  it('stores draft and publication fields without requiring a slug before publication', () => {
+    expect(properties.slug.length).toBe(60);
+    expect(properties.slug.nullable).toBe(true);
+    expect(properties.slug.unique).toBe(true);
+    expect(typeName(properties.publicWorkUrl)).toBe('TextType');
+    expect(properties.publicWorkUrl.nullable).toBe(true);
+    expect(properties.stackTags.array).toBe(true);
+    expect(properties.stackTags.default).toEqual([]);
+    expect(typeName(properties.publishedAt)).toBe('DateTimeType');
+    expect(properties.publishedAt.nullable).toBe(true);
+    expect(meta.checks).toContainEqual({
+      name: 'mentor_profiles_publication_has_slug',
+      expression: '"published_at" is null or "slug" is not null',
+    });
+  });
 });

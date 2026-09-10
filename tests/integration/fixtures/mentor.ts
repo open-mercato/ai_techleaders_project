@@ -2,6 +2,58 @@ import { createHash, randomBytes } from 'node:crypto';
 import { type StackTag } from '@devmentor/core';
 import { Invitation, MentorProfile, MikroORM, User, entities } from '@devmentor/db';
 
+export interface PublishedMentorFixture {
+  slug: string;
+  publicWorkUrl: string;
+  bio: string;
+}
+
+/** Seed the signed-in mock mentor's complete public page and return its stable URL fields. */
+export async function seedPublishedMentorProfile(
+  databaseUrl: string,
+): Promise<PublishedMentorFixture> {
+  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+  await orm.connect();
+  try {
+    const em = orm.em.fork();
+    const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
+    const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
+    const fixture = {
+      slug: `mock-mentor-${process.pid}`,
+      publicWorkUrl: 'https://github.com/open-mercato',
+      bio: 'I build TypeScript systems and help engineers make reliable architecture choices.',
+    };
+    profile.slug = fixture.slug;
+    profile.publicWorkUrl = fixture.publicWorkUrl;
+    profile.bio = fixture.bio;
+    profile.stackTags = ['TypeScript', 'AI agents'];
+    profile.publishedAt = new Date();
+    await em.flush();
+    return fixture;
+  } finally {
+    await orm.close(true);
+  }
+}
+
+/** Restore the mock mentor's page fields without touching its long-lived seed profile. */
+export async function resetPublishedMentorProfile(databaseUrl: string): Promise<void> {
+  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+  await orm.connect();
+  try {
+    const em = orm.em.fork();
+    const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
+    const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
+    profile.slug = null;
+    profile.publicWorkUrl = null;
+    profile.bio = 'Seeded so a mock GitHub sign-in lands on a mentor that already has a profile.';
+    profile.stackTags = [];
+    profile.publishedAt = null;
+    await em.flush();
+  } finally {
+    await orm.close(true);
+  }
+}
+
 /** Seed one invitation while returning the raw token only to its owning scenario. */
 export async function seedPendingInvitation(
   databaseUrl: string,

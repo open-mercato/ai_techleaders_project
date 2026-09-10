@@ -56,7 +56,10 @@ const LINKS_BY_ROLE: Readonly<Record<Role, readonly NavLink[]>> = {
     { href: '/admin', label: 'Dashboard' },
     { href: '/admin/users', label: 'Users' },
   ],
-  mentor: [{ href: '/mentor', label: 'Mentor workspace' }],
+  mentor: [
+    { href: '/mentor', label: 'Mentor workspace' },
+    { href: '/mentor/profile', label: 'Mentor profile' },
+  ],
   mentee: [{ href: '/home', label: 'My sessions' }],
 };
 

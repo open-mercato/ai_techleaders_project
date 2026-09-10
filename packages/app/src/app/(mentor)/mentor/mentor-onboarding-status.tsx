@@ -1,54 +1,50 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Button } from '@devmentor/ui';
+import {
+  ReadinessChecklist,
+  ResourcePanel,
+  useApiResource,
+} from '@devmentor/ui/backend';
 import { LocalTime } from '@devmentor/ui/time';
-import { apiCall, ErrorMessage, LoadingMessage } from '@devmentor/ui/backend';
 
-type OnboardingState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; initialPublishDueAt: string | null };
+interface OnboardingResource {
+  initialPublishDueAt: string | null;
+}
+
+interface ProfileReadinessResource {
+  readiness: {
+    ready: boolean;
+    items: { key: string; label: string; met: boolean }[];
+  };
+}
 
 export function MentorOnboardingStatus() {
-  const [state, setState] = useState<OnboardingState>({ status: 'loading' });
+  const onboarding = useApiResource<OnboardingResource>('/api/mentors/me/onboarding');
+  const profile = useApiResource<ProfileReadinessResource>('/api/mentors/me');
 
-  useEffect(() => {
-    let active = true;
-    void apiCall<{ initialPublishDueAt: string | null }>('/api/mentors/me/onboarding').then(
-      (result) => {
-        if (!active) return;
-        setState(
-          result.ok
-            ? { status: 'ready', initialPublishDueAt: result.data.initialPublishDueAt }
-            : { status: 'error', message: result.error.message },
-        );
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (state.status === 'loading') {
-    return <LoadingMessage message="Loading your publication deadline…" />;
-  }
-  if (state.status === 'error') {
-    return <ErrorMessage message={state.message} />;
-  }
-  if (state.initialPublishDueAt === null) {
-    return null;
-  }
-
-  return (
-    <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-      <h2 className="text-base font-semibold">Your first mentor milestone</h2>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Publish at least one bookable session by{' '}
-        <LocalTime
-          value={state.initialPublishDueAt}
-          options={{ day: 'numeric', month: 'long', year: 'numeric' }}
-        />
-      </p>
-    </section>
-  );
+  return <ResourcePanel resource={onboarding} loadingMessage="Loading your publication deadline…">
+    {({ initialPublishDueAt }) => <ResourcePanel resource={profile} loadingMessage="Loading your mentor checklist…">
+      {({ readiness }) => <ReadinessChecklist
+        title={initialPublishDueAt === null
+          ? 'Complete your mentor profile'
+          : <>Publish at least one bookable session by{' '}
+            <LocalTime
+              value={initialPublishDueAt}
+              options={{ day: 'numeric', month: 'long', year: 'numeric' }}
+            />
+          </>}
+        description={readiness.ready
+          ? 'Your profile details are complete. Publish your page when you are ready.'
+          : 'Complete the missing profile details before publishing your page.'}
+        items={readiness.items}
+        actionsByKey={Object.fromEntries(readiness.items.map((item) => [
+          item.key,
+          <Button key={item.key} asChild variant="outline" size="sm">
+            <a href="/mentor/profile">Edit profile</a>
+          </Button>,
+        ]))}
+      />}
+    </ResourcePanel>}
+  </ResourcePanel>;
 }

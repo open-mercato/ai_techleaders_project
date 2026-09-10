@@ -59,8 +59,12 @@ export {
   type MakeCrudRouteOptions,
 } from './makeCrudRoute';
 export {
+  makeOwnedCollectionRoute,
+  makeOwnedResourceRoute,
   ownedAction,
+  type OwnedCollectionRouteOptions,
   type OwnedActionOptions,
+  type OwnedResourceRouteOptions,
   type OwnedRouteParams,
 } from './owned-route';
 // `resolveSessionFromCookie` is deliberately absent: the scoped `session` cradle key and

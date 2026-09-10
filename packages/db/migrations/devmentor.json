@@ -453,6 +453,79 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "public_work_url": {
+          "name": "public_work_url",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(60)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": true,
+          "length": 60,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "stack_tags": {
+          "name": "stack_tags",
+          "type": "text[]",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'{}'::text[]",
+          "comment": null,
+          "collation": null,
+          "enumItems": [
+            "TypeScript",
+            "React",
+            "Python",
+            "AI agents"
+          ],
+          "mappedType": "array"
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamptz(6)",
@@ -518,6 +591,16 @@
         },
         {
           "columnNames": [
+            "slug"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "mentor_profiles_slug_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
             "user_id"
           ],
           "composite": false,
@@ -527,7 +610,19 @@
           "unique": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "mentor_profiles_publication_has_slug",
+          "expression": "\"published_at\" is null or \"slug\" is not null",
+          "definition": "check (\"published_at\" is null or \"slug\" is not null)"
+        },
+        {
+          "name": "mentor_profiles_stack_tags_check",
+          "expression": "\"stack_tags\" <@ array['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]",
+          "definition": "check (\"stack_tags\" <@ array['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text])",
+          "columnName": "stack_tags"
+        }
+      ],
       "triggers": [],
       "foreignKeys": {
         "mentor_profiles_user_id_foreign": {

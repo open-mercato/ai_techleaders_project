@@ -30,7 +30,17 @@ export const MentorProfile = defineSingletonEntity('MentorProfile', () =>
       // Snapshotted from the first accepted invitation. Later invitations may carry a
       // new reporting deadline, but never reset this original mentor obligation.
       initialPublishDueAt: p.datetime().nullable(),
+      slug: p.string().length(60).nullable().unique(),
+      publicWorkUrl: p.text().nullable(),
+      stackTags: p.enum(['TypeScript', 'React', 'Python', 'AI agents'] as const).array().default([]),
+      publishedAt: p.datetime().nullable(),
     },
+    checks: [
+      {
+        name: 'mentor_profiles_publication_has_slug',
+        expression: '"published_at" is null or "slug" is not null',
+      },
+    ],
   }),
 );
 

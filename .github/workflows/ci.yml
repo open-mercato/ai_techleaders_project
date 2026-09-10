@@ -12,8 +12,6 @@ concurrency:
 
 env:
   NEXT_TELEMETRY_DISABLED: "1"
-  INVITATION_TTL_DAYS: "14"
-  MENTOR_PUBLISH_WINDOW_DAYS: "14"
 
 jobs:
   build:
