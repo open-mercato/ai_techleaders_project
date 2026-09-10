@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T19:38:00Z
+**Last updated:** 2026-09-10T19:56:00Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
 **Current phase/step:** complete; all eight plan steps are done
-**Last commit:** a89c593 — test(prices): prove offer-ready integration (pre-amend reference)
+**Last commit:** 351ae36 — test(prices): guarantee fixture cleanup
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -65,10 +65,13 @@
   failed between durable fixture operations. Review-fix Steps 3.2 and 3.3 now wait for the React focus
   effect, place all setup inside cleanup scopes, conditionally close partially opened ORM handles and
   compensate `seedOfferReadyMentor` when composition fails.
+- The independent re-review approved the two fixes with no remaining blocker, major, minor or nit
+  findings. The post-fix gate again passes typecheck, lint, 1,742 unit tests at 100% coverage,
+  production build and 60/60 integration tests.
 
 ## Next concrete action
-- Re-run the repository-wide gate and request independent re-review of Steps 3.2 and 3.3, then publish
-  the PR evidence and route the risk-high stacked PR to separate manual QA.
+- Await separate human approval and manual QA on ready PR #48. Do not merge this stacked PR before its
+  base PR #46 and the configured approval/QA gates are satisfied.
 
 ## Blockers / open questions
 - none
