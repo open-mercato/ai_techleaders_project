@@ -395,7 +395,9 @@ behind.
    service without the user's explicit approval for that action. Read-only remote
    research remains allowed. A request to build or edit something locally is not
    approval to publish it.
-7. **Keep session materials out of commits.** Run logs, local PR drafts, working
-   references and generated previews stay local. Review the staged file list and
-   commit only the requested project deliverables and their required source,
-   tests and documentation.
+7. **Commit `.ai` artifacts as project records.** Run logs, QA reports and evidence,
+   generated test-environment helpers, PR drafts, working references and generated
+   previews belong in the repository alongside the work that produced them. Review
+   and sanitize every artifact before staging it: raw credentials, tokens, cookies,
+   secret-bearing environment files and other sensitive values must remain ignored
+   or be replaced with explicit `<redacted>` markers.

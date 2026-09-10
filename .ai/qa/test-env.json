@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "runId": "20260910-154106-60109",
+  "status": "stopped",
+  "mode": "dev",
+  "baseUrl": "http://127.0.0.1:60112",
+  "startedByThisRepo": true,
+  "startScript": ".ai/scripts/test-env-up.sh",
+  "stopScript": ".ai/scripts/test-env-down.sh",
+  "app": {
+    "startCommand": "npm run dev --workspace @devmentor/app -- --webpack",
+    "port": 60112,
+    "healthPath": "/api/health",
+    "pid": 64010,
+    "launchLabel": "devmentor-qa-20260910-154106-60109"
+  },
+  "services": [
+    {
+      "type": "postgres",
+      "host": "127.0.0.1",
+      "port": 60111,
+      "container": "devmentor-qa-20260910-154106-60109",
+      "url": "postgres://<redacted>@127.0.0.1:60111/devmentor_qa",
+      "env": {
+        "DATABASE_URL": "postgres://<redacted>@127.0.0.1:60111/devmentor_qa"
+      }
+    }
+  ],
+  "credentials": [
+    {
+      "role": "mentor",
+      "username": "mock-mentor",
+      "passwordEnv": "TEST_MENTOR_PASSWORD"
+    }
+  ],
+  "credentialsFile": ".ai/qa/test-env.env",
+  "browser": {
+    "provider": "agent-browser",
+    "installed": true,
+    "command": "<worktree>/node_modules/.bin/agent-browser",
+    "version": "0.36.0",
+    "descriptor": ".ai/browsers/agent-browser.md",
+    "notes": "Repository-pinned agent-browser passed doctor."
+  },
+  "testRunner": {
+    "name": "vitest+agent-browser",
+    "config": "vitest.integration.config.mts"
+  },
+  "platform": "darwin",
+  "startedAt": "2026-09-10T15:41:31Z",
+  "notes": "Ephemeral PostgreSQL; migrations and idempotent seed applied. Webpack dev mode avoids the current Next.js Turbopack nested-worktree root bug. launchd keeps the app alive across command sessions. Mock GitHub identity is enabled only for this disposable integration run."
+}

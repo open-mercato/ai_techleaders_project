@@ -1,0 +1,59 @@
+
+> @devmentor/app@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 60112 --webpack
+
+▲ Next.js 16.3.3 (webpack)
+- Local:         http://127.0.0.1:60112
+- Network:       http://127.0.0.1:60112
+✓ Ready in 355ms
+✓ Running next.config.ts took 890ms
+
+ GET /api/health 200 in 1634ms (next.js: 1384ms, application-code: 250ms)
+{"level":40,"time":1789054910236,"app":"DevMentor","adapter":"log","msg":"the log mailer is active: every email is written to this log instead of being delivered, and the log therefore contains live verification links"}
+ GET /invitation/<redacted> 200 in 2.4s (next.js: 2.2s, application-code: 170ms)
+{"level":40,"time":1789054919790,"app":"DevMentor","adapter":"mock","msg":"the mock GitHub identity adapter is active: sign-in accepts any login without contacting GitHub"}
+ GET /api/auth/github?returnTo=%2Finvitation%2F<redacted> 302 in 1364ms (next.js: 1294ms, application-code: 70ms)
+ GET /invitation/<redacted> 200 in 92ms (next.js: 45ms, application-code: 48ms)
+{"level":30,"time":1789054920418,"app":"DevMentor","userId":"c319f2f1-07fd-4fe2-9701-d93530254798","githubId":"mock-mock-mentee","msg":"linked a GitHub identity to a verified account"}
+ GET /api/auth/github/callback?code=mock-code-mock-mentee&state=<redacted> 302 in 547ms (next.js: 457ms, application-code: 90ms)
+ GET /invitation/<redacted> 200 in 277ms (next.js: 44ms, application-code: 233ms)
+{"level":30,"time":1789054930510,"app":"DevMentor","userId":"c319f2f1-07fd-4fe2-9701-d93530254798","reason":"granted","roles":["mentee","mentor"],"msg":"changed a user role assignment"}
+{"level":30,"time":1789054930511,"app":"DevMentor","userId":"c319f2f1-07fd-4fe2-9701-d93530254798","roles":["mentee","mentor"],"previousRoles":["mentee"],"reason":"granted","msg":"auth.user.roles_changed"}
+{"level":30,"time":1789054930511,"app":"DevMentor","invitationId":"44f8b991-6067-4c92-86e8-830a57148e42","userId":"c319f2f1-07fd-4fe2-9701-d93530254798","publishDueAt":"2026-09-24T15:42:10.490Z","msg":"invitations.invitation.accepted"}
+ POST /api/invitations/<redacted>/accept 200 in 1099ms (next.js: 1005ms, application-code: 94ms)
+ GET /mentor 200 in 1052ms (next.js: 780ms, application-code: 272ms)
+ GET /api/mentors/me/onboarding 200 in 615ms (next.js: 547ms, application-code: 67ms)
+ GET /api/mentors/me 200 in 627ms (next.js: 546ms, application-code: 82ms)
+ GET /invitation/<redacted> 200 in 191ms (next.js: 77ms, application-code: 114ms)
+ GET /api/auth/github?login=mock-mentor 302 in 57ms (next.js: 17ms, application-code: 40ms)
+{"level":30,"time":1789054956114,"app":"DevMentor","userId":"2a9e426a-832d-4beb-9b65-64286585f151","githubId":"mock-mock-mentor","msg":"linked a GitHub identity to a verified account"}
+ GET /api/auth/github/callback?code=mock-code-mock-mentor&state=<redacted> 302 in 78ms (next.js: 32ms, application-code: 46ms)
+ GET /mentor 200 in 236ms (next.js: 11ms, application-code: 226ms)
+ GET /api/mentors/me 200 in 6ms (next.js: 1.4ms, application-code: 4ms)
+ GET /api/mentors/me/onboarding 200 in 15ms (next.js: 1.5ms, application-code: 13ms)
+ GET /api/mentors/me 200 in 7ms (next.js: 0.6ms, application-code: 6ms)
+ GET /api/mentors/me/onboarding 200 in 10ms (next.js: 0.7ms, application-code: 10ms)
+ GET /mentor/profile 200 in 1334ms (next.js: 1030ms, application-code: 304ms)
+ GET /api/mentors/me 200 in 18ms (next.js: 15ms, application-code: 3ms)
+ GET /api/mentors/me 200 in 12ms (next.js: 1.0ms, application-code: 11ms)
+ POST /api/mentors/me/publish 422 in 449ms (next.js: 386ms, application-code: 64ms)
+ PUT /api/mentors/me 200 in 66ms (next.js: 25ms, application-code: 42ms)
+ GET /api/mentors/me 200 in 13ms (next.js: 1.7ms, application-code: 11ms)
+{"level":30,"time":1789055010474,"app":"DevMentor","mentorProfileId":"6e26d55a-2493-4370-bc0c-5d74e1a890ce","slug":"mock-mentor","msg":"mentors.profile.published"}
+ POST /api/mentors/me/publish 200 in 114ms (next.js: 4ms, application-code: 110ms)
+ GET /api/mentors/me 200 in 46ms (next.js: 2ms, application-code: 44ms)
+ GET /m/mock-mentor 200 in 2.5s (next.js: 2.4s, application-code: 189ms)
+ GET /mentor/profile 200 in 240ms (next.js: 33ms, application-code: 207ms)
+ GET /api/mentors/me 200 in 43ms (next.js: 30ms, application-code: 13ms)
+ GET /api/mentors/me 200 in 12ms (next.js: 1.0ms, application-code: 11ms)
+ POST /api/mentors/me/unpublish 200 in 703ms (next.js: 597ms, application-code: 106ms)
+ GET /api/mentors/me 200 in 17ms (next.js: 10ms, application-code: 7ms)
+ GET /m/mock-mentor 404 in 127ms (next.js: 41ms, application-code: 86ms)
+ GET /mentor/profile 200 in 153ms (next.js: 10ms, application-code: 143ms)
+ GET /api/mentors/me 200 in 12ms (next.js: 2ms, application-code: 9ms)
+ GET /api/mentors/me 200 in 20ms (next.js: 1.5ms, application-code: 19ms)
+{"level":30,"time":1789055099845,"app":"DevMentor","mentorProfileId":"6e26d55a-2493-4370-bc0c-5d74e1a890ce","slug":"mock-mentor","msg":"mentors.profile.published"}
+ POST /api/mentors/me/publish 200 in 559ms (next.js: 472ms, application-code: 88ms)
+ GET /api/mentors/me 200 in 22ms (next.js: 10ms, application-code: 12ms)
+ GET /m/mock-mentor 200 in 136ms (next.js: 70ms, application-code: 66ms)
+[?25h

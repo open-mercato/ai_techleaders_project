@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "pr": 44,
+  "result": "pass",
+  "testedAt": "2026-09-10",
+  "environment": {
+    "app": "Next.js development server",
+    "database": "ephemeral PostgreSQL",
+    "browserProvider": "agent-browser",
+    "browserProviderVersion": "0.36.0",
+    "identityAdapter": "mock GitHub"
+  },
+  "journeys": [
+    "invitation presentation and matching GitHub sign-in",
+    "single-use invitation acceptance and mentor deadline",
+    "profile validation, save, readiness and preview",
+    "publish, copy, signed-out view, unpublish and stable republish",
+    "desktop and mobile responsive views"
+  ],
+  "screenshots": [
+    "invitation-desktop.png",
+    "invitation-accepted-mentor-home-desktop.png",
+    "mentor-profile-published-desktop.png",
+    "mentor-profile-published-mobile-dark.png",
+    "public-mentor-page-desktop.png",
+    "public-mentor-page-mobile.png"
+  ],
+  "security": {
+    "invitationTokenInEvidence": false,
+    "unexpectedPublicFieldsObserved": false
+  },
+  "browserErrors": []
+}
