@@ -128,6 +128,8 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header, so per-IP limiting is off and only the per-email limits apply (a warning says so once per process). Counting from the right is deliberate: a proxy appends to the header, so a value a client forged always sits to the left of the one infrastructure wrote. |
 | `INVITATION_TTL_DAYS` | `14` | Days a newly created mentor invitation remains valid. Snapshotted when the invitation is created. |
 | `MENTOR_PUBLISH_WINDOW_DAYS` | `14` | Days an accepted mentor has to publish a bookable session. Snapshotted at acceptance. |
+| `PLATFORM_CURRENCY` | `PLN` | Fixed platform currency for mentor prices. The first release rejects every other currency. |
+| `PLATFORM_PRICE_BOUNDS` | `{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}` | Integer-cent inclusive bounds for 25- and 50-minute sessions. Must be valid JSON in the exact documented shape and no longer than 256 characters. |
 
 ### Database
 

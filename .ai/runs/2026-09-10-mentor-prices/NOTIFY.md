@@ -18,3 +18,10 @@
 ## 2026-09-10T18:44:05Z — subagent delegation
 - Draft PR #48 tracks the stacked `feat/mentor-prices` run against `feat/availability-slots`.
 - Dispatched Step 1.1 to a standard-tier executor: exact money primitives and session-length vocabulary.
+
+## 2026-09-10T18:50:06Z — subagent delegation
+- Dispatched Step 1.2 to a capable-tier executor: approved platform price configuration and settings service.
+
+## 2026-09-10T18:50:06Z — important decision
+- Kept B16′ in its architecture-authoritative `services/operator/platform-settings.service.ts` concept path.
+- Both environment schemas reject unsupported, oversized, malformed, incomplete and inconsistent policy; the service independently fails closed if resolved policy is invalid.

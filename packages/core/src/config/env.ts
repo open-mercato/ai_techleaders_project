@@ -1,5 +1,37 @@
 import { z } from 'zod';
 
+const POSTGRES_INTEGER_MAX = 2_147_483_647;
+const DEFAULT_PLATFORM_PRICE_BOUNDS =
+  '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}';
+
+const priceRangeSchema = z.object({
+  minCents: z.number().int().positive().max(POSTGRES_INTEGER_MAX),
+  maxCents: z.number().int().positive().max(POSTGRES_INTEGER_MAX),
+}).strict().refine((range) => range.minCents <= range.maxCents, {
+  message: 'minCents must not exceed maxCents',
+});
+
+const serializedPriceBoundsSchema = z.object({
+  '25': priceRangeSchema,
+  '50': priceRangeSchema,
+}).strict();
+
+function parsePlatformPriceBounds(raw: string, ctx: z.RefinementCtx) {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'PLATFORM_PRICE_BOUNDS must be valid JSON' });
+    return z.NEVER;
+  }
+  const parsed = serializedPriceBoundsSchema.safeParse(value);
+  if (!parsed.success) {
+    ctx.addIssue({ code: 'custom', message: 'PLATFORM_PRICE_BOUNDS has an invalid shape' });
+    return z.NEVER;
+  }
+  return { p25: parsed.data['25'], p50: parsed.data['50'] };
+}
+
 /**
  * Split a comma-separated allowlist into normalized entries.
  *
@@ -99,6 +131,13 @@ const appEnvSchema = z
     // transition happens. Changing a default affects future invitations only.
     INVITATION_TTL_DAYS: z.coerce.number().int().positive().default(14),
     MENTOR_PUBLISH_WINDOW_DAYS: z.coerce.number().int().positive().default(14),
+
+    // --- Platform pricing ---
+    // One approved two-decimal currency in 1.0. Bounds are parsed once into the service
+    // shape; the compact cap prevents an environment variable from becoming unbounded input.
+    PLATFORM_CURRENCY: z.literal('PLN').default('PLN'),
+    PLATFORM_PRICE_BOUNDS: z.string().max(256).default(DEFAULT_PLATFORM_PRICE_BOUNDS)
+      .transform(parsePlatformPriceBounds),
 
     // --- Test-double selection (guarded by the superRefine below) ---
     AUTH_IDENTITY_ADAPTER: z.enum(['github', 'mock']).optional(),

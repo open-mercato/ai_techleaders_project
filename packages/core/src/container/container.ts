@@ -19,6 +19,7 @@ import { UserService } from '../services/auth/user.service';
 import { SlotService } from '../services/availability/slot.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
+import { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
 import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
@@ -247,6 +248,9 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     invitationService: asClass(InvitationService).scoped(),
     mentorProfileService: asClass(MentorProfileService).scoped(),
     slotService: asClass(SlotService).scoped(),
+    // Configuration-backed and immutable for the process lifetime. E05 may replace
+    // the backing store while preserving this service contract.
+    platformSettingsService: asClass(PlatformSettingsService).singleton(),
     // The default for a scope nobody opened for a request: no cookie, so no session. Each
     // of `withRequestScope`/`withCookieScope` overrides it on its own scope. Registering it
     // at the root keeps the key resolvable in a `strict` container, which is what lets a

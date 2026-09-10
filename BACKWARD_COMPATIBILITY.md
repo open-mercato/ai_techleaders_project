@@ -173,7 +173,7 @@ API between packages. `npm run typecheck` is the consumer check.
   `withRequestScope`, `withCookieScope`, the `Cradle` keys (`env`, `logger`, `orm`, `eventBus`,
   `clock`, `sessionService`, `tokenService`, `githubIdentity`, `em`, `userService`,
   `rateLimiter`, `sessionCookie`, `session`, `invitationService`, `mentorProfileService`,
-  `slotService`), `UserService` and `UserDto`, `SlotService` with `SlotOwnerDto` and
+  `slotService`, `platformSettingsService`), `UserService` and `UserDto`, `SlotService` with `SlotOwnerDto` and
   `SlotPublicDto`, `slotCreateSchema` with `SlotCreateInput`, `SessionService` with
   `SESSION_COOKIE_NAME`, `IssuedSession`, `SessionClaims` and `SessionUser`, `TokenService`
   with `TokenPurpose`, `PurposeTokenClaims`, `SignPurposeTokenInput` and
@@ -187,6 +187,13 @@ API between packages. `npm run typecheck` is the consumer check.
   with `Clock`, `EventBus`, `EventMap`, `EventId`, `EventHandler`, the two shared auth
   bodies (`registerSchema` with `RegisterInput`, `loginSchema` with `LoginInput`), and the
   re-exported `checkDbConnection`.
+
+  `PlatformSettingsService` with `PlatformSettings` and
+  `PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE` is additive on both `.` and `./services`.
+  `get()` returns the resolved PLN policy and `boundsFor('25' | '50')` returns the
+  matching inclusive integer-cent bounds. Its `platformSettingsService` cradle key is
+  process-singleton and fails closed with the standard 503 code if resolved policy is
+  missing, unsupported, malformed or internally inconsistent.
 
   From `./http`, also re-exported by `.`: the `AppError` family (`BadRequestError`,
   `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ValidationError`,
@@ -400,9 +407,11 @@ and the integration test updated together; `risk-high` plus `needs-qa` per `SDLC
 Variables, as listed in `.env.example` and documented in `README.md`'s Configuration section:
 
 - Application: `NODE_ENV`, `APP_NAME`, `LOG_LEVEL`, `APP_URL` (absolute, `http`/`https` only),
-  `TRUSTED_PROXY_HOPS`.
+  `TRUSTED_PROXY_HOPS`, `PLATFORM_CURRENCY` (`PLN` only), `PLATFORM_PRICE_BOUNDS`
+  (strict JSON no longer than 256 characters, parsed to `p25`/`p50` integer-cent bounds).
 - Database: `DATABASE_URL` (takes precedence), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
-  `DB_PASSWORD`, `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_POOL_IDLE_MS`, `DB_DEBUG`.
+  `DB_PASSWORD`, `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_POOL_IDLE_MS`, `DB_DEBUG`, plus the
+  platform currency and bounds validated for deployment parity with the app schema.
 - Authentication: `SESSION_SECRET`, `SESSION_SECRET_PREVIOUS` (both optional, both at least
   32 characters when set), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `OPERATOR_EMAILS`
   (comma-separated; parsed into a trimmed, lower-cased list at parse time).
@@ -427,8 +436,10 @@ the schema breaks the Build job.
 `tests/integration/environment.ts` sets `NODE_ENV=production`, `NEXT_TELEMETRY_DISABLED=1`,
 `DATABASE_URL`, `DB_POOL_MIN`/`DB_POOL_MAX`, `MIKRO_ORM_MIGRATIONS_SNAPSHOT_NAME`, a per-run
 random `SESSION_SECRET`, `AUTH_IDENTITY_ADAPTER=mock`, `INTEGRATION_TEST_RUN=1`,
-`OPERATOR_EMAILS` and a required `APP_URL`. `.github/workflows/ci.yml` sets
-`NEXT_TELEMETRY_DISABLED` globally and `OPERATOR_EMAILS` on the integration job.
+`OPERATOR_EMAILS`, the approved platform price policy and a required `APP_URL`.
+`.github/workflows/ci.yml` sets `NEXT_TELEMETRY_DISABLED` and that same price policy
+globally, and `OPERATOR_EMAILS` on the integration job. The additive `AppEnv`/`DbEnv`
+fields and `Cradle.platformSettingsService` key are protected source contracts.
 
 **Breaking:** a new variable without a default; renaming or removing a variable;
 changing a default in a way that changes runtime behavior; dropping the

@@ -86,6 +86,11 @@ const BASE_ENV = {
   TRUSTED_PROXY_HOPS: 0,
   PASSWORD_HASH_CONCURRENCY: 2,
   PASSWORD_HASH_WAIT_MS: 1000,
+  PLATFORM_CURRENCY: 'PLN',
+  PLATFORM_PRICE_BOUNDS: {
+    p25: { minCents: 9_000, maxCents: 60_000 },
+    p50: { minCents: 18_000, maxCents: 120_000 },
+  },
   INTEGRATION_TEST_RUN: false,
   // Present in the baseline so the *production* cases below are about the secret each of
   // them names. `assertProductionSecrets` requires this one too, and a baseline without it
@@ -153,6 +158,20 @@ describe('getContainer', () => {
     const second = await withScope((cradle) => cradle.sessionService);
 
     expect(first).toBe(second);
+  });
+
+  it('shares one configuration-backed platformSettingsService across scopes', async () => {
+    const first = await withScope((cradle) => cradle.platformSettingsService);
+    const second = await withScope((cradle) => cradle.platformSettingsService);
+
+    expect(first).toBe(second);
+    expect(first.get()).toEqual({
+      currency: 'PLN',
+      priceBounds: {
+        p25: { minCents: 9_000, maxCents: 60_000 },
+        p50: { minCents: 18_000, maxCents: 120_000 },
+      },
+    });
   });
 
   it('shares one passwordService across request scopes, because its gate counts hashes', async () => {
@@ -308,9 +327,10 @@ describe('withScope', () => {
       cradle.invitationService,
       cradle.mentorProfileService,
       cradle.slotService,
+      cradle.platformSettingsService,
     ]);
 
-    expect(services).toHaveLength(4);
+    expect(services).toHaveLength(5);
     expect(services.every(Boolean)).toBe(true);
   });
 

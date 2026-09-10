@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T18:44:05Z
+**Last updated:** 2026-09-10T18:50:06Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
-**Current phase/step:** Phase 1; Step 1.2 ready
-**Last commit:** bf1691f — feat(core): add money and session length primitives
+**Current phase/step:** Phase 1; Step 1.3 ready
+**Last commit:** 571e9c2 — feat(platform): add approved price settings
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -13,9 +13,16 @@
 - Skeptical staff review corrected the offer-readiness boundary, mentor-home union, route helper, serialized configuration grammar and protected compatibility requirements before implementation.
 - Step 1.1 added exact major-decimal parsing, inclusive cents bounds and the string-keyed 25/50-minute vocabulary with one numeric conversion edge.
 - Both new production files are explicit coverage targets and pass all four metrics at 100%.
+- Step 1.2 added strict, defaulted PLN policy parsing to both app and database schemas and synchronized
+  `.env.example`, README, CI and the integration child environment.
+- `PlatformSettingsService` lives at the B16′ `services/operator/` authority, is a singleton Cradle
+  dependency, returns the approved policy, selects canonical session-length bounds and fails closed on
+  malformed resolved policy.
+- The production build remains database- and credential-independent; 1,675 unit tests pass at 100%
+  statements, branches, functions and lines.
 
 ## Next concrete action
-- Implement Step 1.2: approved price configuration and `PlatformSettingsService`.
+- Implement Step 1.3: price persistence, atomic service updates and offer readiness.
 
 ## Blockers / open questions
 - none
