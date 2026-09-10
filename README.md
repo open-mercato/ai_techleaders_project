@@ -125,7 +125,7 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `APP_NAME` | `DevMentor` | Name attached to every log line. |
 | `LOG_LEVEL` | `info` | pino level, from `fatal` to `silent`. |
 | `APP_URL` | `http://localhost:3000` | Absolute origin of this deployment. Builds the OAuth redirect URI and the links in outbound mail, so it must be the address a browser actually reaches. Must be `http://` or `https://`. |
-| `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header. |
+| `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header. Declared and validated now; the rate limiter that reads it arrives with password sign-in. |
 
 ### Database
 
@@ -150,9 +150,12 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 
 ### Mail
 
+Declared and validated now; the mailer that reads them arrives with email
+verification, so setting them today changes nothing.
+
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `MAILER_ADAPTER` | *(unset)* | `resend` for real delivery. Left unset in development, the log mailer is selected automatically with a warning at boot. |
+| `MAILER_ADAPTER` | *(unset)* | `resend` for real delivery. Left unset in development the log mailer will be selected on its own; `log` set explicitly is refused outside an integration run (below). |
 | `MAIL_API_KEY` | *(unset)* | Resend API key. |
 | `MAIL_FROM` | *(unset)* | Envelope sender, e.g. `DevMentor <hello@devmentor.example.com>`. |
 
@@ -170,9 +173,10 @@ Set by `tests/integration/environment.ts`, never on a real deployment.
 The three categories behave differently on purpose:
 
 - **Missing integration credentials fail closed at the route.** With no
-  `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, `/api/auth/github` answers "temporarily
-  unavailable" and everything else — the marketing pages, the build, the boot —
-  carries on. One unconfigured integration never takes the site down.
+  `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, `/api/auth/github` redirects the browser to
+  `/sign-in?error=unavailable`, where the page says sign-in is temporarily unavailable.
+  Everything else — the marketing pages, the build, the boot — carries on. One
+  unconfigured integration never takes the site down.
 - **Dangerous configuration fails at boot, loudly.** `AUTH_IDENTITY_ADAPTER=mock`
   replaces GitHub sign-in with a fake identity, and `MAILER_ADAPTER=log` writes email
   to the application log instead of delivering it. Either one without

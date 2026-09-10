@@ -97,6 +97,22 @@ type because `ui` must not import `core`. `/api/users` + `/admin/users/page.tsx`
 the reference example every new concept copies. See
 `.ai/specs/2026-09-01-engineering-standards.md` for the full rationale.
 
+**A navigated route redirects; a fetched route returns the envelope.** A route a browser
+navigates to directly — the two OAuth `GET`s, the email-verification `GET` — catches its
+own failures and returns a redirect `Response`, which `apiHandler` passes through
+unchanged. Someone who clicked "Sign in with GitHub" must never be shown a JSON envelope
+rendered as a page. Every other route returns the envelope and is read through `apiCall`.
+Decide which kind a new route is before writing it; the two error paths are not
+interchangeable.
+
+**Every state-changing route is JSON-only.** `apiHandler` requires the CSRF header
+`x-devmentor-request` on every method other than `GET`, `HEAD` and `OPTIONS`, so
+`makeCrudRoute`'s mutating verbs inherit the check and no route can forget it. Mutations
+are therefore called through `apiCall` or `CrudForm`, never a native HTML form — a form
+post cannot set a header, so it is refused with 403 `forbidden` before the route body
+runs. The one opt-out, `apiHandler(logic, { csrf: false })`, is reserved for the payment
+webhook, which authenticates by verifying a signature. See `BACKWARD_COMPATIBILITY.md` §7.
+
 ### Scripts (run from the repo root)
 
 - `npm run setup` — one-command installer: `npm install`, `.env` from `.env.example`,
@@ -178,6 +194,12 @@ the reference example every new concept copies. See
   lists use `DataTable`, and loading/error/empty states use the `feedback/` components.
 - **Collection routes are non-dynamic**, so Next passes no `params` — CRUD helpers
   guard `ctx.params` before reading it.
+- **Logs are redacted at the logger, but do not rely on it.** `createLogger`
+  (`packages/core/src/logger.ts`) censors `password`, `passwordHash`, `token`,
+  `authorization` and `cookie` at the top level and one and two levels below any key, so
+  `err.password` and `req.headers.authorization` are covered. That is the backstop for the
+  log call that forgets; the rule is still to log ids and outcomes, never credentials, and
+  `fetchJson` never hands a request body or request headers to a logger at all.
 
 ### Design-system rules confirmed by the user
 

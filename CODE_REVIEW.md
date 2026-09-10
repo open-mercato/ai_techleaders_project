@@ -76,9 +76,21 @@ Read the diff in this order. A finding higher on the list outranks everything be
   (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`,
   `ConflictError`, `ValidationError`). A service never builds a `Response`.
 - Guarded routes call `requireSession`, `requireRole`, or `assertOwnership` from
-  `packages/core/src/http/auth.ts` before touching a service. `readSession` currently
-  returns `null` by design (fail closed until the `auth` concept lands); the PR that
-  wires real session verification is `risk-high` and needs a second reviewer.
+  `packages/core/src/http/auth.ts` before touching a service. `requireSession` is the only
+  authorization entry point and it is a **live** check: it verifies the cookie, reloads the
+  user row, compares `users.session_version` against the token's `sv`, and re-derives
+  `operator` from `OPERATOR_EMAILS` on every request. There is deliberately no exported
+  cookie-only parser — a PR that adds one, or that reads roles out of the token instead of
+  the row, is a blocker. Auth, session and role changes stay `risk-high` and need a second
+  reviewer.
+- A **browser-navigated** route (the OAuth `GET`s, the email-verification `GET`) catches its
+  own failures and returns a redirect `Response`, which `apiHandler` passes through
+  unchanged; a user who clicked a link must never be shown a JSON envelope as a page. A
+  **fetched** route returns the envelope. Mixing the two is a finding.
+- Every method other than `GET`, `HEAD` and `OPTIONS` goes through `apiHandler`'s CSRF
+  check, so every state-changing route is JSON-only and is reached through `apiCall` or
+  `CrudForm`. A native HTML form posting to `/api/*`, or a new `{ csrf: false }` opt-out
+  outside the payment-webhook route, is a blocker.
 - Collection routes are non-dynamic, so Next passes no `params`; helpers guard
   `ctx.params` before reading it (see `.ai/lessons.md`, 2026-09-02).
 - Request-scoped work goes through `withScope(fn)`; nothing resolves the root
@@ -86,6 +98,14 @@ Read the diff in this order. A finding higher on the list outranks everything be
 
 ### Client layer (`packages/ui/src/backend/`, `packages/app/src/app/**/page.tsx`)
 
+- **A guarded page enforces at the page and at the service, not only at the layout.** Every
+  guarded `page.tsx` calls `requirePageSession` / `requirePageRole` itself, and the service
+  behind it refuses independently. A layout guard is not a boundary: App Router layouts do
+  not re-render on a client-side navigation, so a revoked operator walking from `/admin` to
+  `/admin/users` would be served the page (E01 edge case 21). The same applies on the API
+  side, where the route's `authorize` hook is defence in depth and the service check is the
+  authority. Each guarded page carries its own `coverage.include` entry with both the
+  authorized and the redirected branch covered.
 - `apiCall` / `apiCallOrThrow` are the only sanctioned `fetch()` call sites. A raw
   `fetch` in a page or component is a finding.
 - Create and edit screens use `CrudForm` bound to the same zod schema the route
@@ -183,7 +203,8 @@ both locally (Docker plus `npm run test:browser:install`) before review.
   dependency-direction violation or a loosened ESLint boundary; a protected surface
   changed without the path `BACKWARD_COMPATIBILITY.md` requires; a failing validation
   gate; new or changed behavior without unit tests, or a production file missing from
-  `coverage.include`; an edited applied migration; a race window in a booking or
+  `coverage.include`; a guarded page whose only enforcement is its layout, or a guarded
+  route with no independent service check; an edited applied migration; a race window in a booking or
   payment flow; a PR that builds what a product non-goal excludes without a
   superseding decision.
 - **Major** (must be fixed before approval, one round expected): bespoke fetch, form,

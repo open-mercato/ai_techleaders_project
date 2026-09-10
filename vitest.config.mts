@@ -62,6 +62,7 @@ export default defineConfig({
         'packages/core/src/http/makeCrudRoute.ts',
         'packages/core/src/http/outbound.ts',
         'packages/core/src/http/return-to.ts',
+        'packages/core/src/logger.ts',
         'packages/core/src/services/auth/adapters/github-identity.ts',
         'packages/core/src/services/auth/adapters/mock-github-identity.ts',
         'packages/core/src/services/auth/github-identity.port.ts',

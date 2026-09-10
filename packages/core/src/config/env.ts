@@ -57,8 +57,10 @@ const appEnvSchema = z
     SESSION_SECRET_PREVIOUS: z.string().min(32).optional(),
 
     // --- GitHub OAuth ---
-    // Optional by design: without them `/api/auth/github` fails closed with a 503,
-    // and the rest of the app builds, boots and serves.
+    // Optional by design: without them the GitHub adapter refuses with a
+    // `ServiceUnavailableError`, which `/api/auth/github` — a browser-navigated route —
+    // turns into a redirect to `/sign-in?error=unavailable` rather than a JSON 503. The
+    // rest of the app builds, boots and serves.
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),
 
