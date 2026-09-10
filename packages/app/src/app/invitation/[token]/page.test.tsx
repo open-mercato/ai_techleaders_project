@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotFoundError } from '@devmentor/core';
+import { Button, Card } from '@devmentor/ui';
+import { ErrorMessage } from '@devmentor/ui/backend';
 import { elements, text } from '../../../test/element-tree';
 import { AcceptInvitationAction, InvitationSignOutAction } from './invitation-actions';
 
@@ -47,12 +49,22 @@ describe('/invitation/[token] page', () => {
     expect(copy).toContain('ada@example.com');
     expect(copy).toContain('TypeScript');
     expect(copy.indexOf('Sign in with GitHub')).toBeLessThan(
-      copy.indexOf('Email sign-in is not available yet'),
+      copy.indexOf('Sign in with email'),
     );
-    const link = elements(tree).find((element) => element.type === 'a');
-    expect((link?.props as { href: string }).href).toBe(
+    const links = elements(tree).filter((element) => element.type === 'a');
+    expect((links[0]?.props as { href: string }).href).toBe(
       '/api/auth/github?returnTo=%2Finvitation%2Fraw%2520token',
     );
+    expect((links[1]?.props as { href: string }).href).toBe(
+      '/sign-in?returnTo=%2Finvitation%2Fraw%2520token',
+    );
+    const actions = elements(tree).filter((element) => element.type === Button);
+    expect((actions[0]?.props as { className: string }).className).toContain('w-full');
+    expect((actions[1]?.props as { className: string }).className)
+      .toContain('w-full');
+    expect((actions[1]?.props as { asChild: boolean; disabled?: boolean }).asChild).toBe(true);
+    expect((actions[1]?.props as { disabled?: boolean }).disabled).not.toBe(true);
+    expect(elements(tree).some((element) => element.type === Card)).toBe(true);
   });
 
   it('uses a null cookie when the browser has no session cookie', async () => {
@@ -80,9 +92,9 @@ describe('/invitation/[token] page', () => {
   ])('explains a non-matching or unverified signed-in account and hides Accept', async (viewer) => {
     harness.viewer.mockResolvedValue({ ...viewer, displayName: 'Other account' });
     const tree = await render('secret');
-    const copy = text(tree);
-    expect(copy).toContain('ada@example.com');
-    expect(copy).toContain(viewer.email);
+    const mismatch = elements(tree).find((element) => element.type === ErrorMessage);
+    expect((mismatch?.props as { message: string }).message).toContain('ada@example.com');
+    expect((mismatch?.props as { message: string }).message).toContain(viewer.email);
     expect(elements(tree).some((element) => element.type === AcceptInvitationAction)).toBe(false);
     const signOut = elements(tree).find((element) => element.type === InvitationSignOutAction);
     expect((signOut?.props as { returnTo: string }).returnTo).toBe('/invitation/secret');
@@ -91,7 +103,9 @@ describe('/invitation/[token] page', () => {
   it('renders only the non-enumerating sentence for every invalid link', async () => {
     harness.lookup.mockRejectedValue(new NotFoundError('This invitation is not valid.'));
     const tree = await render();
-    expect(text(tree)).toBe('This invitation is not valid.');
+    const error = elements(tree).find((element) => element.type === ErrorMessage);
+    expect((error?.props as { message: string }).message).toBe('This invitation is not valid.');
+    expect(text(tree)).toBe('');
     expect(elements(tree).some((element) => element.type === AcceptInvitationAction)).toBe(false);
   });
 

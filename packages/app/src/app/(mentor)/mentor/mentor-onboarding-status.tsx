@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LocalTime } from '@devmentor/ui';
+import { LocalTime } from '@devmentor/ui/time';
 import { apiCall, ErrorMessage, LoadingMessage } from '@devmentor/ui/backend';
 
 type OnboardingState =
