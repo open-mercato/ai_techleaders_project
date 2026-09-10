@@ -5,6 +5,7 @@ import type { ApiRouteContext } from './apiHandler';
 import { UnauthorizedError } from './errors';
 import {
   makeCrudRoute,
+  parseJsonBody,
   type CrudService,
   type MakeCrudRouteOptions,
 } from './makeCrudRoute';
@@ -326,6 +327,56 @@ describe('makeCrudRoute DELETE', () => {
     expect(response.status).toBe(400);
     expect(await body(response)).toMatchObject({
       error: { message: 'This operation is not supported' },
+    });
+  });
+});
+
+/**
+ * The same two decisions a CRUD `POST` makes about a body, exported for the routes that are
+ * not CRUD: `/api/auth/register` and `/api/auth/login` take a JSON body, use `apiHandler`
+ * directly, and must answer the same envelope for the same mistake.
+ */
+describe('parseJsonBody', () => {
+  function post(body: string): Request {
+    return new Request('http://devmentor.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    });
+  }
+
+  it('returns the parsed value on a body the schema accepts', async () => {
+    await expect(parseJsonBody(post('{"name":"Ada"}'), inputSchema)).resolves.toEqual({
+      name: 'Ada',
+    });
+  });
+
+  it('drops keys the schema does not declare, so a posted extra never reaches a service', async () => {
+    await expect(
+      parseJsonBody(post('{"name":"Ada","roles":["operator"]}'), inputSchema),
+    ).resolves.toEqual({ name: 'Ada' });
+  });
+
+  it('raises a 400 for a body that is not JSON at all', async () => {
+    await expect(parseJsonBody(post('not json'), inputSchema)).rejects.toMatchObject({
+      status: 400,
+      code: 'bad_request',
+      message: 'Request body must be valid JSON',
+    });
+  });
+
+  it('raises a 422 with fieldErrors for JSON of the wrong shape', async () => {
+    await expect(parseJsonBody(post('{"name":""}'), inputSchema)).rejects.toMatchObject({
+      status: 422,
+      code: 'validation_failed',
+      fieldErrors: { name: [expect.any(String)] },
+    });
+  });
+
+  it('keys an issue with no path as _root', async () => {
+    await expect(parseJsonBody(post('"a string"'), inputSchema)).rejects.toMatchObject({
+      status: 422,
+      fieldErrors: { _root: [expect.any(String)] },
     });
   });
 });

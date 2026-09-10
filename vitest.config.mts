@@ -38,7 +38,10 @@ export default defineConfig({
         // and is covered like any other.
         'packages/app/src/app/api/auth/github/route.ts',
         'packages/app/src/app/api/auth/github/callback/route.ts',
+        'packages/app/src/app/api/auth/login/route.ts',
         'packages/app/src/app/api/auth/logout/route.ts',
+        'packages/app/src/app/api/auth/register/route.ts',
+        'packages/app/src/app/api/auth/verify-email/route.ts',
         'packages/app/src/app/api/users/route.ts',
         // Every guarded page and layout. Page-level enforcement is per file by design — a
         // layout does not re-run on a client-side navigation — so each one is its own entry
@@ -48,6 +51,8 @@ export default defineConfig({
         // globs, and `(auth)` unescaped is a picomatch group that matches the *directory*
         // `auth`, so the pattern silently matches nothing and the file drops out of the
         // report — a coverage gate that passes because it is measuring less than it says.
+        'packages/app/src/app/\\(auth\\)/register/page.tsx',
+        'packages/app/src/app/\\(auth\\)/return-to-href.ts',
         'packages/app/src/app/\\(auth\\)/sign-in/page.tsx',
         'packages/app/src/app/\\(mentee\\)/layout.tsx',
         'packages/app/src/app/\\(mentee\\)/home/page.tsx',
@@ -57,9 +62,17 @@ export default defineConfig({
         'packages/app/src/app/admin/page.tsx',
         'packages/app/src/app/admin/users/page.tsx',
         'packages/app/src/app/admin/users/users-list.tsx',
+        // The email half of the two `(auth)` screens: a Client Component, so it is rendered
+        // under jsdom rather than invoked, and every decision in it — the field types, the
+        // two `autocomplete` values, the endpoint, where a sign-in navigates — is a way to
+        // get a credential screen wrong.
+        'packages/app/src/components/email-auth-form.tsx',
         // The signed-in chrome the three layouts above delegate to, and the two modules
         // it composes: which links a role set may see, and the name in the user block.
         'packages/app/src/components/workspace-shell.tsx',
+        // The default landing, in its own module because the client form needs it too and
+        // `lib/session.ts` imports `next/headers`.
+        'packages/app/src/lib/home-for.ts',
         'packages/app/src/lib/nav.ts',
         'packages/app/src/lib/session.ts',
         'packages/app/src/lib/sign-in-redirect.ts',

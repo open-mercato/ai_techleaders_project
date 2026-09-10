@@ -1,35 +1,32 @@
 import Link from 'next/link';
 import { safeReturnTo } from '@devmentor/core';
-import { Button, Input, Label } from '@devmentor/ui';
+import { Button } from '@devmentor/ui';
 import { AuthLayout, ErrorMessage } from '@devmentor/ui/backend';
+import { EmailAuthForm } from '../../../components/email-auth-form';
+import { withReturnTo } from '../return-to-href';
 import { redirectIfSignedIn } from '../../../lib/session';
 import type { SignInErrorCode } from '../../../lib/sign-in-redirect';
 
 /**
- * `/sign-in` — the one screen the whole OAuth flow returns to, in every outcome.
+ * `/sign-in` — the one screen the whole OAuth flow returns to, in every outcome, and from
+ * Slice 4 the one that also takes an email address and a password.
  *
  * **GitHub is first and email is second** (D07, and an acceptance criterion of #12), which
  * is an ordering in the DOM as well as on screen: the provider action is the first thing a
- * keyboard reaches. Until Slice 4 ships `/api/auth/register` and `/api/auth/login` the email
- * half is a **disabled** `fieldset` carrying a one-line note — present, so the page does not
- * silently change shape when the fallback lands, and disabled, so nothing here can be
- * submitted to a route that does not exist yet.
+ * keyboard reaches. The email half was a disabled `fieldset` with a one-line note until
+ * `/api/auth/login` existed; it is now live, and the note is gone.
  *
- * **Why not `AccountForm`, the design system's sign-in composition?** Because this page is a
- * Server Component and `AccountForm` is a Client Component whose three required props —
- * `onGitHub`, `onSuccess`, `onSwitchMode` — are functions, which cannot cross the RSC
- * boundary. Adopting it in this slice would mean a `'use client'` wrapper that (a) turns the
- * primary action into an `onClick` that needs JavaScript, where starting OAuth is exactly a
- * plain navigation to a route handler, (b) points `CrudForm` at a login endpoint Slice 4
- * still has to build, and (c) renders a "Create account" switch with nowhere to switch to.
- * The composition, the class names and the layout are the handoff's — `AuthLayout` and the
- * `dm-account-*` styles — so Slice 4 replaces this block with `AccountForm` behind its own
- * client boundary without redrawing the screen.
+ * **The provider action stays a server-rendered `<a>`, and only the email half is a Client
+ * Component.** `AccountForm` in `@devmentor/ui` renders both together and takes `onGitHub`
+ * as a callback, which would make the primary sign-in method a button that needs JavaScript
+ * — where starting OAuth is exactly a plain navigation to a route handler. `EmailAuthForm`
+ * keeps the handoff's `dm-account-*` composition for the part that genuinely needs a client
+ * (validation, `apiCall`, the pending state), and nothing else on this page needs one.
  *
  * The notices are `ErrorMessage` (`role="alert"`), per the spec's accessibility note. The
- * design system's `AuthFeedback` covers the same five outcomes, but every one of its
- * descriptions offers email as the alternative — "or use email if your account has a
- * password" — which is precisely what this release does not have.
+ * design system's `AuthFeedback` covers the same outcomes, but its descriptions are written
+ * against its own composition, and the copy for `?error=` codes belongs to the screen that
+ * renders them.
  */
 
 // Reads the session cookie and the query string; nothing here may be prerendered.
@@ -37,6 +34,9 @@ export const dynamic = 'force-dynamic';
 
 /** Where the provider button sends the browser. Not `<Link>`: it is a route handler. */
 const GITHUB_START_PATH = '/api/auth/github';
+
+/** The other half of the pair. A page, so this one is a `<Link>`. */
+const REGISTER_PATH = '/register';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -51,8 +51,13 @@ const ERROR_MESSAGES: Record<SignInErrorCode, string> = {
   state: 'That sign-in request could not be verified, usually because it was left open too long. Start again from this page.',
   unavailable:
     'GitHub sign-in is not available right now. It is either not configured for this deployment or GitHub did not answer. Try again in a moment.',
+  // Every untrustworthy link lands here, and the copy has to be true of all of them: an
+  // expired token, a truncated one, a link a mail client rewrote, and the unexpected failures
+  // `verify-email` maps here rather than showing a JSON envelope. "Register again" is the
+  // recovery E01 actually ships — there is no resend route, and re-registering an unconfirmed
+  // address re-claims the row and sends a fresh link.
   verification:
-    'That verification link has expired or was already used. Open the most recent verification email for your address.',
+    'That verification link did not work. It may have expired, or it may have been altered on the way to you. Open the most recent verification email for that address, or create the account again to get a new link.',
   // Both refusals that reach here are about an address, and they are indistinguishable to
   // the browser, so the remedy covers both directions (edge cases 3 and 4).
   email:
@@ -84,18 +89,6 @@ function noticeFor(params: SearchParams): string | null {
   return null;
 }
 
-/**
- * Carry a `?returnTo` the page guards attached through to the OAuth start route, which
- * validates it again and turns it into the state token's subject. Validating here as well is
- * not redundant: it keeps a hostile value out of the link this page renders.
- */
-function githubHref(params: SearchParams): string {
-  const returnTo = safeReturnTo(single(params.returnTo), '');
-  return returnTo === ''
-    ? GITHUB_START_PATH
-    : `${GITHUB_START_PATH}?returnTo=${encodeURIComponent(returnTo)}`;
-}
-
 export default async function SignInPage({
   searchParams,
 }: {
@@ -104,6 +97,12 @@ export default async function SignInPage({
   await redirectIfSignedIn();
   const params = await searchParams;
   const notice = noticeFor(params);
+  // Validated once, here, and passed on as a plain path: the two links below and the client
+  // form all need it, and a hostile value must not reach any of them. The OAuth start route
+  // validates it again and turns it into the state token's subject; doing it here as well is
+  // what keeps a hostile value out of the link this page *renders*. `''` means "no particular
+  // destination", which each consumer turns into its own default.
+  const returnTo = safeReturnTo(single(params.returnTo), '');
 
   return (
     <AuthLayout
@@ -124,39 +123,21 @@ export default async function SignInPage({
           appearance="stroke"
           className="dm-account-provider"
         >
-          <a href={githubHref(params)}>Continue with GitHub</a>
+          <a href={withReturnTo(GITHUB_START_PATH, returnTo)}>Continue with GitHub</a>
         </Button>
 
         <div className="dm-account-divider" aria-hidden="true">
           or use your email
         </div>
 
-        <fieldset className="dm-account-email" disabled>
-          <legend className="dm-account-legend">Sign in with email</legend>
-          <p role="status" className="dm-account-email-unavailable">
-            Email sign-in is not available yet. Continue with GitHub to reach your account.
-          </p>
-          <div className="dm-form">
-            <div className="dm-field">
-              <Label htmlFor="sign-in-email">Email address</Label>
-              <Input id="sign-in-email" name="email" type="email" autoComplete="email" />
-            </div>
-            <div className="dm-field">
-              <Label htmlFor="sign-in-password">Password</Label>
-              <Input
-                id="sign-in-password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-              />
-            </div>
-            <div className="dm-form-actions">
-              <Button type="button" disabled>
-                Sign in
-              </Button>
-            </div>
-          </div>
-        </fieldset>
+        <EmailAuthForm mode="sign-in" returnTo={returnTo} />
+
+        <p className="dm-account-switch">
+          <span>New to DevMentor?</span>
+          <Button asChild variant="link">
+            <Link href={withReturnTo(REGISTER_PATH, returnTo)}>Create account</Link>
+          </Button>
+        </p>
       </div>
     </AuthLayout>
   );

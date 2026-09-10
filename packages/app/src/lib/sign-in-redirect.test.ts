@@ -1,4 +1,5 @@
 import {
+  AppError,
   ConflictError,
   NotFoundError,
   ServiceUnavailableError,
@@ -79,6 +80,21 @@ describe('signInErrorCodeFor', () => {
     // the address matches an unconfirmed account (edge case 4) — are expected refusals the
     // user can act on, not failures worth logging.
     expect(signInErrorCodeFor(new ConflictError('no verified email'), '/x')).toBe('email');
+    expect(logging.createLogger).not.toHaveBeenCalled();
+  });
+
+  // REGRESSION (2026-09-10). The refusal is raised inside `UserService`, which lives in
+  // whichever module graph built the container first, so the `ConflictError` *class* this
+  // module imported is often not the one the service constructed. Under the previous
+  // `error instanceof ConflictError` a genuine conflict fell through to `unavailable` and
+  // told the user GitHub was down when their email address was the problem. The stand-in
+  // below is what a cross-graph conflict looks like from here: a branded `AppError` carrying
+  // `code: 'conflict'` that is not an instance of this file's `ConflictError`.
+  it('maps a conflict raised by another copy of the error module', () => {
+    const crossGraph = new AppError('no verified email', 409, 'conflict');
+
+    expect(crossGraph instanceof ConflictError).toBe(false);
+    expect(signInErrorCodeFor(crossGraph, '/x')).toBe('email');
     expect(logging.createLogger).not.toHaveBeenCalled();
   });
 

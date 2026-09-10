@@ -54,6 +54,7 @@ export {
 } from './apiHandler';
 export {
   makeCrudRoute,
+  parseJsonBody,
   type CrudService,
   type MakeCrudRouteOptions,
 } from './makeCrudRoute';

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ErrorMessage } from '@devmentor/ui/backend';
+import { EmailAuthForm } from '../../../components/email-auth-form';
 import { elements, text } from '../../../test/element-tree';
 
 /**
@@ -34,7 +35,7 @@ async function notice(
   return (alerts[0]?.props as { message: string } | undefined)?.message;
 }
 
-/** The provider link's destination. */
+/** The provider link's destination. It is the only `<a>`; `/register` is a `<Link>`. */
 async function githubHref(
   params: Record<string, string | string[] | undefined> = {},
 ): Promise<string> {
@@ -44,6 +45,26 @@ async function githubHref(
   );
   expect(links).toHaveLength(1);
   return (links[0]?.props as { href: string }).href;
+}
+
+/** The props the page handed the email form. */
+async function form(
+  params: Record<string, string | string[] | undefined> = {},
+): Promise<Record<string, unknown>> {
+  const tree = await render(params);
+  const forms = elements(tree).filter((element) => element.type === EmailAuthForm);
+  expect(forms).toHaveLength(1);
+  return forms[0]?.props as Record<string, unknown>;
+}
+
+/** Every `href` in the page's own content — the footer is a prop, so it is not walked. */
+async function hrefs(
+  params: Record<string, string | string[] | undefined> = {},
+): Promise<string[]> {
+  const tree = await render(params);
+  return elements(tree)
+    .filter((element) => typeof (element.props as { href?: string }).href === 'string')
+    .map((element) => (element.props as { href: string }).href);
 }
 
 beforeEach(() => {
@@ -58,31 +79,26 @@ describe('sign-in page', () => {
     await expect(render()).rejects.toBeInstanceOf(RedirectSentinel);
   });
 
-  it('puts the GitHub action before the email fields, and disables the email half', async () => {
+  it('puts the GitHub action before the email form', async () => {
     const tree = await render();
     const copy = text(tree);
 
-    // Order in the DOM, not only on screen: D07 makes GitHub the primary method.
+    // Order in the DOM, not only on screen: D07 makes GitHub the primary method, and Slice 4
+    // enabling the email half does not change which one a keyboard reaches first.
     expect(copy.indexOf('Continue with GitHub')).toBeGreaterThanOrEqual(0);
-    expect(copy.indexOf('Continue with GitHub')).toBeLessThan(copy.indexOf('Email address'));
-
-    const fieldsets = elements(tree).filter((element) => element.type === 'fieldset');
-    expect(fieldsets).toHaveLength(1);
-    expect((fieldsets[0]?.props as { disabled: boolean }).disabled).toBe(true);
-    expect(copy).toContain('Email sign-in is not available yet');
+    expect(copy.indexOf('Continue with GitHub')).toBeLessThan(copy.indexOf('or use your email'));
   });
 
-  it('labels both email fields', async () => {
-    const tree = await render();
-    const labelled = elements(tree)
-      .filter((element) => typeof (element.props as { htmlFor?: string }).htmlFor === 'string')
-      .map((element) => (element.props as { htmlFor: string }).htmlFor);
-    const inputs = elements(tree)
-      .filter((element) => typeof (element.props as { autoComplete?: string }).autoComplete === 'string')
-      .map((element) => (element.props as { id: string }).id);
+  it('renders the live email form, with the note about it being unavailable gone', async () => {
+    // The Slice 2 placeholder was a disabled `fieldset` carrying that note; `/api/auth/login`
+    // exists now, and this assertion is what fails if the placeholder ever comes back.
+    await expect(form()).resolves.toMatchObject({ mode: 'sign-in', returnTo: '' });
+    expect(text(await render())).not.toContain('Email sign-in is not available yet');
+    expect(elements(await render()).filter((element) => element.type === 'fieldset')).toEqual([]);
+  });
 
-    expect(labelled).toEqual(inputs);
-    expect(labelled).toEqual(['sign-in-email', 'sign-in-password']);
+  it('offers a way to create an account for somebody who has none', async () => {
+    await expect(hrefs()).resolves.toEqual(['/api/auth/github', '/register']);
   });
 
   it('shows no notice on a first visit', async () => {
@@ -139,5 +155,27 @@ describe('sign-in page', () => {
     await expect(githubHref({ returnTo: ['/mentor'] })).resolves.toBe(
       '/api/auth/github?returnTo=%2Fmentor',
     );
+  });
+
+  it('carries the same validated destination to the form and the sign-up link', async () => {
+    // One decision, three consumers: whichever route the visitor was bounced off is where
+    // GitHub, the password form and a switch to registration all return them to.
+    await expect(hrefs({ returnTo: '/admin/users' })).resolves.toEqual([
+      '/api/auth/github?returnTo=%2Fadmin%2Fusers',
+      '/register?returnTo=%2Fadmin%2Fusers',
+    ]);
+    await expect(form({ returnTo: '/admin/users' })).resolves.toMatchObject({
+      returnTo: '/admin/users',
+    });
+  });
+
+  it('hands the form no destination at all when the one asked for is hostile', async () => {
+    await expect(form({ returnTo: 'https://evil.example' })).resolves.toMatchObject({
+      returnTo: '',
+    });
+    await expect(hrefs({ returnTo: 'https://evil.example' })).resolves.toEqual([
+      '/api/auth/github',
+      '/register',
+    ]);
   });
 });

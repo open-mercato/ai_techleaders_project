@@ -62,6 +62,22 @@ function parseWith<T>(schema: z.ZodType<T> | undefined, data: unknown): T {
 }
 
 /**
+ * Read a request body as JSON and validate it with `schema`, or throw the same failures a
+ * CRUD `POST` throws: `400 bad_request` for a body that is not JSON at all, and
+ * `422 validation_failed` carrying `fieldErrors` keyed by dotted path (`_root` for an issue
+ * with no path) for one that is JSON but not this shape.
+ *
+ * Exported from this module rather than a file of its own because this is the module that
+ * already decides those two things, and a route that hand-rolled either would answer a
+ * different envelope for the same mistake. `/api/auth/register` and `/api/auth/login` are
+ * its callers: both take a JSON body and neither is CRUD, so they use `apiHandler` directly
+ * and reach for exactly this piece of `makeCrudRoute`.
+ */
+export async function parseJsonBody<T>(req: Request, schema: z.ZodType<T>): Promise<T> {
+  return parseWith(schema, await readJsonBody(req));
+}
+
+/**
  * Build `{ GET, POST, PUT, DELETE }` route handlers from a service + Zod schemas, so
  * a `route.ts` becomes configuration rather than logic. Collection routes re-export
  * `{ GET, POST }`; an `[id]/route.ts` re-exports `{ GET, PUT, DELETE }` from the same

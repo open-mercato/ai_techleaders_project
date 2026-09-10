@@ -5,7 +5,35 @@
  */
 export type FieldErrors = Record<string, string[]>;
 
+/**
+ * The brand `isAppError` actually tests, and the reason it does not test `instanceof`.
+ *
+ * **Next evaluates `@devmentor/core` more than once in one process.** A page renders in the
+ * SSR/RSC module graph and a route handler runs in its own; each graph gets its own copy of
+ * this module, and therefore its own `AppError` *class object*. That is normally invisible,
+ * because a value never crosses — except that `getContainer()` caches the awilix container
+ * on `globalThis` (so the ORM, its pool and the hashing gate are shared, and survive HMR).
+ * Whichever graph builds the container first owns every service in it, so from then on a
+ * `UserService` living in the SSR graph throws SSR-graph errors at a route handler that
+ * compares them against its own class. `instanceof` answers `false`, `apiHandler` treats a
+ * deliberate `401 unauthorized` as an unexpected failure, and a wrong password answers
+ * `500 internal_error` — with the ordering of the first two requests after a boot deciding
+ * whether it happens at all.
+ *
+ * `Symbol.for` looks the symbol up in the **cross-realm registry**, so both copies of this
+ * module get the same key and the brand survives the crossing. It is the same problem
+ * `entities/define.ts` solves for entity schemas with a `globalThis` singleton, in the shape
+ * that suits a class: identity that does not depend on which graph did the `import`.
+ *
+ * The corollary is that **no code may narrow one of these by `instanceof`.** Discriminate on
+ * `code` instead — it is the published contract (`BACKWARD_COMPATIBILITY.md` §1) and it is a
+ * string, so it crosses too.
+ */
+const APP_ERROR_BRAND: unique symbol = Symbol.for('devmentor.http.app-error');
+
 export class AppError extends Error {
+  /** See `APP_ERROR_BRAND`. Present on every subclass, by construction. */
+  readonly [APP_ERROR_BRAND] = true;
   readonly status: number;
   readonly code: string;
   readonly fieldErrors?: FieldErrors;
@@ -141,6 +169,14 @@ export class ServiceUnavailableError extends AppError {
   }
 }
 
+/**
+ * Whether `error` is one of ours, across module graphs — see `APP_ERROR_BRAND` for why this
+ * is a brand check and not `error instanceof AppError`.
+ *
+ * `instanceof Error` is safe to keep: built-ins come from the realm, not from a bundle, so
+ * both copies of this module see the same `Error`. It is here so a plain object carrying a
+ * forged brand cannot be reported as an application error with a stack it does not have.
+ */
 export function isAppError(error: unknown): error is AppError {
-  return error instanceof AppError;
+  return error instanceof Error && APP_ERROR_BRAND in error;
 }

@@ -1,6 +1,13 @@
 import { ConflictError, createLogger, isAppError } from '@devmentor/core';
 
 /**
+ * The `code` a `ConflictError` carries. Read off the class rather than written as the string
+ * `'conflict'`, so the two cannot drift: the class is the definition, and this is the value
+ * that survives the module-graph crossing described on `signInErrorCodeFor`.
+ */
+const CONFLICT_CODE = new ConflictError().code;
+
+/**
  * How a **browser-navigated** auth route answers.
  *
  * `/api/auth/github` and `/api/auth/github/callback` are reached by a top-level
@@ -70,16 +77,24 @@ export function signInCancelled(setCookies: readonly string[] = []): Response {
 /**
  * Map a failure anywhere in the OAuth flow onto the vocabulary above.
  *
- * Everything that is not a `ConflictError` collapses to `unavailable`, including errors
- * that are not `AppError`s at all — a database outage during `findOrCreateFromGithub`, say.
- * That is the navigated-route rule taken seriously: `apiHandler` would answer an unexpected
- * failure with a 500 JSON envelope, and a browser would render it as the page. Unexpected
- * failures are logged here instead, exactly as `apiHandler` would have logged them, so
- * nothing is swallowed; expected ones (`ServiceUnavailableError` from a missing credential
- * or a GitHub outage) are already reported by the layer that raised them.
+ * Everything that is not a conflict collapses to `unavailable`, including errors that are
+ * not `AppError`s at all — a database outage during `findOrCreateFromGithub`, say. That is
+ * the navigated-route rule taken seriously: `apiHandler` would answer an unexpected failure
+ * with a 500 JSON envelope, and a browser would render it as the page. Unexpected failures
+ * are logged here instead, exactly as `apiHandler` would have logged them, so nothing is
+ * swallowed; expected ones (`ServiceUnavailableError` from a missing credential or a GitHub
+ * outage) are already reported by the layer that raised them.
+ *
+ * **The conflict is recognised by its `code`, not by `instanceof ConflictError`.** The error
+ * is raised inside `UserService`, which lives in whichever module graph built the container
+ * first — and `@devmentor/core` is evaluated once per graph, so the `ConflictError` class
+ * this file imported is frequently not the one the service constructed. `instanceof` answered
+ * `false` for a real conflict and sent the user to `?error=unavailable`, telling them GitHub
+ * was down when the actual problem was their email address. See `APP_ERROR_BRAND` in
+ * `core/src/http/errors.ts`; `code` is a string and crosses the boundary intact.
  */
 export function signInErrorCodeFor(error: unknown, route: string): SignInErrorCode {
-  if (error instanceof ConflictError) {
+  if (isAppError(error) && error.code === CONFLICT_CODE) {
     return 'email';
   }
   if (!isAppError(error)) {

@@ -150,10 +150,40 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `PASSWORD_HASH_WAIT_MS` | `2000` | How long a request waits for a free hashing slot before the gate answers `503 service_unavailable`. That 503 is deliberately raised *before* the rate limiter is consumed, so a burst cannot lock out users who were merely unlucky. `0` means never queue. |
 | `OPERATOR_EMAILS` | *(empty)* | Comma-separated founder addresses. Operator authority is derived from this list on **every** request and matched, trimmed and case-insensitively, against the account's verified email — so removing an address takes effect on that person's very next request rather than at their next sign-in. |
 
+### Signing in
+
+Two methods, one session. **GitHub is the primary one** and is the first action on
+`/sign-in` and `/register`; the email form below it posts to `POST /api/auth/login` and
+`POST /api/auth/register`.
+
+Registration writes the account immediately but issues **no** session: `email_verified_at`
+is what allows a sign-in, and only the link mailed by `GET /api/auth/verify-email` sets it.
+Opening that link confirms the address and signs the browser in on the same redirect.
+There is no resend route — registering the same address again re-claims the unconfirmed row
+and sends a fresh link.
+
+Locally, with `MAILER_ADAPTER` unset in development, the log mailer is selected
+automatically and the link is written to the app's own output as a `mail.sent` line
+carrying `to`, `subject` and `text`. So: register in the browser, find that line in the
+`npm run dev` output, and open the URL in it.
+
+The seeded personas (`mock-mentee@`, `mock-mentor@` and `mock-operator@devmentor.test`)
+carry a password as well as a GitHub identity. It is `SEED_PASSWORD` in
+`packages/db/src/seeders/seed-password.ts` — published, obviously fake, and useless
+anywhere real.
+
+Sign-in and registration are rate-limited per IP and per email address (10 and 5 per 15
+minutes for sign-in, 5 per hour for registration). Tripping a limit answers `429` with
+`Retry-After`; the counters live in `auth_rate_limits`, so they survive a restart. Behind a
+proxy, set `TRUSTED_PROXY_HOPS` so the client IP is read from the right position in
+`x-forwarded-for` — with it unset, the per-IP bucket is skipped and only the per-email one
+applies.
+
 ### Mail
 
-Declared and validated now; the mailer that reads them arrives with email
-verification, so setting them today changes nothing.
+`MAILER_ADAPTER=resend` plus `MAIL_API_KEY` and `MAIL_FROM` deliver for real. Development
+falls back to the log mailer described above; a production deployment without a key fails
+at container creation rather than serving a registration form that always 503s.
 
 | Variable | Default | What it does |
 | --- | --- | --- |

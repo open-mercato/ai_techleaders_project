@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { homeFor } from './home-for';
 import {
   SESSION_COOKIE_NAME,
   safeReturnTo,
@@ -38,32 +39,12 @@ const SIGN_IN_PATH = '/sign-in';
 /**
  * The page a user lands on when nothing more specific was asked for.
  *
- * Priority is `operator` → `/admin`, then `mentor` → `/mentor`, then `/home`. It is a
- * priority and not a partition: roles are independent assignments, a founder is usually a
- * mentor too, and combined-role navigation still exposes every permitted surface (Slice 3
- * builds it from the union of the held roles). This only answers "where do we open?".
- *
- * The asymmetry — `/home` for a mentee, `/mentor` for a mentor — is deliberate and comes
- * straight from the issues: #12 names `/home`, and #15 and #17 already write `/mentor` and
- * `/mentor/slots`.
- *
- * **The parameter is `readonly Role[]`, not the `readonly [Role, ...Role[]]` tuple the
- * spec sketched.** The tuple existed so this function would have no undefined case to
- * handle, and the `/home` fallback below already guarantees that: the function is total
- * for any input. Widening buys a second caller — the OAuth callback holds a `UserDto`,
- * whose `roles` is `readonly Role[]` — without a cast at the one place where a wrong cast
- * would be an authorization bug. A `Session`'s non-empty tuple is assignable to this, so
- * the page guards lose nothing.
+ * Defined in `lib/home-for.ts` and re-exported here, where its server callers already look
+ * for it. It moved out because Slice 4's email sign-in form is a Client Component and needs
+ * the same decision: this file imports `next/headers`, so importing *it* from the browser is
+ * a build error. See that module for the priority and why the parameter is a plain array.
  */
-export function homeFor(roles: readonly Role[]): string {
-  if (roles.includes('operator')) {
-    return '/admin';
-  }
-  if (roles.includes('mentor')) {
-    return '/mentor';
-  }
-  return '/home';
-}
+export { homeFor };
 
 /**
  * The live session behind the request's cookie, or `null` if there isn't one.

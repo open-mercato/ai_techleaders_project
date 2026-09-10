@@ -198,6 +198,12 @@ webhook, which authenticates by verifying a signature. See `BACKWARD_COMPATIBILI
   lists use `DataTable`, and loading/error/empty states use the `feedback/` components.
 - **Collection routes are non-dynamic**, so Next passes no `params` — CRUD helpers
   guard `ctx.params` before reading it.
+- **Never narrow an `AppError` with `instanceof`; match on its `code`.** Next evaluates
+  `@devmentor/core` once per module graph (SSR/RSC and each Route Handler) while
+  `getContainer()` shares one container through `globalThis`, so the class a service threw is
+  routinely not the class the route imported. `isAppError` is therefore a brand check
+  (`Symbol.for`, cross-realm) rather than an `instanceof` — see `APP_ERROR_BRAND` in
+  `core/src/http/errors.ts`. The same rule covers any other cross-graph identity test.
 - **Logs are redacted at the logger, but do not rely on it.** `createLogger`
   (`packages/core/src/logger.ts`) censors `password`, `passwordHash`, `token`,
   `authorization` and `cookie` at the top level and one and two levels below any key, so

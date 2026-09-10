@@ -86,8 +86,13 @@ error does not carry them — they are never emitted as `null`.
   `/sign-in?cancelled=1`, anything else → `?error=unavailable`), then `?state` compared against
   the cookie, then the token's signature, audience and expiry, then `?code` — and every outcome
   expires the state cookie. The `/sign-in` error vocabulary is `state`, `unavailable`,
-  `verification` and `email` (`packages/app/src/lib/sign-in-redirect.ts`): a `ConflictError`
-  maps to `email`, everything else to `unavailable`. Success sets the session cookie and
+  `verification` and `email` (`packages/app/src/lib/sign-in-redirect.ts`): an error whose
+  `code` is `conflict` maps to `email`, everything else to `unavailable`. It is matched on
+  `code` rather than with `instanceof ConflictError` because `@devmentor/core` is evaluated
+  once per Next module graph while the container is shared through `globalThis`, so the class
+  the service threw is often not the class the route imported — see `APP_ERROR_BRAND` in
+  `packages/core/src/http/errors.ts`, which is also why `isAppError` is a brand check. **No
+  code may narrow an `AppError` by `instanceof`.** Success sets the session cookie and
   redirects to `safeReturnTo(state.subject, homeFor(roles))`. The callback path is registered in
   a GitHub OAuth app by whoever deployed this, so renaming it, a query parameter, or an error
   value breaks a link that already exists outside the repository.
@@ -96,10 +101,35 @@ error does not carry them — they are never emitted as `null`.
   a stale tab must still clear the cookie. `users.session_version` is bumped only when a live
   session was presented. `POST` is the only export: `route.test.ts` asserts the module's keys
   are exactly `['POST', 'dynamic']`, so there is no `GET` that a link or a prefetch could fire.
-- There is no login or register route yet. `/sign-in` offers GitHub only, and
-  `tests/integration/auth.integration.test.ts` asserts the email path reads
-  "Email sign-in is not available yet". Slice 4 adds `POST /api/auth/register`,
-  `POST /api/auth/login` and `GET /api/auth/verify-email`.
+- `POST /api/auth/register` answers `{ ok: true, data: { email } }` and **never sets a
+  cookie**: registration issues no session, because `email_verified_at` is what gates
+  sign-in. The body is `registerSchema` (`email`, `password` 12–72 bytes, `displayName`,
+  optional `returnTo`); `?returnTo` in the query is accepted as well and the body wins, which
+  is how `CrudForm` — which submits only the fields it renders — carries a destination into
+  the mailed link. Refusals: 409 `conflict` for an address that already has an account
+  (generic) or is tied to a GitHub one (a deliberate oracle, recorded in the E01 spec),
+  422 `validation_failed`, 429 `rate_limited`, and 503 `service_unavailable` when the hashing
+  gate is saturated or the verification mail could not be delivered — a registration that
+  cannot send its link fails rather than reporting success.
+- `POST /api/auth/login` answers `{ ok: true, data: UserDto }` **plus the session cookie**,
+  which is what the browser navigates on (`roles` decides the default landing). The body is
+  `loginSchema` (`email`, `password` capped at 72 bytes with deliberately **no** minimum, and
+  an optional `returnTo` this route ignores). Every refusal — 401 for an unknown address, a
+  GitHub-only account or a wrong password alike, 401 for an unconfirmed address, 429, 503 —
+  sets **no** cookie. The generic 401 message is `INVALID_CREDENTIALS_MESSAGE`; making it
+  specific is a change to a security property, not a copy edit.
+- `GET /api/auth/verify-email?token=…&returnTo=…` is **browser-navigated**: a valid link is a
+  302 to `safeReturnTo(returnTo, homeFor(roles))` carrying the session cookie, so opening it
+  both confirms the address and signs the browser in; every untrustworthy link — bad
+  signature, wrong audience, expired, malformed, missing `?token`, or naming a deleted user —
+  and every unexpected failure is a 302 to `/sign-in?error=verification`. It never answers the
+  envelope: this URL is opened from a mail client. Opening a link for an already-confirmed
+  address is idempotent and still issues a session (a mail scanner must not consume it).
+- The two `POST`s require the CSRF header like every other state-changing route; `GET
+  /api/auth/verify-email` does not, because a mail client cannot set one and the signed token
+  is the authority. None of the three rate-limits at the route: `UserService` consumes the
+  counters inside the hashing gate, in an order (gate → counter → hash) that edge case 18
+  depends on.
 - `makeCrudRoute` behavior asserted by `packages/core/src/http/makeCrudRoute.test.ts`:
   the default id parameter `id`, and the messages "This operation is not supported",
   "Missing resource id", and "Request body must be valid JSON".

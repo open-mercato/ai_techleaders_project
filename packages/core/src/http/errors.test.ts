@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { apiHandler, type ApiRouteContext } from './apiHandler';
 import {
   AppError,
@@ -268,6 +268,32 @@ describe('isAppError', () => {
     expect(isAppError(new Error('plain'))).toBe(false);
     expect(isAppError({ status: 400, code: 'bad_request' })).toBe(false);
     expect(isAppError(undefined)).toBe(false);
+  });
+
+  it('rejects a plain object wearing the brand, which has no stack to report', () => {
+    expect(isAppError({ [Symbol.for('devmentor.http.app-error')]: true })).toBe(false);
+  });
+
+  // REGRESSION (2026-09-10). Next evaluates `@devmentor/core` once per module graph, and
+  // `getContainer()` caches the container on `globalThis` — so whichever graph builds it
+  // first owns every service, and a route handler in the *other* graph receives errors built
+  // from a different copy of this module. `isAppError` used to be `instanceof AppError`,
+  // which answered `false`: `apiHandler` reported a deliberate `401 unauthorized` from
+  // `authenticateWithPassword` as `500 internal_error`, and whether it happened at all
+  // depended on the order of the first two requests after a boot. Resetting the registry and
+  // re-importing is that second copy, in the one place a unit test can produce it.
+  it('recognises errors built by a second copy of this module', async () => {
+    vi.resetModules();
+    const second = await import('./errors');
+
+    expect(second.AppError).not.toBe(AppError);
+    expect(second.UnauthorizedError).not.toBe(UnauthorizedError);
+    // Neither direction may depend on which copy constructed the value.
+    expect(isAppError(new second.UnauthorizedError())).toBe(true);
+    expect(second.isAppError(new UnauthorizedError())).toBe(true);
+    expect(new second.ConflictError() instanceof ConflictError).toBe(false);
+    // And `code` is what a caller discriminates on instead, because a string crosses intact.
+    expect(new second.ConflictError().code).toBe(new ConflictError().code);
   });
 });
 
