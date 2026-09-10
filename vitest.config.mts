@@ -51,8 +51,13 @@ export default defineConfig({
         'packages/app/src/app/admin/page.tsx',
         'packages/app/src/app/admin/users/page.tsx',
         'packages/app/src/app/admin/users/users-list.tsx',
+        // The signed-in chrome the three layouts above delegate to, and the two modules
+        // it composes: which links a role set may see, and the name in the user block.
+        'packages/app/src/components/workspace-shell.tsx',
+        'packages/app/src/lib/nav.ts',
         'packages/app/src/lib/session.ts',
         'packages/app/src/lib/sign-in-redirect.ts',
+        'packages/app/src/lib/workspace-user.ts',
         'packages/core/src/config/env.ts',
         'packages/core/src/container/container.ts',
         'packages/core/src/http/apiHandler.ts',
