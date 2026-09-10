@@ -78,26 +78,39 @@ export async function seedFutureMentorSlot(
 export async function seedOfferReadyMentor(
   databaseUrl: string,
 ): Promise<OfferReadyMentorFixture> {
-  const mentor = await seedPublishedMentorProfile(databaseUrl);
-  const slot = await seedFutureMentorSlot(databaseUrl, mentor.profileId);
-  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
-  await orm.connect();
   try {
-    const em = orm.em.fork();
-    const profile = await em.findOneOrFail(MentorProfile, { id: mentor.profileId });
-    profile.price25Cents = 9_000;
-    profile.price50Cents = 18_000;
-    await em.flush();
-  } finally {
-    await orm.close(true);
+    const mentor = await seedPublishedMentorProfile(databaseUrl);
+    const slot = await seedFutureMentorSlot(databaseUrl, mentor.profileId);
+    let orm: MikroORM | undefined;
+    try {
+      orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+      await orm.connect();
+      const em = orm.em.fork();
+      const profile = await em.findOneOrFail(MentorProfile, { id: mentor.profileId });
+      profile.price25Cents = 9_000;
+      profile.price50Cents = 18_000;
+      await em.flush();
+    } finally {
+      await orm?.close(true);
+    }
+    return {
+      ...mentor,
+      ...slot,
+      price25Cents: 9_000,
+      price50Cents: 18_000,
+      currency: 'PLN',
+    };
+  } catch (error) {
+    try {
+      await resetPublishedMentorProfile(databaseUrl);
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        'Offer-ready mentor setup failed and its compensating cleanup also failed.',
+      );
+    }
+    throw error;
   }
-  return {
-    ...mentor,
-    ...slot,
-    price25Cents: 9_000,
-    price50Cents: 18_000,
-    currency: 'PLN',
-  };
 }
 
 /** Restore the mock mentor's page fields without touching its long-lived seed profile. */
