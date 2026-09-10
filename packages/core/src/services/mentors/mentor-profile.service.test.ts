@@ -7,6 +7,7 @@ import {
   type IUser,
 } from '@devmentor/db';
 import type { Session } from '../../http/auth';
+import type { SlotPublicDto } from '../availability/slot.service';
 import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../../http/errors';
 import {
   MAX_SLUG_ATTEMPTS,
@@ -72,13 +73,15 @@ function makeHarness(
     transactional: vi.fn(async (run: (inner: typeof tx) => unknown) => run(tx)),
   };
   const eventBus = { emit: vi.fn(async () => undefined) };
+  const slotService = { listPublic: vi.fn(async (): Promise<SlotPublicDto[]> => []) };
   const service = new MentorProfileService({
     em: em as unknown as EntityManager,
     clock: { now: () => NOW },
     eventBus: eventBus as never,
     session: session instanceof Promise ? session : Promise.resolve(session),
+    slotService: slotService as never,
   });
-  return { service, em, tx, eventBus, stored };
+  return { service, em, tx, eventBus, slotService, stored };
 }
 
 describe('mentor profile projections', () => {
@@ -95,9 +98,9 @@ describe('mentor profile projections', () => {
   });
 
   it('builds the exact public allowlist without private profile or user fields', () => {
-    const dto = toPublicDto(profile({ slug: 'ada', publishedAt: NOW }));
+    const dto = toPublicDto(profile({ slug: 'ada', publishedAt: NOW }), []);
     expect(Object.keys(dto).sort()).toEqual([
-      'bio', 'displayName', 'publicWorkUrl', 'slug', 'stackTags',
+      'bio', 'displayName', 'publicWorkUrl', 'slots', 'slug', 'stackTags',
     ]);
     expect(dto).toEqual({
       displayName: 'Ada Lovelace',
@@ -105,6 +108,7 @@ describe('mentor profile projections', () => {
       bio: 'I built compilers.',
       stackTags: ['TypeScript'],
       slug: 'ada',
+      slots: [],
     });
   });
 });
@@ -265,18 +269,23 @@ describe('MentorProfileService publication', () => {
 describe('MentorProfileService public read', () => {
   it('returns only an explicitly published slug', async () => {
     const h = makeHarness(undefined, profile({ slug: 'ada', publishedAt: NOW }));
+    h.slotService.listPublic.mockResolvedValue([
+      { id: 'slot-1', startsAt: '2026-09-10T14:00:00.000Z', meetsLeadTime: true },
+    ]);
     await expect(h.service.getPublicBySlug('ada')).resolves.toEqual({
       displayName: 'Ada Lovelace',
       publicWorkUrl: 'https://github.com/ada',
       bio: 'I built compilers.',
       stackTags: ['TypeScript'],
       slug: 'ada',
+      slots: [{ id: 'slot-1', startsAt: '2026-09-10T14:00:00.000Z', meetsLeadTime: true }],
     });
     expect(h.em.findOne).toHaveBeenCalledWith(
       MentorProfile,
       { slug: 'ada', publishedAt: { $ne: null } },
       { populate: ['user'] },
     );
+    expect(h.slotService.listPublic).toHaveBeenCalledExactlyOnceWith(PROFILE_ID);
   });
 
   it('answers an unknown or unpublished slug with not-found', async () => {

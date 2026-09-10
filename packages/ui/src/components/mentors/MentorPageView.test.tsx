@@ -11,6 +11,10 @@ const profile = {
   publicWorkUrl: 'https://example.com/ada',
   bio: 'I help developers reason about systems and communicate technical decisions.',
   stackTags: ['TypeScript', 'AI agents'],
+  slots: [
+    { id: 'boundary', startsAt: '2026-09-10T18:00:00.000Z', meetsLeadTime: true },
+    { id: 'late', startsAt: '2026-09-10T18:30:00.000Z', meetsLeadTime: false },
+  ],
 };
 
 it('renders the public mentor projection and safe public-work link without reputation markup', () => {
@@ -22,8 +26,17 @@ it('renders the public mentor projection and safe public-work link without reput
   expect(link.getAttribute('target')).toBe('_blank');
   expect(link.getAttribute('rel')).toBe('noreferrer');
   expect(screen.getByRole('list', { name: 'Technology stacks' }).textContent).toContain('TypeScript');
+  expect(screen.getByRole('heading', { name: 'Available times' })).toBeTruthy();
+  expect(screen.getAllByRole('time')).toHaveLength(2);
+  expect(screen.getByText('Available')).toBeTruthy();
+  expect(screen.getByText(/less than two hours/)).toBeTruthy();
   expect(document.body.textContent).not.toMatch(/rating|score|review|ranking/i);
   expect(document.querySelector('footer')).toBeNull();
+});
+
+it('shows a specific empty state when no future slots are published', () => {
+  render(<MentorPageView profile={{ ...profile, slots: [] }} />);
+  expect(screen.getByText('No future times are published. Check this page again later.')).toBeTruthy();
 });
 
 it('renders supplied preview actions in a distinct footer', () => {

@@ -14,6 +14,7 @@ export * from './components/auth/AccountForm';
 export * from './components/auth/AuthFeedback';
 export * from './components/auth/SignOutAction';
 export * from './components/availability/AvailabilityPicker';
+export * from './components/availability/SlotTime';
 export * from './components/bookings/BookingSummary';
 export * from './components/disputes/DisputeDetail';
 export * from './components/invitations/InvitationBatch';

@@ -1,12 +1,14 @@
 import { ExternalLink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TechnologyIcon } from './TechnologyChips';
+import { SlotTime } from '../availability/SlotTime';
 
 export interface MentorPageProfile {
   displayName: string;
   publicWorkUrl: string;
   bio: string;
   stackTags: string[];
+  slots?: { id: string; startsAt: string; meetsLeadTime: boolean }[];
 }
 
 export interface MentorPageViewProps {
@@ -44,6 +46,20 @@ export function MentorPageView({ profile, actions }: MentorPageViewProps) {
           <span>{stack}</span>
         </li>)}
       </ul>
+    </section>
+
+    <section aria-labelledby="mentor-availability-heading" className="flex flex-col gap-3">
+      <div>
+        <h2 id="mentor-availability-heading" className="text-xl font-semibold text-slate-950 dark:text-slate-50">Available times</h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Times use your current timezone. A session must be requested at least two hours before it starts.</p>
+      </div>
+      {profile.slots?.length ? (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {profile.slots.map((slot) => <li key={slot.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+            <SlotTime startsAt={slot.startsAt} meetsLeadTime={slot.meetsLeadTime} />
+          </li>)}
+        </ul>
+      ) : <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">No future times are published. Check this page again later.</p>}
     </section>
 
     {actions ? <footer className="flex flex-wrap gap-3 border-t border-slate-200 pt-6 dark:border-slate-700">{actions}</footer> : null}

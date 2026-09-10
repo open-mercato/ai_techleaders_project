@@ -32,6 +32,7 @@ describe('navLinksFor', () => {
     expect(navLinksFor(['mentor'])).toEqual([
       { href: '/mentor', label: 'Mentor workspace' },
       { href: '/mentor/profile', label: 'Mentor profile' },
+      { href: '/mentor/slots', label: 'Available times' },
     ]);
   });
 
@@ -54,6 +55,7 @@ describe('navLinksFor', () => {
       '/admin/users',
       '/mentor',
       '/mentor/profile',
+      '/mentor/slots',
     ]);
   });
 
@@ -63,6 +65,7 @@ describe('navLinksFor', () => {
       '/admin/users',
       '/mentor',
       '/mentor/profile',
+      '/mentor/slots',
       '/home',
     ]);
   });
@@ -76,6 +79,7 @@ describe('navLinksFor', () => {
     expect(navLinksFor(['mentor', 'mentor'])).toEqual([
       { href: '/mentor', label: 'Mentor workspace' },
       { href: '/mentor/profile', label: 'Mentor profile' },
+      { href: '/mentor/slots', label: 'Available times' },
     ]);
   });
 
@@ -89,7 +93,7 @@ describe('navLinksFor', () => {
   });
 
   it('exposes no route that would grant a role, for any combination of roles (R07)', () => {
-    const permitted = ['/admin', '/admin/users', '/mentor', '/mentor/profile', '/home'];
+    const permitted = ['/admin', '/admin/users', '/mentor', '/mentor/profile', '/mentor/slots', '/home'];
 
     for (const roles of roleCombinations()) {
       const links = navLinksFor(roles);

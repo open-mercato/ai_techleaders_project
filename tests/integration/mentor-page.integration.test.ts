@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import {
   EventBus,
   MentorProfileService,
+  type SlotService,
   type Logger,
   type Session,
 } from '@devmentor/core';
@@ -63,7 +64,7 @@ describe('TC-MENTOR-PAGE-001 stable public mentor page', () => {
       expect(publicResponse.status).toBe(200);
       const publicPayload = (await publicResponse.json()) as { data: Record<string, unknown> };
       expect(Object.keys(publicPayload.data).sort()).toEqual([
-        'bio', 'displayName', 'publicWorkUrl', 'slug', 'stackTags',
+        'bio', 'displayName', 'publicWorkUrl', 'slots', 'slug', 'stackTags',
       ]);
 
       await runAgentBrowser(session, 'open', `${baseUrl}/m/${seeded.slug}`);
@@ -103,7 +104,8 @@ describe('TC-MENTOR-PAGE-002 publication transaction races', () => {
 
   function serviceFor(em: EntityManager, userId: string): MentorProfileService {
     const session: Promise<Session> = Promise.resolve({ userId, roles: ['mentor'] });
-    return new MentorProfileService({ em, clock: { now: () => NOW }, eventBus, session });
+    const slotService = { listPublic: async () => [] } as unknown as SlotService;
+    return new MentorProfileService({ em, clock: { now: () => NOW }, eventBus, session, slotService });
   }
 
   async function createReadyProfile(suffix: string, displayName: string) {
