@@ -144,6 +144,11 @@ export {
   type Cents,
   type PriceBounds,
 } from './money/money';
+export {
+  PlatformSettingsService,
+  PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE,
+  type PlatformSettings,
+} from './services/operator/platform-settings.service';
 
 // Reusable HTTP layer (typed errors, route wrappers, auth guards).
 export * from './http/index';

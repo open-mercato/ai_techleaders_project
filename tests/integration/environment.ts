@@ -35,6 +35,8 @@ export function integrationChildEnvironment(
     DB_POOL_MAX: '5',
     INVITATION_TTL_DAYS: '14',
     MENTOR_PUBLISH_WINDOW_DAYS: '14',
+    PLATFORM_CURRENCY: 'PLN',
+    PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}',
     // A throwaway database must never author a repository file. `migration:up` rewrites
     // the migration snapshot from introspection whenever the migrated schema differs from
     // the committed one, so a local run of this suite could leave `migrations/devmentor.json`

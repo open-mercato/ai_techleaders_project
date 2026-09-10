@@ -18,6 +18,11 @@ const BASE_ENV: DbEnv = {
   DB_POOL_IDLE_MS: 30_000,
   INVITATION_TTL_DAYS: 14,
   MENTOR_PUBLISH_WINDOW_DAYS: 14,
+  PLATFORM_CURRENCY: 'PLN',
+  PLATFORM_PRICE_BOUNDS: {
+    p25: { minCents: 9_000, maxCents: 60_000 },
+    p50: { minCents: 18_000, maxCents: 120_000 },
+  },
   DB_DEBUG: false,
   DB_MIGRATIONS_SNAPSHOT: true,
 };
