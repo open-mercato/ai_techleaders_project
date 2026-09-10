@@ -172,6 +172,9 @@ export default defineConfig({
         'scripts/setup/index.mjs',
         'scripts/setup/run.mjs',
         'scripts/setup/steps.mjs',
+        'scripts/storybook/effects.mjs',
+        'scripts/storybook/index.mjs',
+        'scripts/storybook/run.mjs',
         // Harness code, under the production gate on purpose: `waitForMail` parses log
         // lines, tolerates a half-written flush and has to time out rather than hang, and
         // every one of those branches is a way for an integration failure to be reported as

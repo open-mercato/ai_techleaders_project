@@ -5,8 +5,8 @@
   "description": "DevMentor — shadcn-ui component library and design tokens",
   "type": "module",
   "scripts": {
-    "storybook": "storybook dev --host 127.0.0.1 --port 6006 --no-open --ci --disable-telemetry",
-    "build-storybook": "storybook build --disable-telemetry",
+    "storybook": "node ../../scripts/storybook/index.mjs dev --host 127.0.0.1 --port 6006 --no-open --ci --disable-telemetry",
+    "build-storybook": "node ../../scripts/storybook/index.mjs build --disable-telemetry",
     "typecheck:storybook": "tsc --noEmit --project .storybook/tsconfig.json"
   },
   "main": "./src/index.ts",
