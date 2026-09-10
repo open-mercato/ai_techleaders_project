@@ -21,6 +21,8 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 2 | 2.1 | Add the CrudForm money field | dispatch:standard | done | bc10b5b |
 | 2 | 2.2 | Add mentor price management and public price presentation | dispatch:capable | done | bdaa9bb |
 | 3 | 3.1 | Add offer-ready fixtures, integration coverage and browser proof | dispatch:capable | done | a89c593 |
+| 3 | 3.2-review-fix | Wait for asynchronous error-focus recovery in the price-screen regression | inline | done | 5003944 |
+| 3 | 3.3-review-fix | Make integration fixture setup cleanup-safe on every partial failure | inline | todo | — |
 
 ## Goal
 
