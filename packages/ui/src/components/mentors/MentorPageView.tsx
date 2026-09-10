@@ -9,6 +9,11 @@ export interface MentorPageProfile {
   bio: string;
   stackTags: string[];
   slots?: { id: string; startsAt: string; meetsLeadTime: boolean }[];
+  prices?: { price25Cents: number; price50Cents: number; currency: string } | null;
+}
+
+function priceLabel(cents: number, currency: string): string {
+  return `${currency} ${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, '0')}`;
 }
 
 export interface MentorPageViewProps {
@@ -46,6 +51,20 @@ export function MentorPageView({ profile, actions }: MentorPageViewProps) {
           <span>{stack}</span>
         </li>)}
       </ul>
+    </section>
+
+    <section aria-labelledby="mentor-prices-heading" className="flex flex-col gap-3">
+      <h2 id="mentor-prices-heading" className="text-xl font-semibold text-slate-950 dark:text-slate-50">Session prices</h2>
+      {profile.prices ? (
+        <ul className="flex flex-wrap gap-2" aria-label="Session prices">
+          <li className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            25 minutes: {priceLabel(profile.prices.price25Cents, profile.prices.currency)}
+          </li>
+          <li className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            50 minutes: {priceLabel(profile.prices.price50Cents, profile.prices.currency)}
+          </li>
+        </ul>
+      ) : <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">Not bookable yet</p>}
     </section>
 
     <section aria-labelledby="mentor-availability-heading" className="flex flex-col gap-3">

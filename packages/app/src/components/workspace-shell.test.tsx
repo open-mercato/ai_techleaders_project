@@ -77,6 +77,7 @@ describe('WorkspaceShell', () => {
     expect(await navOf(sessionWith('mentor'))).toEqual([
       ['/mentor', 'Mentor workspace'],
       ['/mentor/profile', 'Mentor profile'],
+      ['/mentor/prices', 'Session prices'],
       ['/mentor/slots', 'Available times'],
     ]);
   });
@@ -96,6 +97,7 @@ describe('WorkspaceShell', () => {
       ['/admin/users', 'Users'],
       ['/mentor', 'Mentor workspace'],
       ['/mentor/profile', 'Mentor profile'],
+      ['/mentor/prices', 'Session prices'],
       ['/mentor/slots', 'Available times'],
     ]);
   });
@@ -108,6 +110,7 @@ describe('WorkspaceShell', () => {
       '/admin/users',
       '/mentor',
       '/mentor/profile',
+      '/mentor/prices',
       '/mentor/slots',
     ]);
   });

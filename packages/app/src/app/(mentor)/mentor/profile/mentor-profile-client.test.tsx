@@ -49,6 +49,7 @@ const published: MentorProfileResource = {
   stackTags: ['TypeScript', 'AI agents'],
   slug: 'ada-lovelace',
   publishedAt: '2026-09-10T15:00:00.000Z',
+  prices: { price25Cents: 9_000, price50Cents: 18_000, currency: 'PLN' },
   readiness: {
     ready: true,
     items: draft.readiness.items.map((item) => ({ ...item, met: true })),
@@ -180,6 +181,7 @@ it('shows a stable share link, copies it and unpublishes without deleting it', a
   expect(screen.getByText('The link will not change if you rename yourself.')).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Page preview' })).toBeTruthy();
   expect(screen.getByRole('heading', { level: 1, name: 'Ada Lovelace' })).toBeTruthy();
+  expect(screen.getByText('25 minutes: PLN 90.00')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'View public work' }).getAttribute('href')).toBe(
     'https://example.com/ada',
   );

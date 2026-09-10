@@ -15,6 +15,10 @@
 - A skeptical staff review found the stale blocked story spec, an over-broad offer-readiness gate, the missing mentor-home readiness union, an invalid persistence example, an underspecified route helper and incomplete compatibility/negative criteria.
 - The plan now resolves the active spec first, keeps `mentorOfferReady` to publication plus both stored prices, treats future availability as a separate checklist item, pins the JSON bounds grammar and makes all protected/public boundary checks explicit.
 
+## 2026-09-10T19:08:00Z — screen-contract audit
+- The pre-implementation screen audit found that unpriced owner DTOs carried no server-owned currency and owner slot DTOs carried no server-evaluated future state.
+- Step 2.2 now includes additive `priceCurrency` and `isFuture` projections so the UI neither hardcodes policy nor trusts the browser clock.
+
 ## 2026-09-10T18:44:05Z — subagent delegation
 - Draft PR #48 tracks the stacked `feat/mentor-prices` run against `feat/availability-slots`.
 - Dispatched Step 1.1 to a standard-tier executor: exact money primitives and session-length vocabulary.
@@ -49,3 +53,12 @@
 - Money values remain strings from initialization through client validation and API submission; the field uses a text input with decimal input mode and names its fixed currency visually and accessibly.
 - Existing `CrudField` stays an interface so additive money support does not break interface-extension consumers.
 - Focused interaction tests, typecheck, Storybook typecheck, lint and the 100% unit coverage gate pass.
+
+## 2026-09-10T19:20:38Z — step completed
+- Added guarded mentor price management, authenticated navigation and the complete mentor-home checklist
+  across page, offer and server-clock future-slot readiness, with repair actions for every unmet item.
+- Added source-compatible live owner `priceCurrency` and `isFuture` projections while retaining exact
+  public slot and mentor allowlists. Unpriced public pages keep availability and show `Not bookable yet`
+  without booking or checkout actions; priced pages and owner previews show both exact prices.
+- Full unit coverage passes 1,742 tests at 100% statements, branches, functions and lines. Typecheck,
+  lint, production build, Storybook typecheck/build and 209 prototype checks pass.

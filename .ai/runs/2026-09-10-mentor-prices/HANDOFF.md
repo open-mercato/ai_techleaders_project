@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T19:10:18Z
+**Last updated:** 2026-09-10T19:20:38Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
-**Current phase/step:** Phase 2; Step 2.2 ready
-**Last commit:** bc10b5b — feat(ui): add exact money form fields
+**Current phase/step:** Phase 3; Step 3.1 ready
+**Last commit:** bdaa9bb — feat(prices): add mentor price screens
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -41,9 +41,18 @@
   paths retain values and preserve helper/error associations. Storybook documents and demonstrates PLN.
 - Full unit coverage passes 1,729 tests at 100% statements, branches, functions and lines; focused tests,
   typecheck, Storybook typecheck and lint pass.
+- Step 2.2 adds the guarded `/mentor/prices` app screen with exact-decimal `CrudForm` money fields,
+  server-owned currency and bound facts, authenticated navigation and retryable resource states.
+- Live owner projections add optional `priceCurrency` and server-clock `isFuture`; public slot and mentor
+  allowlists remain exact and do not expose either owner-only field or operator bounds.
+- Mentor home now combines the page and offer gates with future availability in one checklist and routes
+  each unmet item to profile, prices or slots. Public and owner-preview mentor pages show both prices or
+  `Not bookable yet` while keeping availability visible and exposing no booking or checkout action.
+- Full unit coverage passes 1,742 tests at 100% statements, branches, functions and lines. Typecheck,
+  lint, production build, Storybook typecheck/build and 209 prototype checks pass.
 
 ## Next concrete action
-- Implement Step 2.2: mentor price management, readiness navigation and public price presentation.
+- Implement Step 3.1: owned offer-ready fixtures, integration coverage and live browser proof.
 
 ## Blockers / open questions
 - none

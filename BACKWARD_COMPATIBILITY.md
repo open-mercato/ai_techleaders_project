@@ -75,7 +75,9 @@ error does not carry them — they are never emitted as `null`.
   start times; `DELETE /api/availability/slots/[id]` soft-removes only a slot owned by that
   mentor. The mutating verbs inherit the standard CSRF check. A duplicate active start answers
   the existing 409 `conflict` envelope, and owner responses are explicit `{ id, startsAt }`
-  DTOs rather than entities. A mentor may retain up to 500 active slots; publication at the
+  DTOs rather than entities. The owner DTO additively exposes optional `isFuture`, populated on
+  every live response from one server-clock snapshot with an inclusive `startsAt >= now` rule;
+  the exact public slot allowlist remains `{ id, startsAt, meetsLeadTime }`. A mentor may retain up to 500 active slots; publication at the
   cap answers 422 and asks the mentor to remove an existing time. Owner and public reads use
   that same explicit upper bound.
 - `GET /api/mentors/[slug]` additively includes `slots`, ordered by start time, with
@@ -83,10 +85,12 @@ error does not carry them — they are never emitted as `null`.
   boundary. Source-level `MentorProfilePublicDto.slots` remains optional for Slice 2 callers,
   while the HTTP projection always supplies the array.
 - Mentor profile projections add integer-cent pricing without changing the existing keys.
-  The live owner projection includes `prices`, `priceBounds` and `offerReadiness`; the live
+  The live owner projection includes `prices`, `priceCurrency`, `priceBounds` and `offerReadiness`; the live
   public projection includes only `prices`, which is `{ price25Cents, price50Cents, currency }`
   when both stored prices exist and `null` otherwise. The new fields remain optional in the
-  exported TypeScript DTOs so Slice 2 object constructors compile unchanged. The public
+  exported TypeScript DTOs so Slice 2 object constructors compile unchanged. `priceCurrency`
+  is likewise optional at the source boundary and always populated on live owner reads, including
+  before prices exist, so clients never invent platform policy. The public
   projection never exposes operator bounds, readiness internals, email or invitation state.
 - `POST /api/users` **was removed** (E01 Slice 2). It was public, had zero in-repo callers,
   and let anyone create an unverified row for an address they did not own — the

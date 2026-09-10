@@ -28,6 +28,7 @@ export interface MentorProfileResource {
   stackTags: readonly string[];
   slug: string | null;
   publishedAt: string | null;
+  prices?: { price25Cents: number; price50Cents: number; currency: string } | null;
   readiness: {
     ready: boolean;
     items: { key: string; label: string; met: boolean }[];
@@ -182,6 +183,7 @@ export function MentorProfileClient({ appUrl, stackOptions }: MentorProfileClien
               publicWorkUrl: profile.publicWorkUrl,
               bio: profile.bio,
               stackTags: [...profile.stackTags],
+              prices: profile.prices,
             }}
           />
         </section>

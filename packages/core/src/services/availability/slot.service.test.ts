@@ -105,9 +105,10 @@ function makeHarness({
   };
   const eventBus = { emit: vi.fn(async () => undefined) };
   const sessionPromise = session instanceof Promise ? session : Promise.resolve(session);
+  const clock = { now: vi.fn(() => NOW) };
   const service = new SlotService({
     em: em as unknown as EntityManager,
-    clock: { now: () => NOW },
+    clock,
     eventBus: eventBus as never,
     session: sessionPromise,
   });
@@ -116,6 +117,7 @@ function makeHarness({
     em,
     tx,
     eventBus,
+    clock,
     storedProfile,
     get createdSlot() {
       return createdSlot;
@@ -124,17 +126,20 @@ function makeHarness({
 }
 
 describe('SlotService owner reads', () => {
-  it('lists active owner slots in chronological query order as DTOs', async () => {
+  it('lists active owner slots with one authoritative inclusive future-state snapshot', async () => {
     const slots = [
-      slot(new Date('2026-09-10T13:00:00.000Z')),
-      slot(new Date('2026-09-10T14:00:00.000Z'), { id: `${SLOT_ID.slice(0, -1)}2` }),
+      slot(new Date('2026-09-10T11:59:59.999Z')),
+      slot(NOW, { id: `${SLOT_ID.slice(0, -1)}2` }),
+      slot(new Date('2026-09-10T14:00:00.000Z'), { id: `${SLOT_ID.slice(0, -1)}3` }),
     ];
     const h = makeHarness({ slots });
 
     await expect(h.service.listOwner()).resolves.toEqual([
-      { id: SLOT_ID, startsAt: '2026-09-10T13:00:00.000Z' },
-      { id: `${SLOT_ID.slice(0, -1)}2`, startsAt: '2026-09-10T14:00:00.000Z' },
+      { id: SLOT_ID, startsAt: '2026-09-10T11:59:59.999Z', isFuture: false },
+      { id: `${SLOT_ID.slice(0, -1)}2`, startsAt: NOW.toISOString(), isFuture: true },
+      { id: `${SLOT_ID.slice(0, -1)}3`, startsAt: '2026-09-10T14:00:00.000Z', isFuture: true },
     ]);
+    expect(h.clock.now).toHaveBeenCalledOnce();
     expect(h.em.findOne).toHaveBeenCalledWith(MentorProfile, { user: USER_ID });
     expect(h.em.find).toHaveBeenCalledWith(
       Slot,
@@ -165,7 +170,7 @@ describe('SlotService publication', () => {
     const h = makeHarness();
     await expect(
       h.service.publish({ startsAt: '2026-09-10T14:00:00.000Z' }),
-    ).resolves.toEqual({ id: SLOT_ID, startsAt: '2026-09-10T14:00:00.000Z' });
+    ).resolves.toEqual({ id: SLOT_ID, startsAt: '2026-09-10T14:00:00.000Z', isFuture: true });
 
     expect(h.tx.findOne).toHaveBeenCalledWith(
       MentorProfile,

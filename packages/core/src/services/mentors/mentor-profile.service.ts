@@ -48,6 +48,7 @@ export interface MentorProfileOwnerDto {
   readiness: ReturnType<typeof mentorPagePublishable.evaluate>;
   /** Optional so existing source-level DTO constructors remain valid. */
   prices?: MentorPricesDto | null;
+  priceCurrency?: string;
   priceBounds?: { p25: PriceBounds; p50: PriceBounds };
   offerReadiness?: ReturnType<typeof mentorOfferReady.evaluate>;
 }
@@ -101,6 +102,7 @@ export function toOwnerDto(
       ? {}
       : {
           prices: pricesFor(profile, settings.currency),
+          priceCurrency: settings.currency,
           priceBounds: settings.priceBounds,
           offerReadiness: offerReadinessFor(profile),
         }),

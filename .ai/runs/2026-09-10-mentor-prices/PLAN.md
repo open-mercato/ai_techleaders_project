@@ -19,7 +19,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 1 | 1.3 | Add price persistence, atomic service updates and offer readiness | dispatch:capable | done | e920a19 |
 | 1 | 1.4 | Add the owner-scoped mentor-prices route | dispatch:standard | done | e3c396f |
 | 2 | 2.1 | Add the CrudForm money field | dispatch:standard | done | bc10b5b |
-| 2 | 2.2 | Add mentor price management and public price presentation | dispatch:capable | todo | — |
+| 2 | 2.2 | Add mentor price management and public price presentation | dispatch:capable | done | bdaa9bb |
 | 3 | 3.1 | Add offer-ready fixtures, integration coverage and browser proof | dispatch:capable | todo | — |
 
 ## Goal
@@ -105,7 +105,11 @@ and its backing reads so one `ReadinessChecklist` combines page, price and separ
 with actions to `/mentor/profile`, `/mentor/prices` and `/mentor/slots`; cover complete and incomplete states.
 Extend the public mentor view to show both server-owned
 prices, or a `Not bookable yet` state with no booking action while future availability remains visible.
-Keep public-page styling, allowlist projection and page-level role guards intact.
+Keep public-page styling, allowlist projection and page-level role guards intact. Add an optional owner
+`priceCurrency` populated on every live projection so an unpriced mentor never invents PLN in the UI.
+Add optional `SlotOwnerDto.isFuture`, populated authoritatively from one captured server clock with
+`startsAt >= now`, so the combined checklist never trusts the browser clock. Document and fully test both
+source-compatible response additions; fail closed if live price settings or offer readiness are absent.
 
 ### Phase 3: Cross-boundary proof
 
