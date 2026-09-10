@@ -182,9 +182,13 @@ webhook, which authenticates by verifying a signature. See `BACKWARD_COMPATIBILI
 - **`em.persistAndFlush()` was removed** — use `em.persist(e); await em.flush()`.
 - Touch the DB only in **dynamic** routes (`export const dynamic = "force-dynamic"`)
   and degrade gracefully; the app must build and boot with no database reachable.
-- **Public pages use Tailwind utilities; `/admin/*` pages use shadcn-ui components**
-  from `@devmentor/ui`. Add shadcn components with `npx shadcn@latest add <c>` run in
-  `packages/ui` (its `components.json` is committed).
+- **Three UI surfaces.** Public pages — landing, `/mentors`, `/m/<slug>` and `(auth)/*`
+  — **use Tailwind utilities**; the signed-in surfaces — `(mentee)/*`, `(mentor)/*` and
+  `/admin/*` — **use shadcn-ui components** from `@devmentor/ui` inside `AppShell`
+  (`ui/src/backend/shell/AppShell.tsx`), whose `nav` is a `ReactNode` slot because `ui`
+  may not import `next` and cannot render `next/link`. Add shadcn components with
+  `npx shadcn@latest add <c>` run in `packages/ui` (its `components.json` is committed).
+  The full taxonomy is F1 in `.ai/specs/2026-09-04-platform-primitives.md`.
 - Request-scoped work goes through `withScope(fn)` from `@devmentor/core`, which opens
   an awilix scope with a forked `EntityManager` and disposes it afterward.
 - **Never hand-roll fetch / validation / error-handling / CRUD.** Server routes use
