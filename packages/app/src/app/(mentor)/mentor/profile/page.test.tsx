@@ -6,6 +6,10 @@ class RedirectSentinel extends Error {}
 
 const harness = vi.hoisted(() => ({ requirePageRole: vi.fn() }));
 vi.mock('../../../../lib/session', () => ({ requirePageRole: harness.requirePageRole }));
+vi.mock('@devmentor/core', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@devmentor/core')>()),
+  getEnv: () => ({ APP_URL: 'http://localhost:3000' }),
+}));
 
 const { default: MentorProfilePage } = await import('./page');
 

@@ -22,6 +22,11 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 3 | 3.2-gate-fix | Make the complete-schema integration check apply availability | inline | done | b0e1430 |
 | 3 | 3.3-gate-fix | Wait for asynchronous server-error focus in CrudForm coverage | inline | done | eb22d0d |
 | 3 | 3.4-gate-fix | Make the QA launcher stop stale same-worktree dev servers | inline | done | 1699bde |
+| 3 | 3.5-review-fix | Make mentor-profile page tests independent of the caller environment | inline | done | 39fdf99 |
+| 3 | 3.6-review-fix | Preserve and document exported compatibility while structurally mapping duplicate slots | inline | todo | — |
+| 3 | 3.7-review-fix | Reject nonexistent and ambiguous local wall-clock times | inline | todo | — |
+| 3 | 3.8-review-fix | Bound active slot publication and reads | inline | todo | — |
+| 3 | 3.9-review-fix | Make browser integration prove the published slot and capture evidence | inline | todo | — |
 
 ## Goal
 
@@ -92,6 +97,23 @@ focus after React commits the asynchronous request result; retain the existing b
 3.4-gate-fix Repair the generated QA launcher and teardown so force starts stop the recorded environment,
 stale launchd jobs for this exact worktree are removed with their process groups, and a dead URL cannot be
 published while an orphaned Next server still holds the worktree lock. Prove cold start and warm reuse.
+
+3.5-review-fix Mock the configuration seam in the existing mentor-profile page unit test so the configured
+gate remains deterministic when the caller legitimately supplies a non-default `APP_URL`.
+
+3.6-review-fix Keep additive slot response typing source-compatible, give direct service construction a
+safe empty-slot bridge, replace module-identity exception narrowing with an exact structural database error
+check, and update the protected-contract inventory.
+
+3.7-review-fix Refuse a browser-local datetime when it does not round-trip to the same wall clock or has a
+second possible instant during an offset fold. Keep the entered value for field-level schema feedback and
+cover both transition shapes through an environment-independent seam.
+
+3.8-review-fix Serialize a per-mentor active-slot cap under the existing profile lock and place the same
+explicit bound on owner/public reads, with boundary and refusal coverage.
+
+3.9-review-fix Strengthen the integration scenario to assert the exact rendered slot time and standalone
+status rather than a heading substring, prove the non-empty state, and capture its key browser screenshot.
 
 ## Decisions
 
