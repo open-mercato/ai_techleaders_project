@@ -24,6 +24,7 @@ const AUTH_RATE_LIMITS_MIGRATION = 'Migration20260910095701_auth_rate_limits';
 const INVITATIONS_MIGRATION = 'Migration20260910130526_invitations';
 const MENTOR_PAGE_MIGRATION = 'Migration20260910163000_mentor_page';
 const AVAILABILITY_MIGRATION = 'Migration20260910170021_availability_slots';
+const MENTOR_PRICES_MIGRATION = 'Migration20260910185543_mentor_prices';
 
 /** A row created before `auth-identity` — the population the backfill exists for. */
 const LEGACY_EMAIL = 'legacy@devmentor.test';
@@ -243,6 +244,32 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
           'mentor_profiles_slug_unique',
           'mentor_profiles_stack_tags_check',
           'mentor_profiles_publication_has_slug'
+        )
+      order by con.conname
+    `);
+  }
+
+  async function mentorPriceColumns(): Promise<
+    { column_name: string; udt_name: string; is_nullable: string }[]
+  > {
+    return query(`
+      select column_name, udt_name, is_nullable
+      from information_schema.columns
+      where table_name = 'mentor_profiles'
+        and column_name in ('price_25_cents', 'price_50_cents')
+      order by column_name
+    `);
+  }
+
+  async function mentorPriceConstraints(): Promise<{ conname: string; def: string }[]> {
+    return query(`
+      select con.conname, pg_get_constraintdef(con.oid) as def
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      where rel.relname = 'mentor_profiles'
+        and con.conname in (
+          'mentor_profiles_price_25_positive',
+          'mentor_profiles_price_50_positive'
         )
       order by con.conname
     `);
@@ -954,9 +981,61 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     expect(legacy.verified).toBe(true);
   });
 
-  it('matches the complete entity model after all migrations', async () => {
+  it('applies positive nullable mentor prices after availability', async () => {
     await migrate();
     expect(await appliedMigrations()).toContain(AVAILABILITY_MIGRATION);
+    expect(await appliedMigrations()).toContain(MENTOR_PRICES_MIGRATION);
+    expect(await mentorPriceColumns()).toEqual([
+      { column_name: 'price_25_cents', udt_name: 'int4', is_nullable: 'YES' },
+      { column_name: 'price_50_cents', udt_name: 'int4', is_nullable: 'YES' },
+    ]);
+    expect(await mentorPriceConstraints()).toEqual([
+      { conname: 'mentor_profiles_price_25_positive', def: 'CHECK ((price_25_cents > 0))' },
+      { conname: 'mentor_profiles_price_50_positive', def: 'CHECK ((price_50_cents > 0))' },
+    ]);
+
+    const { id: userId } = await queryOne<{ id: string }>(
+      `select id from users where email = '${LEGACY_EMAIL}'`,
+    );
+    await expect(
+      query(`update mentor_profiles set price_25_cents = null, price_50_cents = 18000 where user_id = '${userId}'`),
+    ).resolves.toBeDefined();
+    expect(
+      await constraintFrom(() =>
+        query(`update mentor_profiles set price_25_cents = 0 where user_id = '${userId}'`),
+      ),
+    ).toBe('mentor_profiles_price_25_positive');
+    expect(
+      await constraintFrom(() =>
+        query(`update mentor_profiles set price_50_cents = -1 where user_id = '${userId}'`),
+      ),
+    ).toBe('mentor_profiles_price_50_positive');
+  });
+
+  it('rolls back only prices, preserves availability, and reapplies them', async () => {
+    await rollbackOne();
+    expect(await mentorPriceColumns()).toEqual([]);
+    expect(await mentorPriceConstraints()).toEqual([]);
+    expect(await appliedMigrations()).toContain(AVAILABILITY_MIGRATION);
+    expect(await appliedMigrations()).not.toContain(MENTOR_PRICES_MIGRATION);
+    expect(
+      await query<{ column_name: string }>(`
+        select column_name from information_schema.columns
+        where table_name = 'mentor_profiles' and column_name = 'last_published_availability_at'
+      `),
+    ).toHaveLength(1);
+    expect(
+      await query<{ table_name: string }>(`
+        select table_name from information_schema.tables where table_name = 'slots'
+      `),
+    ).toHaveLength(1);
+
+    await migrate('--to', MENTOR_PRICES_MIGRATION);
+    expect(await mentorPriceColumns()).toHaveLength(2);
+    expect(await mentorPriceConstraints()).toHaveLength(2);
+  });
+
+  it('matches the complete entity model after all migrations', async () => {
 
     const verifier = await MikroORM.init({ clientUrl, entities });
     await verifier.connect();

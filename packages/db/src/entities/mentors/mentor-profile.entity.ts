@@ -37,11 +37,21 @@ export const MentorProfile = defineSingletonEntity('MentorProfile', () =>
       // Ordering key for mentor discovery. Slot publication updates it in the same
       // transaction as the new active slot; removing a slot never rewrites history.
       lastPublishedAvailabilityAt: p.datetime().nullable(),
+      price25Cents: p.integer().fieldName('price_25_cents').nullable(),
+      price50Cents: p.integer().fieldName('price_50_cents').nullable(),
     },
     checks: [
       {
         name: 'mentor_profiles_publication_has_slug',
         expression: '"published_at" is null or "slug" is not null',
+      },
+      {
+        name: 'mentor_profiles_price_25_positive',
+        expression: '"price_25_cents" > 0',
+      },
+      {
+        name: 'mentor_profiles_price_50_positive',
+        expression: '"price_50_cents" > 0',
       },
     ],
   }),

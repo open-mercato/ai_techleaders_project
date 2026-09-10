@@ -82,6 +82,12 @@ error does not carry them — they are never emitted as `null`.
   `{ id, startsAt, meetsLeadTime }`. `meetsLeadTime` is true through the exact two-hour
   boundary. Source-level `MentorProfilePublicDto.slots` remains optional for Slice 2 callers,
   while the HTTP projection always supplies the array.
+- Mentor profile projections add integer-cent pricing without changing the existing keys.
+  The live owner projection includes `prices`, `priceBounds` and `offerReadiness`; the live
+  public projection includes only `prices`, which is `{ price25Cents, price50Cents, currency }`
+  when both stored prices exist and `null` otherwise. The new fields remain optional in the
+  exported TypeScript DTOs so Slice 2 object constructors compile unchanged. The public
+  projection never exposes operator bounds, readiness internals, email or invitation state.
 - `POST /api/users` **was removed** (E01 Slice 2). It was public, had zero in-repo callers,
   and let anyone create an unverified row for an address they did not own — the
   account-takeover vector the GitHub linking rule closes. No `POST` is exported from
@@ -195,6 +201,13 @@ API between packages. `npm run typecheck` is the consumer check.
   process-singleton and fails closed with the standard 503 code if resolved policy is
   missing, unsupported, malformed or internally inconsistent.
 
+  `MentorProfileService.updatePrices` and `MentorPricesDto`, `mentorOfferReady`,
+  `mentorPricesUpdateSchema` with `MentorPricesUpdateInput`, and `exactMajorDecimalString`
+  are additive exports from `.`. The service constructor's `platformSettingsService` input is
+  optional for source compatibility with direct Slice 2 constructions; price writes fail with
+  the standard 503 when it is absent. The existing `toPublicDto(profile, slots?)` arguments are
+  unchanged; settings are an optional third argument.
+
   From `./http`, also re-exported by `.`: the `AppError` family (`BadRequestError`,
   `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ValidationError`,
   `TooManyRequestsError`, `ServiceUnavailableError`) with `RATE_LIMITED_MESSAGE`,
@@ -274,6 +287,9 @@ API between packages. `npm run typecheck` is the consumer check.
   real `PasswordService`, which is why they are on the barrel rather than behind a deep
   path), and the re-exported `EntityRepository`, `FilterQuery`, `Loaded`,
   `RequiredEntityData`.
+  `MentorProfile` additively carries nullable `price25Cents` and `price50Cents` integer
+  properties backed by `price_25_cents` and `price_50_cents`; named database checks reject
+  non-positive stored values while preserving all pre-price rows as `null`.
 - `@devmentor/ui` (`.`, `./backend`, `./tokens.css`, `./lib/utils`, `./components/*`).
   `./components/*` maps to `src/components/ui/*.tsx` only — the shadcn primitives. The domain
   components below are reachable through `.` and nowhere else.
