@@ -15,3 +15,6 @@
 
 ## 2026-09-10T17:09:00Z — subagent delegation
 - Dispatched Step 1.1 to a standard-tier executor: Slot persistence and reversible availability migration.
+
+## 2026-09-10T17:31:00Z — subagent delegation
+- Dispatched Step 1.2 to a capable-tier executor: slot validation, service behavior and container wiring.

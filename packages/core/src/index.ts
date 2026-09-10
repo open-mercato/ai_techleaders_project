@@ -75,11 +75,20 @@ export {
   type MentorProfileOwnerDto,
   type MentorProfilePublicDto,
 } from './services/mentors/mentor-profile.service';
+export {
+  SlotService,
+  type SlotOwnerDto,
+  type SlotPublicDto,
+} from './services/availability/slot.service';
 export { mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,
   type MentorProfileUpdateInput,
 } from './validators/mentors/mentor-profile-update.schema';
+export {
+  slotCreateSchema,
+  type SlotCreateInput,
+} from './validators/availability/slot-create.schema';
 export {
   MAX_SLUG_LENGTH,
   RESERVED_SLUGS,

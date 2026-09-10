@@ -14,7 +14,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
 | 1 | 1.1 | Add Slot persistence and the reversible availability migration | dispatch:standard | done | a8a7e8b |
-| 1 | 1.2 | Add slot validation, service behavior and container wiring | dispatch:capable | todo | — |
+| 1 | 1.2 | Add slot validation, service behavior and container wiring | dispatch:capable | done | a5e2d85 |
 | 1 | 1.3 | Add owner-scoped availability routes | dispatch:standard | todo | — |
 | 2 | 2.1 | Add the datetime CrudForm field and local-to-UTC conversion | dispatch:standard | todo | — |
 | 2 | 2.2 | Add mentor slot management and public availability presentation | dispatch:capable | todo | — |
