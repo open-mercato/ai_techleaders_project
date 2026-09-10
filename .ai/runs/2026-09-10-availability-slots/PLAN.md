@@ -21,6 +21,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 3 | 3.1 | Add availability integration coverage and browser proof | dispatch:capable | done | 11141b9 |
 | 3 | 3.2-gate-fix | Make the complete-schema integration check apply availability | inline | done | b0e1430 |
 | 3 | 3.3-gate-fix | Wait for asynchronous server-error focus in CrudForm coverage | inline | done | eb22d0d |
+| 3 | 3.4-gate-fix | Make the QA launcher stop stale same-worktree dev servers | inline | done | 1699bde |
 
 ## Goal
 
@@ -87,6 +88,10 @@ applies every migration, including the newly added availability migration, and p
 
 3.3-gate-fix Stabilize the existing server-field-error focus assertion by waiting for the effect that moves
 focus after React commits the asynchronous request result; retain the existing behavior assertion unchanged.
+
+3.4-gate-fix Repair the generated QA launcher and teardown so force starts stop the recorded environment,
+stale launchd jobs for this exact worktree are removed with their process groups, and a dead URL cannot be
+published while an orphaned Next server still holds the worktree lock. Prove cold start and warm reuse.
 
 ## Decisions
 
