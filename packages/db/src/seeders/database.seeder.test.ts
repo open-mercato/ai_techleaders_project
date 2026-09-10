@@ -9,6 +9,7 @@ import {
   SEED_MOCK_MENTOR_EMAIL,
   SEED_OPERATOR_EMAIL,
 } from './database.seeder';
+import { SEED_PASSWORD_HASH } from './seed-password';
 
 type FakeEntityManager = {
   findOne: ReturnType<typeof vi.fn>;
@@ -51,6 +52,7 @@ describe('DatabaseSeeder', () => {
         roles: ['mentor'],
         githubLogin: 'ada',
         emailVerifiedAt: expect.any(Date),
+        passwordHash: null,
       },
       {
         email: SEED_MENTEE_EMAIL,
@@ -58,6 +60,7 @@ describe('DatabaseSeeder', () => {
         roles: ['mentee'],
         githubLogin: 'mock-mentee',
         emailVerifiedAt: expect.any(Date),
+        passwordHash: SEED_PASSWORD_HASH,
       },
       {
         email: SEED_MOCK_MENTOR_EMAIL,
@@ -65,6 +68,7 @@ describe('DatabaseSeeder', () => {
         roles: ['mentor'],
         githubLogin: 'mock-mentor',
         emailVerifiedAt: expect.any(Date),
+        passwordHash: null,
       },
       {
         // The operator holds `mentor` too: the two are independent assignments, and a
@@ -74,8 +78,33 @@ describe('DatabaseSeeder', () => {
         roles: ['operator', 'mentor'],
         githubLogin: 'mock-operator',
         emailVerifiedAt: expect.any(Date),
+        passwordHash: SEED_PASSWORD_HASH,
       },
     ]);
+  });
+
+  it('gives a password to the mentee and the operator, and to nobody else', async () => {
+    // One unprivileged persona and one privileged one, so a form sign-in can reach both a
+    // mentee surface and `/admin`. Ada is never signed in as, and Mock Mentor stays
+    // GitHub-only on purpose: she is the live example of the `github_id` set /
+    // `password_hash` null row that `registerWithPassword` answers with a 409.
+    const em = fakeEntityManager();
+
+    await new DatabaseSeeder().run(em as unknown as EntityManager);
+
+    const byEmail = new Map(
+      em.create.mock.calls
+        .filter(([entity]) => entity === User)
+        .map(([, data]) => data as { email: string; passwordHash: string | null })
+        .map((user) => [user.email, user.passwordHash]),
+    );
+
+    expect(Object.fromEntries(byEmail)).toEqual({
+      [SEED_MENTOR_EMAIL]: null,
+      [SEED_MENTEE_EMAIL]: SEED_PASSWORD_HASH,
+      [SEED_MOCK_MENTOR_EMAIL]: null,
+      [SEED_OPERATOR_EMAIL]: SEED_PASSWORD_HASH,
+    });
   });
 
   it('addresses every persona except Ada as <githubLogin>@devmentor.test', async () => {
@@ -141,10 +170,25 @@ describe('DatabaseSeeder', () => {
         roles: ['mentor'],
         githubLogin: 'ada',
         emailVerifiedAt: new Date('2026-09-01T00:00:00Z'),
+        passwordHash: null,
       },
-      [SEED_MENTEE_EMAIL]: { email: SEED_MENTEE_EMAIL, emailVerifiedAt: new Date() },
-      [SEED_MOCK_MENTOR_EMAIL]: { email: SEED_MOCK_MENTOR_EMAIL, emailVerifiedAt: new Date() },
-      [SEED_OPERATOR_EMAIL]: { email: SEED_OPERATOR_EMAIL, emailVerifiedAt: new Date() },
+      [SEED_MENTEE_EMAIL]: {
+        email: SEED_MENTEE_EMAIL,
+        emailVerifiedAt: new Date(),
+        // Deliberately *not* the seeded hash: a developer who changed this persona's
+        // password must not have it reset by the next `npm run setup`.
+        passwordHash: '$scrypt$ln=17,r=8,p=1$c29tZS1vdGhlci1zYWx0$YS1kaWZmZXJlbnQtZGlnZXN0',
+      },
+      [SEED_MOCK_MENTOR_EMAIL]: {
+        email: SEED_MOCK_MENTOR_EMAIL,
+        emailVerifiedAt: new Date(),
+        passwordHash: null,
+      },
+      [SEED_OPERATOR_EMAIL]: {
+        email: SEED_OPERATOR_EMAIL,
+        emailVerifiedAt: new Date(),
+        passwordHash: SEED_PASSWORD_HASH,
+      },
     };
     const em = fakeEntityManager(rows);
 
@@ -156,6 +200,37 @@ describe('DatabaseSeeder', () => {
     // An already-verified row keeps its original timestamp — re-seeding must not look
     // like a fresh verification.
     expect(rows[SEED_MENTOR_EMAIL].emailVerifiedAt).toEqual(new Date('2026-09-01T00:00:00Z'));
+    // Neither an existing password nor an absent one is rewritten, so a second `db:seed`
+    // issues no `UPDATE` at all and no row's `updated_at` moves. `null` reconciling to
+    // `null` is what makes that true for the two GitHub-only personas.
+    expect(rows[SEED_MENTEE_EMAIL].passwordHash).toBe(
+      '$scrypt$ln=17,r=8,p=1$c29tZS1vdGhlci1zYWx0$YS1kaWZmZXJlbnQtZGlnZXN0',
+    );
+    expect(rows[SEED_OPERATOR_EMAIL].passwordHash).toBe(SEED_PASSWORD_HASH);
+    expect(rows[SEED_MENTOR_EMAIL].passwordHash).toBeNull();
+    expect(rows[SEED_MOCK_MENTOR_EMAIL].passwordHash).toBeNull();
+  });
+
+  it('plants the hash on personas that predate the auth-password column', async () => {
+    // The migration adds `password_hash` as null for every existing row, so a database that
+    // was migrated rather than created has the two form-signin personas without a
+    // credential. Re-seeding is what converges it on the state a fresh database starts in.
+    const mentee: Record<string, unknown> = { email: SEED_MENTEE_EMAIL, emailVerifiedAt: new Date() };
+    const mockMentor: Record<string, unknown> = {
+      email: SEED_MOCK_MENTOR_EMAIL,
+      emailVerifiedAt: new Date(),
+    };
+    const em = fakeEntityManager({
+      [SEED_MENTEE_EMAIL]: mentee,
+      [SEED_MOCK_MENTOR_EMAIL]: mockMentor,
+    });
+
+    await new DatabaseSeeder().run(em as unknown as EntityManager);
+
+    expect(mentee.passwordHash).toBe(SEED_PASSWORD_HASH);
+    // A persona without a seeded password stays without one rather than acquiring the
+    // shared fixture hash: `null` is the GitHub-only account shape, not a gap.
+    expect(mockMentor.passwordHash).toBeNull();
   });
 
   it('reconciles a row that predates the auth-identity columns', async () => {

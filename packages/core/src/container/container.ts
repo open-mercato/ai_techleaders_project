@@ -11,6 +11,7 @@ import { getEnv, type AppEnv } from '../config/env';
 import { createLogger } from '../logger';
 import { EventBus } from '../events/event-bus';
 import { systemClock } from '../time/clock';
+import { PasswordService } from '../services/auth/password.service';
 import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
@@ -131,6 +132,15 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // which has a scoped `em`.
     sessionService: asClass(SessionService).singleton(),
     tokenService: asClass(TokenService).singleton(),
+    // SINGLETON for a *different* reason, and the lifetime is load-bearing rather than
+    // an optimisation: `PasswordService` is the one service here that carries state, a
+    // counter of scrypt hashes in flight. That counter has to be process-global to mean
+    // anything — a scoped registration would hand every request its own gate starting at
+    // zero, so a limit of 2 would admit two 128 MiB hashes *per concurrent request*. The
+    // root container itself is cached on `globalThis` (above), which is what makes "one
+    // per container" and "one per process" the same thing across Next's several module
+    // graphs. Do not make this scoped, and do not construct one anywhere else.
+    passwordService: asClass(PasswordService).singleton(),
     // SINGLETON for the same reason: stateless, and its only dependencies are `env` and
     // `logger`. `asFunction` rather than `asClass` because which class this is *is* the
     // decision — see `selectGithubIdentity`.

@@ -308,6 +308,23 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "roles": {
           "name": "roles",
           "type": "text[]",
@@ -322,11 +339,7 @@
           "default": "'{mentee}'",
           "comment": null,
           "collation": null,
-          "enumItems": [
-            "mentee",
-            "mentor",
-            "operator"
-          ],
+          "enumItems": [],
           "mappedType": "array"
         },
         "session_version": {
@@ -399,14 +412,15 @@
       "checks": [
         {
           "name": "users_roles_check",
-          "expression": "\"roles\" <@ array['mentee'::text, 'mentor'::text, 'operator'::text]",
-          "definition": "check (\"roles\" <@ array['mentee'::text, 'mentor'::text, 'operator'::text])",
+          "expression": "roles <@ ARRAY['mentee'::text, 'mentor'::text, 'operator'::text]",
+          "definition": "CHECK ((roles <@ ARRAY['mentee'::text, 'mentor'::text, 'operator'::text]))",
           "columnName": "roles"
         },
         {
           "name": "users_roles_non_empty",
-          "expression": "cardinality(\"roles\") >= 1",
-          "definition": "check (cardinality(\"roles\") >= 1)"
+          "expression": "cardinality(roles) >= 1",
+          "definition": "CHECK ((cardinality(roles) >= 1))",
+          "columnName": "roles"
         }
       ],
       "triggers": [],

@@ -23,6 +23,7 @@ export {
   clearOauthStateCookie,
   readOauthStateCookie,
 } from './services/auth/oauth-state';
+export { PasswordService, type PasswordWork } from './services/auth/password.service';
 export {
   TokenService,
   type PurposeTokenClaims,

@@ -167,8 +167,12 @@ API between packages. `npm run typecheck` is the consumer check.
   truth behind the `users.roles` column, §7), `createOrmConfig`, `getOrm`, `closeOrm`,
   `checkDbConnection`, `getDbEnv` with `DbEnv`, `MikroORM`, `EntityManager`,
   `UniqueConstraintViolationException` (exported on purpose:
-  `UserService.findOrCreateFromGithub` recovers the concurrent-sign-in race off it), and the
-  re-exported `EntityRepository`, `FilterQuery`, `Loaded`, `RequiredEntityData`.
+  `UserService.findOrCreateFromGithub` recovers the concurrent-sign-in race off it),
+  `SEED_PASSWORD` and `SEED_PASSWORD_HASH` (the seeded personas' credential — the harness
+  types the plaintext into the sign-in form and a `core` unit test verifies the hash with the
+  real `PasswordService`, which is why they are on the barrel rather than behind a deep
+  path), and the re-exported `EntityRepository`, `FilterQuery`, `Loaded`,
+  `RequiredEntityData`.
 - `@devmentor/ui` (`.`, `./backend`, `./tokens.css`, `./lib/utils`, `./components/*`).
   `./components/*` maps to `src/components/ui/*.tsx` only — the shadcn primitives. The domain
   components below are reachable through `.` and nowhere else.
@@ -207,11 +211,15 @@ the change spans several concepts; note it in the PR body.
 - Tables: `users` (`id` uuid, `created_at`, `updated_at`, `email` unique and **never updated
   after creation**, `display_name`, `roles` as a native `text[]` defaulting to `['mentee']`,
   `github_id` varchar(64) nullable and unique, `github_login` varchar(64) nullable,
-  `avatar_url` text nullable, `email_verified_at` timestamptz nullable, `session_version` int
-  default 0) and `mentor_profiles` (`id`, timestamps, `user_id` unique with a
-  cascading foreign key to `users`, `headline`, `bio` nullable,
+  `avatar_url` text nullable, `email_verified_at` timestamptz nullable, `password_hash` text
+  nullable, `session_version` int default 0) and `mentor_profiles` (`id`, timestamps,
+  `user_id` unique with a cascading foreign key to `users`, `headline`, `bio` nullable,
   `years_of_experience` default 0). Column names are snake_case mappings of the
-  camelCase entity properties. There is no `password_hash` column yet — Slice 4 adds it.
+  camelCase entity properties. `password_hash` is `text` on purpose — 60 is bcrypt's output
+  width and this project hashes with `scrypt`, so pinning the width would close the
+  `argon2id` upgrade path — and nullable on purpose: a GitHub-only account has no password,
+  and `github_id` set with `password_hash` null is the normal shape for one. It never
+  appears in a DTO, a token or a URL.
 - Two `CHECK` constraints on `users` are part of the contract: `users_roles_check`
   (`roles <@ array['mentee','mentor','operator']`, generated from `ROLES`) and
   `users_roles_non_empty` (`cardinality(roles) >= 1`), which is what lets `Session.roles`
@@ -232,11 +240,14 @@ the change spans several concepts; note it in the PR body.
   is set, so `config.ts` reads `DB_MIGRATIONS_SNAPSHOT` itself. The base migration
   `Migration20260901142829.ts` has `up` only; everything since ships both directions.
 - `tests/integration/migrations.integration.test.ts` pins the schema by name, so it is part of
-  this surface: both migration class names, the column names with their PostgreSQL udt names
-  (`roles _text`, `session_version int4`, `github_id varchar`, `email_verified_at timestamptz`,
-  `avatar_url text`), the constraint names and definitions verbatim (`users_github_id_unique`,
-  `users_roles_check`, `users_roles_non_empty`, and `users_email_unique` surviving a
-  rollback), the backfill result, and up/down/up idempotence.
+  this surface: all three migration class names, the column names with their PostgreSQL udt
+  names (`roles _text`, `session_version int4`, `github_id varchar`, `email_verified_at
+  timestamptz`, `avatar_url text`, `password_hash text` nullable with no default), the
+  constraint names and definitions verbatim (`users_github_id_unique`, `users_roles_check`,
+  `users_roles_non_empty`, and `users_email_unique` surviving a rollback), the backfill
+  result, and up/down/up idempotence for each of the two auth migrations — including that
+  `auth-password` rolls back off `auth-identity` without taking the identity columns with it,
+  which is the documented "revert Slice 4 before Slice 2" path.
 - The seeder `packages/db/src/seeders/database.seeder.ts` creates four rows, every one with
   `email_verified_at` set: the admin-list fixture `ada@devmentor.dev` / `Ada Lovelace` /
   `['mentor']` with the mentor profile `Systems & algorithms mentor` —
@@ -251,6 +262,15 @@ the change spans several concepts; note it in the PR body.
   skips: an existing row has `display_name`, `roles` and `github_login` rewritten and
   `email_verified_at` filled if unset, `email` is never rewritten, and a mentor profile is
   planted at creation only.
+- `mock-mentee@` and `mock-operator@devmentor.test` carry `password_hash`; Ada and
+  `mock-mentor@` are password-less, which is the GitHub-only account shape. The plaintext and
+  its hash are `SEED_PASSWORD` and `SEED_PASSWORD_HASH`, exported from `@devmentor/db` and
+  frozen in `packages/db/src/seeders/seed-password.ts` because `db` may not import `core` and
+  so cannot call `PasswordService`. Both are fixture data for `*.test` addresses, not
+  secrets. `password_hash` is filled in when absent and **never overwritten**, so a re-seed
+  neither resets a changed password nor issues an `UPDATE`. Changing either value is a
+  breaking change to the harness: `packages/core/src/services/auth/seed-password.guard.test.ts`
+  verifies the hash with the real `PasswordService` and fails when the two come apart.
 
 **Breaking:** dropping or renaming a table or column; tightening a constraint that
 existing rows may violate; dropping or loosening either `roles` `CHECK`; editing an already

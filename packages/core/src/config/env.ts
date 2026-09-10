@@ -77,6 +77,23 @@ const appEnvSchema = z
     // the client IP Nth-from-right out of `x-forwarded-for`. `0` means trust nothing.
     TRUSTED_PROXY_HOPS: z.coerce.number().int().nonnegative().default(0),
 
+    // --- Password hashing (B9) ---
+    // How many `scrypt` hashes may be in flight in this process at once. The bound is
+    // memory, not CPU: at the OWASP parameters this project fixes (N=2^17, r=8, p=1)
+    // one hash holds 128 MiB for its whole duration, so the default of 2 caps the
+    // hashing path at ~256 MiB. It cannot be left unbounded, because the rate limiter
+    // in front of it is keyed per IP *and* per email rather than globally — a few dozen
+    // distinct addresses each within their own limit would otherwise be several
+    // gigabytes of concurrent allocation. Raising it past `UV_THREADPOOL_SIZE`
+    // (4 by default) buys queueing inside libuv rather than more parallelism, so raise
+    // both or neither. Must be at least 1: zero would admit nobody, ever.
+    PASSWORD_HASH_CONCURRENCY: z.coerce.number().int().positive().default(2),
+    // How long a request may wait for a free slot before the gate gives up with
+    // `503 service_unavailable`. A caller that has already queued this long is better
+    // served a retryable answer than a socket that eventually times out. `0` is
+    // allowed and means "never queue": fail as soon as the limit is reached.
+    PASSWORD_HASH_WAIT_MS: z.coerce.number().int().nonnegative().default(2000),
+
     // --- Test-double selection (guarded by the superRefine below) ---
     AUTH_IDENTITY_ADAPTER: z.enum(['github', 'mock']).optional(),
     MAILER_ADAPTER: z.enum(['resend', 'log']).optional(),

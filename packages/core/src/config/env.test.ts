@@ -64,8 +64,34 @@ describe('getEnv', () => {
       APP_URL: 'http://localhost:3000',
       OPERATOR_EMAILS: [],
       TRUSTED_PROXY_HOPS: 0,
+      PASSWORD_HASH_CONCURRENCY: 2,
+      PASSWORD_HASH_WAIT_MS: 2000,
       INTEGRATION_TEST_RUN: false,
     });
+  });
+
+  it('coerces the password-hashing limits and allows a zero wait', async () => {
+    const env = await parseEnv({
+      PASSWORD_HASH_CONCURRENCY: '4',
+      PASSWORD_HASH_WAIT_MS: '0',
+    });
+
+    // `0` is a legitimate setting — "never queue, refuse as soon as the limit is
+    // reached" — which is why the wait is `nonnegative` while the limit is `positive`.
+    expect(env.PASSWORD_HASH_CONCURRENCY).toBe(4);
+    expect(env.PASSWORD_HASH_WAIT_MS).toBe(0);
+  });
+
+  it('refuses a hashing concurrency of zero, which would admit nobody', async () => {
+    const message = await expectRejected({ PASSWORD_HASH_CONCURRENCY: '0' });
+
+    expect(message).toContain('PASSWORD_HASH_CONCURRENCY');
+  });
+
+  it('refuses a negative hashing wait', async () => {
+    const message = await expectRejected({ PASSWORD_HASH_WAIT_MS: '-1' });
+
+    expect(message).toContain('PASSWORD_HASH_WAIT_MS');
   });
 
   it('leaves every credential absent rather than inventing one', async () => {

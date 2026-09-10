@@ -8,9 +8,10 @@ const execFileAsync = promisify(execFile);
 const root = process.cwd();
 const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
-/** The migration under test, and the one that must survive its rollback. */
+/** The migrations under test, and the one that must survive their rollback. */
 const BASE_MIGRATION = 'Migration20260901142829';
 const AUTH_IDENTITY_MIGRATION = 'Migration20260909222320_auth_identity';
+const AUTH_PASSWORD_MIGRATION = 'Migration20260910092433_auth_password';
 
 /** A row created before `auth-identity` — the population the backfill exists for. */
 const LEGACY_EMAIL = 'legacy@devmentor.test';
@@ -26,13 +27,23 @@ const NEW_COLUMNS = [
 
 const NEW_CONSTRAINTS = ['users_github_id_unique', 'users_roles_check', 'users_roles_non_empty'];
 
+/** The `users` column `auth-password` adds, on its own so the two migrations stay separable. */
+const PASSWORD_COLUMN = 'password_hash';
+
 /**
- * `auth-identity` up / down / up against a database of its own.
+ * `auth-identity` and `auth-password`, each up / down / up against a database of its own.
  *
- * `SDLC.md` requires a schema migration to prove both directions, and this one carries a
- * data change as well as DDL, so "it applied cleanly" is not enough: the rollback must
- * leave the pre-existing rows intact, and a re-application must produce exactly the same
- * schema rather than a second, subtly different one.
+ * `SDLC.md` requires a schema migration to prove both directions, and `auth-identity`
+ * carries a data change as well as DDL, so "it applied cleanly" is not enough: the rollback
+ * must leave the pre-existing rows intact, and a re-application must produce exactly the
+ * same schema rather than a second, subtly different one.
+ *
+ * The two migrations share one container and one legacy row, and the `it` blocks run in
+ * order, each one leaving the schema where the next expects it: identity up, password up,
+ * password down, password up, both down, both up. That order is the point rather than an
+ * accident — `auth-password` has to be shown surviving on top of `auth-identity` *and*
+ * rolling back off it without taking the identity columns with it, which is the documented
+ * rollback path ("revert Slice 4 before Slice 2 if both must go").
  *
  * The suite owns its infrastructure — its own Testcontainers PostgreSQL on a random
  * port, torn down on success and failure — because it deliberately rolls the schema
@@ -40,7 +51,7 @@ const NEW_CONSTRAINTS = ['users_github_id_unique', 'users_roles_check', 'users_r
  * app) cannot survive. `DB_MIGRATIONS_SNAPSHOT=false` keeps `migration:up`/`:down` from
  * rewriting the repository's committed schema snapshot from this throwaway database.
  */
-describe('TC-DB-001 the auth-identity migration', () => {
+describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   let postgres: StartedPostgreSqlContainer | undefined;
   let orm: MikroORM | undefined;
   let childEnvironment: NodeJS.ProcessEnv;
@@ -81,6 +92,23 @@ describe('TC-DB-001 the auth-identity migration', () => {
       from information_schema.columns
       where table_name = 'users' and column_name in (${NEW_COLUMNS.map((c) => `'${c}'`).join(', ')})
       order by column_name
+    `);
+  }
+
+  /**
+   * `password_hash` as the database reports it, or `[]` when the column is absent.
+   *
+   * `text`, not `varchar(60)`: 60 is bcrypt's output width and this project hashes with
+   * `scrypt`, so the width would pin the schema to an algorithm it does not use. Nullable
+   * because a GitHub-only account has no password.
+   */
+  async function passwordColumn(): Promise<
+    { column_name: string; udt_name: string; is_nullable: string; column_default: string | null }[]
+  > {
+    return query(`
+      select column_name, udt_name, is_nullable, column_default
+      from information_schema.columns
+      where table_name = 'users' and column_name = '${PASSWORD_COLUMN}'
     `);
   }
 
@@ -163,7 +191,9 @@ describe('TC-DB-001 the auth-identity migration', () => {
   });
 
   it('applies: adds the columns and constraints and verifies every existing row', async () => {
-    await migrate();
+    // Stop at `auth-identity` so the two migrations are asserted apart; the next block
+    // brings the database the rest of the way.
+    await migrate('--to', AUTH_IDENTITY_MIGRATION);
 
     expect(await appliedMigrations()).toEqual([BASE_MIGRATION, AUTH_IDENTITY_MIGRATION]);
     expect(await newColumns()).toEqual([
@@ -205,10 +235,82 @@ describe('TC-DB-001 the auth-identity migration', () => {
     expect(await insertRoles(`'{operator,mentor}'`)).toBe('accepted');
   });
 
+  it('applies auth-password: one nullable text column and nothing else', async () => {
+    await migrate();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+    ]);
+    expect(await passwordColumn()).toEqual([
+      {
+        column_name: 'password_hash',
+        // `text`. A `varchar` here would report `varchar` and pin the column to bcrypt's
+        // 60-character output width, closing the argon2id upgrade path the spec keeps open.
+        udt_name: 'text',
+        // A GitHub-only account has no password, so `not null` could not be satisfied by
+        // the rows `auth-identity` just verified — and a default would be a fake credential.
+        is_nullable: 'YES',
+        column_default: null,
+      },
+    ]);
+    // Additive means additive: the identity columns and constraints are untouched, and no
+    // row acquired a credential it did not have.
+    expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
+    expect((await newConstraints()).map((constraint) => constraint.conname)).toEqual(
+      NEW_CONSTRAINTS,
+    );
+    const legacy = await queryOne<{ display_name: string; password_hash: string | null }>(
+      `select display_name, password_hash from users where email = '${LEGACY_EMAIL}'`,
+    );
+    expect(legacy).toEqual({ display_name: 'Legacy Row', password_hash: null });
+  });
+
+  it('rolls back auth-password: the column goes, the identity columns stay', async () => {
+    await rollbackOne();
+
+    expect(await appliedMigrations()).toEqual([BASE_MIGRATION, AUTH_IDENTITY_MIGRATION]);
+    expect(await passwordColumn()).toEqual([]);
+    // The documented rollback path is "revert Slice 4 before Slice 2 if both must go", so
+    // reverting the password column alone has to leave every GitHub account able to sign in.
+    expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
+    expect((await newConstraints()).map((constraint) => constraint.conname)).toEqual(
+      NEW_CONSTRAINTS,
+    );
+    const legacy = await queryOne<{ display_name: string; verified: boolean }>(
+      `select display_name, email_verified_at is not null as verified
+       from users where email = '${LEGACY_EMAIL}'`,
+    );
+    expect(legacy).toEqual({ display_name: 'Legacy Row', verified: true });
+  });
+
+  it('re-applies auth-password: the second up produces the same column', async () => {
+    await migrate();
+
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+    ]);
+    expect(await passwordColumn()).toEqual([
+      {
+        column_name: 'password_hash',
+        udt_name: 'text',
+        is_nullable: 'YES',
+        column_default: null,
+      },
+    ]);
+  });
+
   it('rolls back: removes exactly what it added and keeps the pre-existing rows', async () => {
+    // `auth-password` sits on top, so reaching `auth-identity`'s `down` means reverting it
+    // first — the same order a real rollback of both slices would take.
+    await rollbackOne();
     await rollbackOne();
 
     expect(await appliedMigrations()).toEqual([BASE_MIGRATION]);
+    expect(await passwordColumn()).toEqual([]);
     expect(await newColumns()).toEqual([]);
     expect(await newConstraints()).toEqual([]);
 
@@ -227,7 +329,14 @@ describe('TC-DB-001 the auth-identity migration', () => {
   it('re-applies: the second up produces the same schema and backfills again', async () => {
     await migrate();
 
-    expect(await appliedMigrations()).toEqual([BASE_MIGRATION, AUTH_IDENTITY_MIGRATION]);
+    expect(await appliedMigrations()).toEqual([
+      BASE_MIGRATION,
+      AUTH_IDENTITY_MIGRATION,
+      AUTH_PASSWORD_MIGRATION,
+    ]);
+    expect((await passwordColumn()).map((column) => column.column_name)).toEqual([
+      PASSWORD_COLUMN,
+    ]);
     expect((await newColumns()).map((column) => column.column_name)).toEqual(NEW_COLUMNS);
     expect((await newConstraints()).map((constraint) => constraint.conname)).toEqual(
       NEW_CONSTRAINTS,

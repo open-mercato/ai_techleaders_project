@@ -80,6 +80,8 @@ const BASE_ENV = {
   OPERATOR_EMAILS: [],
   APP_URL: 'http://localhost:3000',
   TRUSTED_PROXY_HOPS: 0,
+  PASSWORD_HASH_CONCURRENCY: 2,
+  PASSWORD_HASH_WAIT_MS: 1000,
   INTEGRATION_TEST_RUN: false,
 } as unknown as AppEnv;
 
@@ -142,6 +144,35 @@ describe('getContainer', () => {
     const second = await withScope((cradle) => cradle.sessionService);
 
     expect(first).toBe(second);
+  });
+
+  it('shares one passwordService across request scopes, because its gate counts hashes', async () => {
+    // Not an optimisation: `PasswordService` holds the count of scrypt hashes in flight,
+    // and that count has to be process-wide. A scoped registration would give every
+    // request a private gate starting at zero, so a limit of 2 would admit two 128 MiB
+    // hashes *per concurrent request* — which is no limit at all. If this ever fails,
+    // the lifetime was changed and the memory bound went with it.
+    const first = await withScope((cradle) => cradle.passwordService);
+    const second = await withScope((cradle) => cradle.passwordService);
+    const root = (await getContainer()).cradle.passwordService;
+
+    expect(first).toBe(second);
+    expect(first).toBe(root);
+  });
+
+  it('builds the passwordService gate from the configured limits', async () => {
+    // Proves the env actually reaches the constructor rather than a default being used:
+    // one slot, no wait, so a second caller is refused while the first holds the gate.
+    useEnv({ PASSWORD_HASH_CONCURRENCY: 1, PASSWORD_HASH_WAIT_MS: 0 } as Partial<AppEnv>);
+    const service = (await getContainer()).cradle.passwordService;
+
+    const held = service.withSlot(
+      () => new Promise<void>((resolve) => setTimeout(resolve, 5)),
+    );
+    await expect(service.withSlot(async () => 'second')).rejects.toMatchObject({
+      status: 503,
+    });
+    await held;
   });
 
   it('injects the env and clock into sessionService, not a fresh copy of either', async () => {

@@ -3,6 +3,7 @@ import type { AppEnv } from '../config/env';
 import type { Logger } from '../logger';
 import type { EventBus } from '../events/event-bus';
 import type { Clock } from '../time/clock';
+import type { PasswordService } from '../services/auth/password.service';
 import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
@@ -16,7 +17,7 @@ import type { Session } from '../http/auth';
  *
  * Lifetimes:
  * - `env`, `logger`, `orm`, `eventBus`, `clock`, `sessionService`, `tokenService`,
- *   `githubIdentity` — SINGLETON (shared for the process).
+ *   `passwordService`, `githubIdentity` — SINGLETON (shared for the process).
  * - `em`, `userService`, `sessionCookie`, `session` — SCOPED (created fresh per request
  *   scope).
  *
@@ -31,6 +32,13 @@ export interface Cradle {
   clock: Clock;
   sessionService: SessionService;
   tokenService: TokenService;
+  /**
+   * Password hashing (B9). **Its concurrency gate is the reason this key is a
+   * SINGLETON**: the gate counts hashes in flight for the whole process, and a scoped
+   * or transient registration would give every request a private counter set to zero —
+   * a limit of 2 would then admit 2 hashes *per request*, which is no limit at all.
+   */
+  passwordService: PasswordService;
   /**
    * The GitHub OAuth seam (B14). Which adapter answers here is the *only* difference
    * between a normal process and an integration run — the routes have no test branch.

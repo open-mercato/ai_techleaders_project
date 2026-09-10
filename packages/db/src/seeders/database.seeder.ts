@@ -3,6 +3,7 @@ import { Seeder } from '@mikro-orm/seeder';
 import type { Role } from '../entities/auth/roles';
 import { User } from '../entities/auth/user.entity';
 import { MentorProfile } from '../entities/mentors/mentor-profile.entity';
+import { SEED_PASSWORD_HASH } from './seed-password';
 
 /**
  * Email of Ada Lovelace, the admin-list fixture. `User.email` is unique, so it identifies
@@ -24,6 +25,11 @@ interface SeedUser {
   displayName: string;
   roles: Role[];
   githubLogin: string;
+  /**
+   * Whether this persona can sign in with `SEED_PASSWORD` as well as through GitHub.
+   * Absent means `password_hash` stays null, which is the GitHub-only account shape.
+   */
+  password?: true;
   /** Planted at creation only — see the note on `run` about what the seeder owns. */
   profile?: { headline: string; bio: string; yearsOfExperience: number };
 }
@@ -50,6 +56,16 @@ interface SeedUser {
  * Ada a `github_id` taken from the mock adapter's id scheme would put one constant on both
  * sides of the `db`/`core` boundary and need a drift guard to keep it there, and renaming
  * her address would need a §3 amendment plus an exception to the never-rewrite-email rule.
+ *
+ * **Two of the four carry a password**, `mock-mentee` and `mock-operator`, which is what the
+ * spec's seeder paragraph names: one unprivileged persona and one privileged one, so the
+ * form-based sign-in scenarios can reach both a mentee surface and `/admin` without GitHub.
+ * The other two are deliberately password-less rather than merely unfinished. Ada is the
+ * admin-list fixture and is not signed in as at all. Mock Mentor is the persona a *mock
+ * GitHub* sign-in resolves to, so leaving her `password_hash` null keeps a live example of
+ * the GitHub-only account shape — the row `registerWithPassword` must answer with a 409
+ * pointing at GitHub rather than by writing a hash. Nothing in E01 needs a third
+ * form-signin persona; the day something does, adding `password: true` is the whole change.
  */
 const SEED_USERS: readonly SeedUser[] = [
   {
@@ -68,6 +84,7 @@ const SEED_USERS: readonly SeedUser[] = [
     displayName: 'Mock Mentee',
     roles: ['mentee'],
     githubLogin: 'mock-mentee',
+    password: true,
   },
   {
     // Carries a profile because `/mentor` and everything E02 hangs off `mentor_profiles`
@@ -91,6 +108,7 @@ const SEED_USERS: readonly SeedUser[] = [
     displayName: 'Mock Operator',
     roles: ['operator', 'mentor'],
     githubLogin: 'mock-operator',
+    password: true,
   },
 ];
 
@@ -115,17 +133,29 @@ const SEED_USERS: readonly SeedUser[] = [
  * profile is user-editable content whose very existence is a product state — a mentor
  * without one is legitimate, as Mock Operator shows. Re-seeding must not resurrect a
  * profile a mentor deleted, nor overwrite a headline they wrote.
+ *
+ * `passwordHash` sits on the product side of that line, so it is filled in when absent and
+ * **never overwritten** — the same `??=` treatment as `emailVerifiedAt` rather than the
+ * unconditional rewrite identity gets. Filling it in is what carries a database seeded
+ * before the `auth-password` migration to the state a fresh one is created in; not
+ * overwriting it is what stops a re-seed from silently resetting a password somebody
+ * changed. A persona without `password: true` reconciles to `null`, which leaves an
+ * existing hash alone as well: assigning null over null is not a write, so a second
+ * `db:seed` issues no `UPDATE` and no row's `updated_at` moves.
  */
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     for (const seed of SEED_USERS) {
       const existing = await em.findOne(User, { email: seed.email });
 
+      const passwordHash = seed.password ? SEED_PASSWORD_HASH : null;
+
       if (existing) {
         existing.displayName = seed.displayName;
         existing.roles = seed.roles;
         existing.githubLogin = seed.githubLogin;
         existing.emailVerifiedAt ??= new Date();
+        existing.passwordHash ??= passwordHash;
         continue;
       }
 
@@ -135,6 +165,7 @@ export class DatabaseSeeder extends Seeder {
         roles: seed.roles,
         githubLogin: seed.githubLogin,
         emailVerifiedAt: new Date(),
+        passwordHash,
       });
 
       if (seed.profile) {

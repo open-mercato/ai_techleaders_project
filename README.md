@@ -146,6 +146,8 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `SESSION_SECRET_PREVIOUS` | *(unset)* | The outgoing secret during a rotation. Accepted on verify, never used to sign, so live sessions survive their remaining lifetime. Same 32-character minimum. |
 | `GITHUB_CLIENT_ID` | *(unset)* | GitHub OAuth app client ID — see below. |
 | `GITHUB_CLIENT_SECRET` | *(unset)* | GitHub OAuth app client secret. |
+| `PASSWORD_HASH_CONCURRENCY` | `2` | How many `scrypt` hashes may run at once in this process. The bound is memory, not CPU: at the parameters this project fixes (N=2¹⁷, r=8, p=1) one hash holds 128 MiB for its whole duration, so `2` caps the hashing path at ~256 MiB. It cannot be unbounded, because the rate limiter in front of it is keyed per IP *and* per email rather than globally. Raising it past `UV_THREADPOOL_SIZE` (4 by default) buys queueing inside libuv rather than more parallelism. |
+| `PASSWORD_HASH_WAIT_MS` | `2000` | How long a request waits for a free hashing slot before the gate answers `503 service_unavailable`. That 503 is deliberately raised *before* the rate limiter is consumed, so a burst cannot lock out users who were merely unlucky. `0` means never queue. |
 | `OPERATOR_EMAILS` | *(empty)* | Comma-separated founder addresses. Operator authority is derived from this list on **every** request and matched, trimmed and case-insensitively, against the account's verified email — so removing an address takes effect on that person's very next request rather than at their next sign-in. |
 
 ### Mail

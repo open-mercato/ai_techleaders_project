@@ -184,11 +184,19 @@ explicit**, not the one that looks more "enterprise."
 
 ### Security & Validation — Minimum Requirements
 
-- **Password hashing:** `bcrypt`/`bcryptjs`, cost factor **≥ 12** (OWASP's floor is
-  10; raise it since this is a small user base and the extra ~50ms per login is free).
-  If a faster/stronger option becomes desirable later, the documented upgrade path is
-  `argon2id` (memory ≥ 19 MiB, iterations ≥ 2, parallelism 1) — don't switch without a
-  reason, but don't invent a third option either.
+- **Password hashing:** `node:crypto`'s `scrypt` at OWASP's parameters — N=2¹⁷, r=8,
+  p=1 — as named constants, with `maxmem` raised explicitly (the default 32 MiB is below
+  what those parameters need, so the call throws without it), behind the global
+  concurrency gate described in `.ai/specs/2026-09-04-accounts-and-roles.md`. No
+  dependency is added. **This replaces the original bullet, which said
+  `bcrypt`/`bcryptjs` at cost ≥ 12 and called the extra "~50 ms per login" free.** That
+  figure describes the *native* bcrypt binding; `bcryptjs` is pure JavaScript, roughly an
+  order of magnitude slower, and its async API chunks work through `setImmediate` on the
+  **main thread**, so cost 12 stalls the entire Next server for about a second per login
+  attempt. `scrypt` runs on the libuv threadpool instead. If a stronger option becomes
+  desirable later, the documented upgrade path is still `argon2id` (memory ≥ 19 MiB,
+  iterations ≥ 2, parallelism 1) — don't switch without a reason, but don't invent a
+  third option either.
 - **JWT:** signed with `HS256` minimum, using a secret ≥ 32 random bytes loaded from
   `env.ts` (zod-validated) — never hardcoded, never committed. Short expiry (e.g. 24h);
   there is no refresh-token flow in MVP scope — document that as a known limitation,
