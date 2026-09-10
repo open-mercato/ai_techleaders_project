@@ -38,3 +38,6 @@
   provide cents and PLN and keep operator bounds out of the public allowlist.
 - `mentorOfferReady` covers exactly publication and both stored prices; all eight states are tested.
 - Typecheck, lint, full 100% unit coverage, production build and focused migration integration pass.
+
+## 2026-09-10T19:02:47Z — subagent delegation
+- Dispatched Step 1.4 to a standard-tier executor: owner-scoped mentor-prices route.

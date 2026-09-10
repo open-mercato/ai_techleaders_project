@@ -50,6 +50,7 @@ export default defineConfig({
         'packages/app/src/app/api/invitations/\\[token\\]/route.ts',
         'packages/app/src/app/api/invitations/\\[token\\]/accept/route.ts',
         'packages/app/src/app/api/mentors/me/onboarding/route.ts',
+        'packages/app/src/app/api/mentors/me/prices/route.ts',
         'packages/app/src/app/api/mentors/me/route.ts',
         'packages/app/src/app/api/mentors/me/publish/route.ts',
         'packages/app/src/app/api/mentors/me/unpublish/route.ts',

@@ -1,10 +1,10 @@
 # Handoff — 2026-09-10-mentor-prices
 
-**Last updated:** 2026-09-10T19:00:12Z
+**Last updated:** 2026-09-10T19:02:47Z
 **Branch:** feat/mentor-prices
 **PR:** #48 — https://github.com/pkarw/ai_techleaders_project/pull/48 (targets feat/availability-slots)
-**Current phase/step:** Phase 1; Step 1.4 ready
-**Last commit:** e920a19 — feat(mentors): add atomic price persistence
+**Current phase/step:** Phase 2; Step 2.1 ready
+**Last commit:** e3c396f — feat(prices): add owner price update route
 
 ## What just happened
 - Slice 3 PR #46 completed its local, CI, review and evidence gates.
@@ -30,9 +30,14 @@
   bounds and future slots, whose mentor-home checklist item remains owned by Step 2.2.
 - Full unit coverage now passes 1,721 tests with 100% statements, branches, functions and lines;
   typecheck, lint, production build and the focused migration integration suite pass.
+- Step 1.4 adds only dynamic `PUT /api/mentors/me/prices`, configured through
+  `makeOwnedResourceRoute` for the mentor role and the shared exact-decimal schema. Its callback
+  delegates to the independently owner-scoped `MentorProfileService.updatePrices` method.
+- Route tests prove its exact module exports, helper configuration, schema boundary, successful
+  projection and unchanged policy/unexpected error propagation at 100% coverage.
 
 ## Next concrete action
-- Implement Step 1.4: the owner-scoped mentor-prices route.
+- Implement Step 2.1: the source-compatible `CrudForm` money field.
 
 ## Blockers / open questions
 - none
