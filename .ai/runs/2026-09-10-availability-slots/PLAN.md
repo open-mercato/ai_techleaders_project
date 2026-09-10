@@ -19,6 +19,7 @@ Architecture authority: .ai/specs/2026-09-08-mentors-become-bookable.md
 | 2 | 2.1 | Add the datetime CrudForm field and local-to-UTC conversion | dispatch:standard | done | 9400043 |
 | 2 | 2.2 | Add mentor slot management and public availability presentation | dispatch:capable | done | c55138f |
 | 3 | 3.1 | Add availability integration coverage and browser proof | dispatch:capable | done | 11141b9 |
+| 3 | 3.2-gate-fix | Make the complete-schema integration check apply availability | inline | done | b0e1430 |
 
 ## Goal
 
@@ -79,6 +80,9 @@ exact two-hour boundary enabled, then explains why later times are disabled. Pre
 
 3.1 Add owned integration fixtures and scenarios for publish, public visibility, exact lead-time state,
 remove and republish. Capture desktop and mobile browser evidence at the checkpoint.
+
+3.2-gate-fix Fix the shared migration integration sequence so its complete-entity-model assertion first
+applies every migration, including the newly added availability migration, and proves that migration is recorded.
 
 ## Decisions
 

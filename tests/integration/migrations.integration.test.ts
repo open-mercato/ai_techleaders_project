@@ -23,6 +23,7 @@ const AUTH_PASSWORD_MIGRATION = 'Migration20260910092433_auth_password';
 const AUTH_RATE_LIMITS_MIGRATION = 'Migration20260910095701_auth_rate_limits';
 const INVITATIONS_MIGRATION = 'Migration20260910130526_invitations';
 const MENTOR_PAGE_MIGRATION = 'Migration20260910163000_mentor_page';
+const AVAILABILITY_MIGRATION = 'Migration20260910170021_availability_slots';
 
 /** A row created before `auth-identity` — the population the backfill exists for. */
 const LEGACY_EMAIL = 'legacy@devmentor.test';
@@ -954,6 +955,9 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('matches the complete entity model after all migrations', async () => {
+    await migrate();
+    expect(await appliedMigrations()).toContain(AVAILABILITY_MIGRATION);
+
     const verifier = await MikroORM.init({ clientUrl, entities });
     await verifier.connect();
     try {
