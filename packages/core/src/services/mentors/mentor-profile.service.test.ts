@@ -111,6 +111,25 @@ describe('mentor profile projections', () => {
       slots: [],
     });
   });
+
+  it('keeps the Slice 2 public projection callable without an availability argument', () => {
+    expect(toPublicDto(profile({ slug: 'ada', publishedAt: NOW }))).toMatchObject({
+      slug: 'ada',
+      slots: [],
+    });
+  });
+
+  it('keeps direct Slice 2 service construction on an empty availability projection', async () => {
+    const stored = profile({ slug: 'ada', publishedAt: NOW });
+    const service = new MentorProfileService({
+      em: { findOne: vi.fn(async () => stored) } as unknown as EntityManager,
+      clock: { now: () => NOW },
+      eventBus: { emit: vi.fn() } as never,
+      session: Promise.resolve(null),
+    });
+
+    await expect(service.getPublicBySlug('ada')).resolves.toMatchObject({ slots: [] });
+  });
 });
 
 describe('MentorProfileService owner operations', () => {

@@ -2,7 +2,6 @@ import {
   LockMode,
   MentorProfile,
   Slot,
-  UniqueConstraintViolationException,
   type EntityManager,
   type IMentorProfile,
   type ISlot,
@@ -35,9 +34,11 @@ function toOwnerDto(slot: ISlot): SlotOwnerDto {
 }
 
 function constraintName(error: unknown): string | null {
-  if (!(error instanceof UniqueConstraintViolationException)) return null;
-  const value = (error as { constraint?: unknown }).constraint;
-  return typeof value === 'string' ? value : null;
+  if (typeof error !== 'object' || error === null) return null;
+  const value = error as { code?: unknown; constraint?: unknown };
+  return value.code === '23505' && typeof value.constraint === 'string'
+    ? value.constraint
+    : null;
 }
 
 export class SlotService {
