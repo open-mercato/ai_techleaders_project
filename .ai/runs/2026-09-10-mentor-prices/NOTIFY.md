@@ -14,3 +14,7 @@
 ## 2026-09-10T18:43:00Z — plan review
 - A skeptical staff review found the stale blocked story spec, an over-broad offer-readiness gate, the missing mentor-home readiness union, an invalid persistence example, an underspecified route helper and incomplete compatibility/negative criteria.
 - The plan now resolves the active spec first, keeps `mentorOfferReady` to publication plus both stored prices, treats future availability as a separate checklist item, pins the JSON bounds grammar and makes all protected/public boundary checks explicit.
+
+## 2026-09-10T18:44:05Z — subagent delegation
+- Draft PR #48 tracks the stacked `feat/mentor-prices` run against `feat/availability-slots`.
+- Dispatched Step 1.1 to a standard-tier executor: exact money primitives and session-length vocabulary.

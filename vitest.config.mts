@@ -101,6 +101,8 @@ export default defineConfig({
         'packages/core/src/domain/readiness.ts',
         'packages/core/src/domain/slug.ts',
         'packages/core/src/domain/vocabularies/stack-tags.ts',
+        'packages/core/src/domain/vocabularies/session-lengths.ts',
+        'packages/core/src/money/money.ts',
         'packages/core/src/http/apiHandler.ts',
         'packages/core/src/http/auth.ts',
         'packages/core/src/http/cookies.ts',
