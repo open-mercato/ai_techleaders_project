@@ -49,4 +49,9 @@ describe('MentorProfile entity', () => {
       expression: '"published_at" is null or "slug" is not null',
     });
   });
+
+  it('stores the latest published availability instant as an optional ordering key', () => {
+    expect(typeName(properties.lastPublishedAvailabilityAt)).toBe('DateTimeType');
+    expect(properties.lastPublishedAvailabilityAt.nullable).toBe(true);
+  });
 });

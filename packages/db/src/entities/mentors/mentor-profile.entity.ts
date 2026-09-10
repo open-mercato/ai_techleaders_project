@@ -34,6 +34,9 @@ export const MentorProfile = defineSingletonEntity('MentorProfile', () =>
       publicWorkUrl: p.text().nullable(),
       stackTags: p.enum(['TypeScript', 'React', 'Python', 'AI agents'] as const).array().default([]),
       publishedAt: p.datetime().nullable(),
+      // Ordering key for mentor discovery. Slot publication updates it in the same
+      // transaction as the new active slot; removing a slot never rewrites history.
+      lastPublishedAvailabilityAt: p.datetime().nullable(),
     },
     checks: [
       {
