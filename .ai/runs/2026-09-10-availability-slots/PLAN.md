@@ -1,7 +1,7 @@
 # Epic E02 Slice 3 — Availability slots
 
 Date: 2026-09-10
-Status: implementation-complete
+Status: complete
 Issue: #17
 Epic: #8
 Source spec: .ai/specs/2026-09-08-availability-slots.md
