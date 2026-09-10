@@ -1,5 +1,6 @@
 import { createLogger, type Logger } from '../logger';
 import { ServiceUnavailableError } from './errors';
+import { withoutQuery } from './safe-url';
 
 /**
  * The one sanctioned way to call an upstream JSON API (platform primitives B20).
@@ -70,17 +71,12 @@ function logFailure(method: string, url: string, reason: string, status?: number
   );
 }
 
-/**
- * Drop the query string before anything is logged. Some upstreams accept credentials as
- * query parameters, and a URL is the one part of a request this module does log.
- */
-function safeUrl(url: string): string {
-  return url.replace(/\?[\s\S]*$/, '');
-}
-
 export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}): Promise<T> {
   const { method = 'GET', headers, body, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
-  const target = safeUrl(url);
+  // Some upstreams accept credentials as query parameters, and a URL is the one part of
+  // a request this module does log. `withoutQuery` keeps the host, so a failure log still
+  // names which integration failed. See `safe-url.ts` for why redaction cannot do this.
+  const target = withoutQuery(url);
   const signal = AbortSignal.timeout(timeoutMs);
 
   let response: Response;

@@ -154,9 +154,41 @@ describe('apiHandler', () => {
       error: { code: 'internal_error', message: 'Something went wrong' },
     });
     expect(testState.error).toHaveBeenCalledWith(
-      { err: failure, path: 'http://devmentor.test/api/users' },
+      { err: failure, path: '/api/users' },
       'unhandled route error',
     );
+  });
+
+  it('logs the route path only, never the query string that carries the credentials', async () => {
+    // Regression, found in review. `req.url` is the *full* URL: on
+    // `/api/auth/github/callback` the query holds the GitHub authorization code and the
+    // signed state token, and on `/api/auth/verify-email` a purpose token. Logging it
+    // wrote live credentials to the log on any unexpected failure of those routes.
+    //
+    // pino's `redact` is no defence here — it matches key *names*, and a secret inside a
+    // URL string is not a key. The query has to be dropped at this call site.
+    const failure = new Error('token exchange failed');
+
+    const response = await apiHandler(() => {
+      throw failure;
+    })(
+      new Request(
+        'http://devmentor.test/api/auth/github/callback?code=SECRET_CODE&state=SECRET_STATE',
+      ),
+      context,
+    );
+
+    expect(response.status).toBe(500);
+    // The route is still identifiable — this is not "log nothing".
+    expect(testState.error).toHaveBeenCalledWith(
+      { err: failure, path: '/api/auth/github/callback' },
+      'unhandled route error',
+    );
+
+    const logged = JSON.stringify(testState.error.mock.calls);
+    expect(logged).not.toContain('SECRET_CODE');
+    expect(logged).not.toContain('SECRET_STATE');
+    expect(logged).not.toContain('code=');
   });
 
   it('leaks no detail of the unexpected error to the client', async () => {

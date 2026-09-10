@@ -37,7 +37,7 @@ const NEW_CONSTRAINTS = ['users_github_id_unique', 'users_roles_check', 'users_r
  * The suite owns its infrastructure — its own Testcontainers PostgreSQL on a random
  * port, torn down on success and failure — because it deliberately rolls the schema
  * backwards, which the shared harness database (already migrated, seeded and serving the
- * app) cannot survive. `MIKRO_ORM_MIGRATIONS_SNAPSHOT=false` keeps `migration:up` from
+ * app) cannot survive. `DB_MIGRATIONS_SNAPSHOT=false` keeps `migration:up`/`:down` from
  * rewriting the repository's committed schema snapshot from this throwaway database.
  */
 describe('TC-DB-001 the auth-identity migration', () => {
@@ -131,8 +131,14 @@ describe('TC-DB-001 the auth-identity migration', () => {
       DB_POOL_MIN: '0',
       DB_POOL_MAX: '5',
       // Never let a throwaway database rewrite `packages/db/migrations/devmentor.json`:
-      // `migration:up` re-stores the snapshot from introspection when it differs.
-      MIKRO_ORM_MIGRATIONS_SNAPSHOT: 'false',
+      // `migration:up`/`:down` re-store the snapshot from introspection when it differs,
+      // and this suite deliberately rolls the schema backwards, so it differs by design.
+      //
+      // MikroORM's own MIKRO_ORM_MIGRATIONS_SNAPSHOT — which this used to set — does not
+      // reach the Migrator: the constructor merges as `Utils.merge(env, options)` unless
+      // `preferEnvVars` is set, so `packages/db/src/config.ts`'s explicit `snapshot` wins.
+      // `DB_MIGRATIONS_SNAPSHOT` is that config value's own input, so it actually applies.
+      DB_MIGRATIONS_SNAPSHOT: 'false',
     };
 
     orm = await MikroORM.init({

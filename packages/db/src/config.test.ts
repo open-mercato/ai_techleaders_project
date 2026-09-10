@@ -17,6 +17,7 @@ const BASE_ENV: DbEnv = {
   DB_POOL_MAX: 10,
   DB_POOL_IDLE_MS: 30_000,
   DB_DEBUG: false,
+  DB_MIGRATIONS_SNAPSHOT: true,
 };
 
 let current: DbEnv = BASE_ENV;
@@ -76,6 +77,21 @@ describe('createOrmConfig', () => {
     const config = ormConfig({ DB_NAME: 'something_else' });
 
     expect(config.migrations?.snapshotName).toBe('devmentor');
+  });
+
+  it('writes the snapshot by default, because migration:create diffs against it', () => {
+    expect(ormConfig().migrations?.snapshot).toBe(true);
+  });
+
+  it('lets a throwaway database switch the snapshot off', () => {
+    // The integration harness runs `migration:up` against an ephemeral Testcontainers
+    // database. `runMigrations` rewrites the snapshot from introspection whenever the
+    // migrated schema differs from the committed one, which would dirty the tracked
+    // `migrations/devmentor.json` on a local run. MikroORM's own
+    // MIKRO_ORM_MIGRATIONS_SNAPSHOT cannot do this: file config outranks the environment
+    // unless `preferEnvVars` is set, so the pinned value would always win. Hence the
+    // toggle has to be read here.
+    expect(ormConfig({ DB_MIGRATIONS_SNAPSHOT: false }).migrations?.snapshot).toBe(false);
   });
 
   it('excludes colocated unit tests from the seeder glob', () => {

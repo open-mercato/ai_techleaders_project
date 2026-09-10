@@ -1,6 +1,7 @@
 import { createLogger, type Logger } from '../logger';
 import { requireCsrfHeader } from './auth';
 import { type FieldErrors, isAppError } from './errors';
+import { requestPath } from './safe-url';
 
 /**
  * The response envelope every `/api/*` route returns. This is a *shape convention*
@@ -109,7 +110,13 @@ export function apiHandler(
           error.headers,
         );
       }
-      logger().error({ err: error, path: req.url }, 'unhandled route error');
+      // `req.url` is the **full** URL, query string included. `/api/auth/github/callback`
+      // receives the GitHub authorization `code` and the signed `state` there, and
+      // `/api/auth/verify-email` receives a purpose token — logging `req.url` writes live
+      // credentials into the log on any unexpected failure of those routes. pino's
+      // key-based `redact` cannot see a secret embedded in a URL string, so the query is
+      // dropped here, at the call site. See `safe-url.ts`.
+      logger().error({ err: error, path: requestPath(req.url) }, 'unhandled route error');
       return jsonError(500, 'internal_error', 'Something went wrong');
     }
   };

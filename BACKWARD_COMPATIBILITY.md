@@ -223,10 +223,13 @@ the change spans several concepts; note it in the PR body.
   generated with `npm run db:migration:create -- --name <x>`. The committed snapshot is
   `devmentor.json`, named by `snapshotName: 'devmentor'` in `packages/db/src/config.ts` so the
   filename does not follow whatever database `DATABASE_URL` points at.
-  `.snapshot-devmentor.json` is the pre-auth leftover that
-  `tests/integration/environment.ts` still pins through
-  `MIKRO_ORM_MIGRATIONS_SNAPSHOT_NAME`; `migrations.integration.test.ts` disables snapshots
-  outright with `MIKRO_ORM_MIGRATIONS_SNAPSHOT=false`. The base migration
+  The pre-auth leftover `.snapshot-devmentor.json` — MikroORM's default `.snapshot-<dbName>`
+  name, committed before `snapshotName` was set — has been removed; nothing read it. Every
+  throwaway-database harness (`tests/integration/environment.ts`,
+  `migrations.integration.test.ts`) sets `DB_MIGRATIONS_SNAPSHOT=false` so it cannot rewrite
+  the committed snapshot. That variable, not MikroORM's `MIKRO_ORM_MIGRATIONS_SNAPSHOT`, is
+  the effective one: MikroORM merges environment *under* file config unless `preferEnvVars`
+  is set, so `config.ts` reads `DB_MIGRATIONS_SNAPSHOT` itself. The base migration
   `Migration20260901142829.ts` has `up` only; everything since ships both directions.
 - `tests/integration/migrations.integration.test.ts` pins the schema by name, so it is part of
   this surface: both migration class names, the column names with their PostgreSQL udt names
