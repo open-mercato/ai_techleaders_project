@@ -138,6 +138,26 @@ Spec steps 3–17. Unblocks E02+.
 
 ### Follow-ups found during Phase 2 (not in the spec — need their own task/issue)
 
+- **`/api/health` leaks connection details to anonymous callers.**
+  `packages/app/src/app/api/health/route.ts:21` returns `db.reason` — a raw pg/MikroORM
+  error message, which routinely contains host, port and database user — in an
+  **unauthenticated** response body. Found while auditing the `apiHandler` URL leak; not
+  fixed, because it is a separate surface with its own contract.
+- **`github-identity.ts` logs unbounded upstream text.** Line 147 → 224 interpolates
+  `parsed.error` (upstream-controlled, unbounded) into a logged message.
+- **The pino redaction path list is narrower than it looks.** `REDACT_PATHS` covers five key
+  names at depth ≤ 3, so `code`, `state`, `url`, `path`, `secret`, `accessToken` and
+  `set-cookie` are not redacted, and `err.cause.headers.authorization` (depth 4) is out of
+  reach. Redaction is a backstop, not a substitute for not logging the value.
+- **Two E02 specs now contradict D26.** `2026-09-08-mentors-become-bookable.md` (lines 492,
+  781) and `2026-09-08-mentor-page.md` (lines 36, 69) carry acceptance criteria asserting
+  that no rating, review or ranking appears in any markup. D26 permits the presentational
+  components, so those negative tests will fail. Reconcile before E02 starts.
+- **The E02 design handoff's "search" half is still unrecorded.**
+  `2026-09-09-e02-design-handoff.md` notes that reviews *and search* were kept at the user's
+  request and need a superseding record. D26 covers reviews only — D21/R13 still forbid
+  search and ranking, deliberately untouched.
+
 - **`getContainer()` caches a *rejected* build promise on `globalThis`.** `getOrm()`
   deliberately does not cache a failed connection so the app recovers when the database
   comes back, but the container cache defeats that: one transient outage at the first
@@ -167,13 +187,29 @@ cancel the authorisation, hit `/admin` as a mentee, sign out.
 
 Spec steps 18–20. Must not modify the guard calls added in Phase 2.
 
-- [ ] **T3.1** `AppShell` (F2) — already present from the design handoff; verify against the
+- [x] **T3.1** `AppShell` (F2) — already present from the design handoff; verify against the
       F2 contract, cover it, and document the three-surface taxonomy (F1) in `AGENTS.md`.
-- [ ] **T3.2** `app/src/lib/nav.ts` — combined-role navigation; port the three signed-in
+      *Audit result: F2-compliant, no code change needed. Two divergences kept deliberately
+      (optional `actions`, `className`) as supersets of F2's sketch matching house
+      convention. Note the primitives spec's F2 entry wrongly calls `link "Users"` a §7
+      surface — it is not, and the shell cannot satisfy it either way, since the link comes
+      from the caller's `nav` slot. That obligation is T3.2's.*
+      *Follow-up, not done: the topbar label is the hardcoded "Your DevMentor workspace",
+      so all three signed-in surfaces show the same chrome copy. F2 asks for no page-title
+      slot; worth revisiting if the ported layouts want one.*
+- [x] **T3.2** `app/src/lib/nav.ts` — combined-role navigation; port the three signed-in
       layouts to `AppShell`, preserving the accessible `link "Users"`.
-- [ ] **T3.3** `tests/integration/assertions.ts` (`expectAbsent`, F7) +
+      *`Session` carries `userId` and `roles` but no display name, which `AppShell` needs.
+      Read by id in `lib/workspace-user.ts` rather than widening `Session` — that would put
+      a diff hunk in `core/src/http/auth.ts`, the strongest `risk-high` signal, to save one
+      indexed lookup on an already-dynamic request. Revisit if the extra query shows up.*
+- [x] **T3.3** `tests/integration/assertions.ts` (`expectAbsent`, F7) +
       `roles.integration.test.ts`, including the R07 "no become-a-mentor affordance"
       negative assertion.
+      *`expectAbsent` takes a **mandatory** positive control, so a caller cannot forget it.
+      Names match exactly, not by substring: AppShell's topbar "Your DevMentor workspace"
+      contains the nav label "Mentor workspace", so a substring default would break the
+      mentee negative assertions.*
 
 **Manual checkpoint 3:** the shell renders for each role, navigation shows only permitted
 surfaces, no "become a mentor" path anywhere.
@@ -184,20 +220,20 @@ surfaces, no "become a mentor" path anywhere.
 
 Spec steps 21–28.
 
-- [ ] **T4.1** `auth-password` migration (`password_hash text` nullable, `up`+`down`) +
+- [x] **T4.1** `auth-password` migration (`password_hash text` nullable, `up`+`down`) +
       entity + seeded hashes.
-- [ ] **T4.2** Password service (B9) — `node:crypto` `scrypt` N=2¹⁷/r=8/p=1, explicit
+- [x] **T4.2** Password service (B9) — `node:crypto` `scrypt` N=2¹⁷/r=8/p=1, explicit
       `maxmem`, global concurrency gate with a bounded wait then 503.
-- [ ] **T4.3** Rate limiter (B8) — `TooManyRequestsError` (429 + `Retry-After`), the
+- [x] **T4.3** Rate limiter (B8) — `TooManyRequestsError` (429 + `Retry-After`), the
       `AuthRateLimit` entity and migration, `core/src/http/rate-limit.ts`, the policies, and
       the gate → limiter → hash ordering.
-- [ ] **T4.4** Mailer port + Resend and log adapters (B14), the development default with a
+- [x] **T4.4** Mailer port + Resend and log adapters (B14), the development default with a
       boot warning, and `waitForMail(to)` in the harness.
-- [ ] **T4.5** `email-verification.service.ts` — issue/verify, idempotent re-verification.
-- [ ] **T4.6** `register.schema.ts` / `login.schema.ts` with the 72-byte cap.
-- [ ] **T4.7** `registerWithPassword` (the full five-row state matrix) and
+- [x] **T4.5** `email-verification.service.ts` — issue/verify, idempotent re-verification.
+- [x] **T4.6** `register.schema.ts` / `login.schema.ts` with the 72-byte cap.
+- [x] **T4.7** `registerWithPassword` (the full five-row state matrix) and
       `authenticateWithPassword` (byte-identical generic failure).
-- [ ] **T4.8** Routes `api/auth/{register,login,verify-email}`, `shadcn add input label`,
+- [x] **T4.8** Routes `api/auth/{register,login,verify-email}`, `shadcn add input label`,
       `CrudForm` `password` type (F5), `(auth)/register/page.tsx`, the email form enabled on
       `/sign-in`, plus the integration scenarios.
 
