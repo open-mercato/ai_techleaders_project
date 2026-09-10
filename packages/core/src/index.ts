@@ -41,9 +41,18 @@ export {
   type TokenPurpose,
   type VerifyPurposeTokenInput,
 } from './services/auth/token.service';
+// `INVALID_CREDENTIALS_MESSAGE` is exported for the reason `RATE_LIMITED_MESSAGE` is: the
+// integration scenario asserts the rendered refusal, and a hand-copied string there would
+// pass while the app said something else. The other three refusal messages stay inside
+// `services/auth/` — their tests import them from the module — because they reach a caller
+// through the error envelope and nothing across a package boundary compares against them.
 export {
   UserService,
+  INVALID_CREDENTIALS_MESSAGE,
+  type AuthenticateWithPasswordInput,
   type GithubIdentityInput,
+  type RegisterWithPasswordInput,
+  type RegistrationOutcome,
   type SignedInUser,
   type UserDto,
 } from './services/auth/user.service';

@@ -134,7 +134,9 @@ API between packages. `npm run typecheck` is the consumer check.
   `SESSION_COOKIE_NAME`, `IssuedSession`, `SessionClaims` and `SessionUser`, `TokenService`
   with `TokenPurpose`, `PurposeTokenClaims`, `SignPurposeTokenInput` and
   `VerifyPurposeTokenInput`, `GithubIdentityPort` with `GithubIdentity`, `AuthorizeUrlInput`,
-  `GithubIdentityInput`, `SignedInUser` and `GITHUB_CALLBACK_PATH`
+  `GithubIdentityInput`, `SignedInUser`, the password-account surface
+  (`RegisterWithPasswordInput`, `RegistrationOutcome`, `AuthenticateWithPasswordInput` and
+  `INVALID_CREDENTIALS_MESSAGE`) and `GITHUB_CALLBACK_PATH`
   (`/api/auth/github/callback` — the value a deployed OAuth app is registered with), the
   OAuth-state cookie helpers (`OAUTH_STATE_COOKIE_NAME`, `OAUTH_STATE_TTL_SECONDS`,
   `issueOauthStateCookie`, `clearOauthStateCookie`, `readOauthStateCookie`), `systemClock`
@@ -189,6 +191,20 @@ API between packages. `npm run typecheck` is the consumer check.
   The rules the two share live in `./validators/auth/fields.ts`; it is reachable through the
   `./validators/*` wildcard but is not on the barrel and is not part of this contract — the
   contract is the two bodies, not the pieces they are built from.
+
+  `UserService.registerWithPassword` and `UserService.authenticateWithPassword` are
+  **additive**, together with `RegisterWithPasswordInput`, `RegistrationOutcome`,
+  `AuthenticateWithPasswordInput` and `INVALID_CREDENTIALS_MESSAGE`. Two things about them
+  are contract rather than implementation. First, `RegistrationOutcome` is `{ email }` and
+  carries **no** `UserDto` and **no** `sessionVersion`: registration never issues a session,
+  and widening it to something a route could sign a cookie from would hand out sessions for
+  unproven addresses. Second, `INVALID_CREDENTIALS_MESSAGE` is the *single* message every
+  failed sign-in carries — unknown address, GitHub-only account and wrong password alike —
+  so splitting it into two strings that differ is a breaking change to a security property,
+  not a copy edit, whatever the words are. It is exported for the same reason as
+  `RATE_LIMITED_MESSAGE`: the integration scenario asserts the rendered refusal. The
+  register-path conflict messages and the unconfirmed-address refusal are deliberately not
+  on the barrel — they reach a caller through the error envelope.
 
   Two removals came with the canonical live session: `readSession` (a cookie-only
   parser is no longer part of the authorization surface — see §7) and `Session.role`,

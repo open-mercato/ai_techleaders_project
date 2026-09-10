@@ -12,6 +12,15 @@ import type { EventBus } from '../../events/event-bus';
 import type { EventMap } from '../../events/event-map';
 import { requireRole, type Session } from '../../http/auth';
 import { ConflictError, NotFoundError, UnauthorizedError } from '../../http/errors';
+import {
+  rateLimitKey,
+  REGISTRATION_IP_POLICY,
+  SIGN_IN_EMAIL_POLICY,
+  SIGN_IN_IP_POLICY,
+  type RateLimiter,
+} from '../../http/rate-limit';
+import type { EmailVerificationService } from './email-verification.service';
+import type { PasswordService } from './password.service';
 import { normalizeRoles, resolveLiveRoles } from './operator-authority';
 
 /**
@@ -101,6 +110,117 @@ export interface GithubIdentityInput {
 }
 
 /**
+ * Everything `registerWithPassword` is allowed to decide, and — like `UserCreateInput` —
+ * nothing else. `roles`, `emailVerifiedAt`, `sessionVersion` and every identity column are
+ * deliberately absent: a registration always produces a `['mentee']`, unverified row with
+ * no provider identity, whatever the caller sends.
+ *
+ * `clientIp` is `string | null` rather than optional because "we could not derive one" is
+ * an answer the caller has to have made (edge case 17b), not a field it may forget.
+ * `clientIpFromHeaders` produces exactly this type, `rateLimitKey` turns `null` into a
+ * `null` key, and `RateLimiter.consume` treats that as "no bucket to charge" — so the
+ * per-IP limit degrades to "off" and the request is still limited by everything else.
+ */
+export interface RegisterWithPasswordInput {
+  email: string;
+  password: string;
+  displayName: string;
+  /** Where the browser should land once the verification link is opened. */
+  returnTo?: string | null;
+  /** The client IP for the per-IP registration bucket, or `null` when none is derivable. */
+  clientIp: string | null;
+}
+
+/**
+ * What a successful registration reports, and the shape of the whole answer: the address a
+ * verification link was sent to.
+ *
+ * **There is no `UserDto` here and no `sessionVersion`, and that absence is the contract.**
+ * Registration never signs anybody in — `email_verified_at` is what gates sign-in, so a
+ * caller that returned a `SignedInUser` from this method would be handing out a session for
+ * an address nobody has proven. `EmailVerificationService.verify` is the only thing in the
+ * system that turns a registration into a session, and it returns the material to do it.
+ * The route answers `{ ok: true, data: { email } }` from this and sets no cookie.
+ */
+export interface RegistrationOutcome {
+  email: string;
+}
+
+/** Everything `authenticateWithPassword` needs. `clientIp` on the same terms as above. */
+export interface AuthenticateWithPasswordInput {
+  email: string;
+  password: string;
+  clientIp: string | null;
+}
+
+/**
+ * **The one refusal a failed sign-in ever produces**, for an address that has no account,
+ * an address whose account is GitHub-only, and a password that does not match alike.
+ *
+ * A constant rather than three call-site literals, because the property the spec asks for
+ * (edge case 13) is that the messages are *byte-identical*: two literals that read the same
+ * today are two things a later edit can make different, and the difference is an oracle for
+ * "that address is registered here". There is one string, and `user.service.test.ts`
+ * compares the two refusals to each other — not each to a literal — so a change that
+ * splits them fails a test rather than shipping.
+ *
+ * The wording follows this repo's copy rule — direct, and it says what to do — rather than
+ * the spec's shorthand *"Invalid credentials"*. What the spec pins is that one message
+ * covers every failure; the words themselves are the design system's business, and
+ * "Invalid credentials" tells a person who mistyped their password nothing they can act on.
+ *
+ * It is exported so the integration scenario can assert the rendered text without copying
+ * it, on the same reasoning as `RATE_LIMITED_MESSAGE`.
+ */
+export const INVALID_CREDENTIALS_MESSAGE =
+  'That email address and password do not match an account. Check both and try again.';
+
+/**
+ * The refusal for a correct password on an address nobody has confirmed yet (edge case 15).
+ *
+ * **This is not a hole in the generic-login rule, and the distinction is worth being precise
+ * about.** That rule exists so that a *failed credential check* cannot be attributed: an
+ * unknown address and a wrong password must be indistinguishable, or the sign-in form is an
+ * account enumerator. This message is only ever reached **after** the credential check has
+ * already succeeded, so it partitions nothing an attacker could not learn by simply signing
+ * in. Someone who can see it has already proved they hold the password.
+ *
+ * It is therefore specific on purpose, because the person reading it can act on it: they
+ * hold the link, and if it has expired, registering the same address again re-claims the row
+ * and sends a fresh one (the last two rows of the state matrix).
+ */
+export const EMAIL_NOT_VERIFIED_MESSAGE =
+  'Confirm your email address before signing in. Open the link sent when this account was ' +
+  'registered, or register again with the same address to get a new one.';
+
+/**
+ * Said to someone registering an address that already has a usable account.
+ *
+ * Deliberately generic about *which* kind of account, unlike the GitHub message below: a
+ * verified row with a password is reachable by signing in, so naming anything more about it
+ * would widen the recorded oracle without helping the user do anything differently.
+ */
+export const ACCOUNT_EXISTS_MESSAGE =
+  'An account already exists for this email address. Sign in with it instead.';
+
+/**
+ * Said to someone registering an address that belongs to a GitHub-only account — a row with
+ * `github_id` set and `password_hash` null (edge case 14).
+ *
+ * **This is the spec's one recorded deviation from "never reveal whether an email is
+ * registered", and it is a trade rather than an oversight** ("A deliberate deviation from
+ * the standards spec"). It is a precise oracle for "this address has a GitHub account here".
+ * The alternative was weighed: refusing generically leaves a user who cannot sign in, cannot
+ * register, and is told nothing that would let them work out why. The oracle is confined to
+ * the register path — which is rate-limited per IP — and **login stays strictly generic**;
+ * see `INVALID_CREDENTIALS_MESSAGE`, which covers a GitHub-only account too. Revisit at the
+ * 2026-11-28 retrospective.
+ */
+export const GITHUB_ACCOUNT_MESSAGE =
+  'This email address is already registered through GitHub. Use "Sign in with GitHub" ' +
+  'instead of a password.';
+
+/**
  * The two unique constraints a *concurrent identical sign-in* can lose on, and nothing
  * else. Named rather than inferred from "any unique violation": `mentor_profiles_user_id_unique`
  * is also a unique violation and is unambiguously a bug, so hiding it behind a retry would
@@ -126,6 +246,37 @@ function lostIdentityRace(error: unknown): string | null {
     return null;
   }
   return constraint;
+}
+
+/**
+ * The refusing half of the registration state matrix: throw when the row already holding
+ * this address is a usable account, return when it is claimable.
+ *
+ * The whole rule is `email_verified_at`. An unverified row — with or without a
+ * `password_hash` — is claimable, because nobody has ever proved they own the address and
+ * the claim grants nothing until somebody does. A verified row is an account, and there are
+ * two of those:
+ *
+ * - `github_id` set and `password_hash` null is the GitHub-only account of edge case 14, and
+ *   gets the pointed message. That ordering matters: a row with *both* is a password account
+ *   that has linked GitHub, so it can be signed into with a password and gets the generic
+ *   refusal instead.
+ * - Anything else verified gets the generic refusal, including the degenerate row with
+ *   neither credential — it is still somebody's account and this is not the method that
+ *   repairs it.
+ *
+ * A separate function rather than an inline block because it runs twice: once on the first
+ * lookup and again on the row re-read after a lost insert race, which is what stops a
+ * recovered race from being a way around the matrix.
+ */
+function assertRegistrable(existing: IUser | null): void {
+  if (existing === null || !existing.emailVerifiedAt) {
+    return;
+  }
+  if (existing.githubId && !existing.passwordHash) {
+    throw new ConflictError(GITHUB_ACCOUNT_MESSAGE);
+  }
+  throw new ConflictError(ACCOUNT_EXISTS_MESSAGE);
 }
 
 /** Whether two role sets hold the same membership, comparing canonical forms. */
@@ -200,6 +351,9 @@ export class UserService {
   private readonly env: AppEnv;
   private readonly clock: Clock;
   private readonly session: Promise<Session | null>;
+  private readonly passwordService: PasswordService;
+  private readonly rateLimiter: RateLimiter;
+  private readonly emailVerificationService: EmailVerificationService;
 
   constructor({
     em,
@@ -208,6 +362,9 @@ export class UserService {
     env,
     clock,
     session,
+    passwordService,
+    rateLimiter,
+    emailVerificationService,
   }: {
     em: EntityManager;
     logger: Logger;
@@ -215,12 +372,18 @@ export class UserService {
     env: AppEnv;
     clock: Clock;
     session: Promise<Session | null>;
+    passwordService: PasswordService;
+    rateLimiter: RateLimiter;
+    emailVerificationService: EmailVerificationService;
   }) {
     this.em = em;
     this.logger = logger;
     this.eventBus = eventBus;
     this.env = env;
     this.clock = clock;
+    this.passwordService = passwordService;
+    this.rateLimiter = rateLimiter;
+    this.emailVerificationService = emailVerificationService;
     // A `Promise<Session | null>`, not a `Session`: the scoped `session` key is lazy and
     // awilix caches the promise, which is what keeps the guard and this service sharing a
     // single `findOne(User)`. Destructured synchronously with everything else — walking
@@ -271,15 +434,160 @@ export class UserService {
    * be reached through this method whatever the caller passes.
    */
   async create(data: UserCreateInput): Promise<UserDto> {
-    const user = this.em.create(User, {
+    // The two writable fields are named again here rather than spread into `insertUser`:
+    // a spread would carry a widened caller's extra keys as far as the helper, and the
+    // guarantee this method documents is that they never get that far.
+    const user = await this.insertUser({
       email: data.email,
       displayName: data.displayName,
+      passwordHash: null,
     });
-    this.em.persist(user);
-    await this.em.flush();
-    this.logger.info({ userId: user.id }, 'created user');
-    await this.eventBus.emit('auth.user.created', { userId: user.id, email: user.email });
     return toUserDto(user);
+  }
+
+  /**
+   * Register an account with an email address and a password, and send the verification
+   * link that is the only thing able to turn it into a sign-in.
+   *
+   * **The full state matrix, which is what this method is** — five cases keyed on the row
+   * that already holds the address:
+   *
+   * | Existing row | Answer |
+   * |---|---|
+   * | none | create `roles: ['mentee']`, `emailVerifiedAt` null, send verification |
+   * | verified, has `password_hash` | 409, generic (`ACCOUNT_EXISTS_MESSAGE`) |
+   * | verified, no password, has `github_id` | 409 pointing at GitHub (`GITHUB_ACCOUNT_MESSAGE`) |
+   * | unverified, no `password_hash` | **claim**: write the hash, send verification |
+   * | unverified, has a `password_hash` | **claim**: overwrite the hash, send verification |
+   *
+   * **The hash is written immediately, not held pending, and overwriting an unverified
+   * row's hash grants the writer nothing.** `email_verified_at` is what gates sign-in, so
+   * until somebody opens a link from the mail — which only the address's real owner
+   * receives — the row cannot be signed in as, whatever its `password_hash` says. The
+   * alternative, carrying the pending credential in the verification token's subject, was
+   * considered and rejected: `signPurposeToken` produces a signed but *unencrypted* JWT
+   * that travels in a URL, through a mail relay, into an inbox, which would put a password
+   * hash outside the server against this spec's own sensitive-data rule.
+   *
+   * **The ordering is fixed and is what makes edge case 18 true** (primitives B8): the
+   * hashing gate slot is acquired first — an in-memory check — the rate limit is consumed
+   * second, and the hash runs third. `withSlot` rejects *before* it runs this callback, so
+   * a 503 from a saturated gate cannot have touched the counter and an unrelated burst
+   * cannot lock out users who were merely unlucky. The lookup sits between the counter and
+   * the hash so that a 409 costs no scrypt run, and *after* the counter so that the 409
+   * itself is charged for — an oracle that answered for free is an enumeration API.
+   *
+   * That does mean the slot is held across two database round trips (the counter and the
+   * lookup) as well as the hash. B8 already puts the first of them inside the slot by
+   * construction, the write has to follow the hash, and at five registrations per IP per
+   * hour the extra hold is not what bounds throughput. The one call that would — outbound
+   * mail, with its own multi-second timeout — is outside, below.
+   *
+   * **It fails closed on a delivery failure** (edge case 29): `sendVerificationLink`
+   * rejects, nothing catches it, and the caller gets a retryable 503 rather than a success
+   * for a link nobody received. That leaves a written row with a hash and no
+   * `email_verified_at`, which is deliberate and safe — it is precisely the fourth/fifth
+   * matrix row, it can be signed in as by nobody, and registering the same address again
+   * re-claims it and sends a fresh link. The alternative, holding a database transaction
+   * open across an outbound HTTP call with a ten-second timeout, trades a harmless row for
+   * a held connection and a lock.
+   */
+  async registerWithPassword(input: RegisterWithPasswordInput): Promise<RegistrationOutcome> {
+    const user = await this.passwordService.withSlot(async (work) => {
+      await this.rateLimiter.consume(
+        rateLimitKey('register', 'ip', input.clientIp),
+        REGISTRATION_IP_POLICY,
+      );
+
+      const existing = await this.em.findOne(User, { email: input.email });
+      assertRegistrable(existing);
+
+      const passwordHash = await work.hash(input.password);
+      return this.writeRegistration(existing, input, passwordHash);
+    });
+
+    // Outside the gate slot on purpose. Delivery is an outbound HTTP call with its own
+    // timeout, and holding one of a handful of 128 MiB hashing slots for its duration
+    // would make the mail provider's latency the app's sign-up concurrency limit.
+    await this.emailVerificationService.sendVerificationLink({
+      user,
+      returnTo: input.returnTo,
+    });
+
+    return { email: user.email };
+  }
+
+  /**
+   * Check an email address and password, and return the material for a session.
+   *
+   * **One refusal covers every failure** (edge case 13): an address with no account, an
+   * address whose account is GitHub-only, and a wrong password all raise the same
+   * `UnauthorizedError` carrying the same `INVALID_CREDENTIALS_MESSAGE` reference. Login is
+   * strictly generic — the account-existence oracle the spec records as a deliberate trade
+   * is confined to the register path.
+   *
+   * **The timing is not identical, and that is a decision rather than an omission.**
+   * `PasswordService.verify` returns false immediately for a null stored hash, so an unknown
+   * address (and a GitHub-only one) is refused without a scrypt run, and a stopwatch can
+   * still tell the two apart. Hashing a decoy would close it, and was rejected where the
+   * reasoning belongs, in `password.service.ts`: a decoy costs a gate slot and 128 MiB per
+   * probe, so it converts a read-only enumeration attempt into the exact resource
+   * amplification the gate exists to prevent — an enumerator would 503 real users. `verify`
+   * is nevertheless called on the null hash rather than short-circuited, so there is one
+   * refusal site and one message for all three cases, and what actually bounds enumeration
+   * is the pair of counters consumed above (10/IP and 5/email per 15 minutes).
+   *
+   * **No session before `emailVerifiedAt`** (edge case 15) — see `EMAIL_NOT_VERIFIED_MESSAGE`
+   * for why that refusal is allowed to be specific.
+   *
+   * The gate/limit/hash ordering is `registerWithPassword`'s, for the same reason. Both
+   * counters are consumed before any credential work, so the count never depends on whether
+   * the address exists or the password matched.
+   *
+   * **Roles are read from the row, not re-derived from `OPERATOR_EMAILS`.** The same choice
+   * `EmailVerificationService.verify` documents: reconciling here would need a third copy of
+   * the corrupt-empty-set check, and it would buy only that an allowlisted founder signing in
+   * with a password lands on `/admin` instead of `/home` for one request. Authority is
+   * unaffected — `requireSession` derives `operator` live on their very next request (D19).
+   */
+  async authenticateWithPassword(
+    input: AuthenticateWithPasswordInput,
+  ): Promise<SignedInUser> {
+    const user = await this.passwordService.withSlot(async (work) => {
+      await this.rateLimiter.consume(
+        rateLimitKey('sign-in', 'ip', input.clientIp),
+        SIGN_IN_IP_POLICY,
+      );
+      await this.rateLimiter.consume(
+        rateLimitKey('sign-in', 'email', input.email),
+        SIGN_IN_EMAIL_POLICY,
+      );
+
+      const candidate = await this.em.findOne(
+        User,
+        { email: input.email },
+        { populate: ['mentorProfile'] },
+      );
+      const matched = await work.verify(input.password, candidate?.passwordHash ?? null);
+
+      if (candidate === null || !matched) {
+        // No address, no user id, no hash and no reason code that distinguishes the two
+        // cases: the log line must not be the oracle the response refuses to be.
+        this.logger.info('refused a password sign-in');
+        throw new UnauthorizedError(INVALID_CREDENTIALS_MESSAGE);
+      }
+      return candidate;
+    });
+
+    // Outside the slot: the credential is already checked, so this decision needs no
+    // hashing capacity.
+    if (!user.emailVerifiedAt) {
+      this.logger.info({ userId: user.id }, 'refused a sign-in for an unconfirmed address');
+      throw new UnauthorizedError(EMAIL_NOT_VERIFIED_MESSAGE);
+    }
+
+    this.logger.info({ userId: user.id }, 'signed in with a password');
+    return { user: toUserDto(user), sessionVersion: user.sessionVersion };
   }
 
   /**
@@ -415,6 +723,109 @@ export class UserService {
       throw new UnauthorizedError();
     }
     return requireRole(session, 'operator');
+  }
+
+  /**
+   * Insert a row, announce it, and hand back the entity.
+   *
+   * The one construction site for a `users` row outside the GitHub flow, shared by `create`
+   * and `registerWithPassword` so that "which columns may a new local account set" is
+   * answered in exactly one place. `em.create` receives an object literal naming three
+   * fields, so `roles`, `emailVerifiedAt`, `sessionVersion` and every identity column keep
+   * their defaults — a `['mentee']`, unverified row with no provider identity — whatever the
+   * caller passed.
+   *
+   * `passwordHash` is a required parameter rather than an optional one: the two callers make
+   * opposite choices and neither should be the default.
+   */
+  private async insertUser(fields: {
+    email: string;
+    displayName: string;
+    passwordHash: string | null;
+  }): Promise<IUser> {
+    const user = this.em.create(User, {
+      email: fields.email,
+      displayName: fields.displayName,
+      passwordHash: fields.passwordHash,
+    });
+    this.em.persist(user);
+    await this.em.flush();
+    this.logger.info({ userId: user.id }, 'created user');
+    await this.eventBus.emit('auth.user.created', { userId: user.id, email: user.email });
+    return user;
+  }
+
+  /**
+   * Apply the claim-or-create half of the matrix, recovering once from a lost insert race.
+   *
+   * Two registrations for the same brand-new address — a double-submitted form is enough —
+   * both read "no such row" and both insert. One loses on `users_email_unique`, and without
+   * this the loser is a 500 for what is a perfectly ordinary outcome. The recovery is to
+   * re-read: the winner is now visible, it is an unverified row with a `password_hash`,
+   * which is the fifth matrix row, so the loser claims it and mails its own link. Both
+   * registrants are told the same true thing and one row exists.
+   *
+   * **`em.clear()`, not a transaction.** B10 names exactly one E01 transaction and it is
+   * `findOrCreateFromGithub`'s; there is no multi-statement invariant here that a single
+   * flush does not already give, so the only thing the retry has to undo is the losing
+   * attempt's unit of work — the entity still queued in it, which a second flush would
+   * try to insert again and lose to for ever. Nothing else in the request holds an entity
+   * from this `em` at this point.
+   *
+   * Only `users_email_unique` is retried. `users_github_id_unique` cannot be lost here (no
+   * registration writes `github_id`) and every other failure is a defect or an outage that
+   * a retry would hide — the second half of edge case 9's rule. One retry only: two
+   * consecutive losses are not contention.
+   *
+   * The hash is computed once, by the caller, and reused. Re-running scrypt for the retry
+   * would double the cost of the exact situation the gate is sized to survive.
+   */
+  private async writeRegistration(
+    existing: IUser | null,
+    input: RegisterWithPasswordInput,
+    passwordHash: string,
+  ): Promise<IUser> {
+    try {
+      return await this.persistRegistration(existing, input, passwordHash);
+    } catch (error) {
+      if (lostIdentityRace(error) !== 'users_email_unique') {
+        throw error;
+      }
+
+      this.logger.info(
+        { constraint: 'users_email_unique' },
+        'lost the registration race, re-reading the winner',
+      );
+      this.em.clear();
+      const winner = await this.em.findOne(User, { email: input.email });
+      assertRegistrable(winner);
+      return this.persistRegistration(winner, input, passwordHash);
+    }
+  }
+
+  /** The write itself: claim the unverified row we found, or insert a new one. */
+  private async persistRegistration(
+    existing: IUser | null,
+    input: RegisterWithPasswordInput,
+    passwordHash: string,
+  ): Promise<IUser> {
+    if (existing !== null) {
+      // Rows four and five of the matrix. `displayName` is deliberately not overwritten:
+      // the address is unproven, so the person supplying this name may not be the person
+      // who supplied the last one, and letting an unauthenticated request rewrite a field
+      // that is rendered to other users would be a defacement primitive. The hash is
+      // overwritten because it grants nothing — see `registerWithPassword`.
+      existing.passwordHash = passwordHash;
+      await this.em.flush();
+      this.logger.info({ userId: existing.id }, 'claimed an unconfirmed account');
+      return existing;
+    }
+
+    return this.insertUser({
+      email: input.email,
+      displayName: input.displayName,
+      passwordHash,
+    });
   }
 
   /** One attempt at the matching order, inside its own transaction. */
