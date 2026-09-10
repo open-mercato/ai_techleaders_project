@@ -29,5 +29,8 @@
 ## 2026-09-10T17:24:00Z — subagent delegation
 - Dispatched Step 2.1 to a standard-tier executor: `CrudForm` datetime input and local-to-UTC conversion.
 
+## 2026-09-10T17:36:00Z — subagent delegation
+- Dispatched Step 2.2 to a capable-tier executor: mentor slot management and public availability presentation.
+
 ## 2026-09-10T17:31:00Z — subagent delegation
 - Dispatched Step 1.2 to a capable-tier executor: slot validation, service behavior and container wiring.

@@ -12,6 +12,7 @@ import { uniqueSlug } from '../../domain/slug';
 import type { StackTag } from '../../domain/vocabularies/stack-tags';
 import type { Clock } from '../../time/clock';
 import type { MentorProfileUpdateInput } from '../../validators/mentors/mentor-profile-update.schema';
+import type { SlotPublicDto, SlotService } from '../availability/slot.service';
 import { mentorPagePublishable } from './readiness';
 
 const SLUG_CONSTRAINT = 'mentor_profiles_slug_unique';
@@ -34,6 +35,7 @@ export interface MentorProfilePublicDto {
   bio: string;
   stackTags: readonly StackTag[];
   slug: string;
+  slots: SlotPublicDto[];
 }
 
 export function toOwnerDto(profile: IMentorProfile): MentorProfileOwnerDto {
@@ -52,13 +54,17 @@ export function toOwnerDto(profile: IMentorProfile): MentorProfileOwnerDto {
   };
 }
 
-export function toPublicDto(profile: IMentorProfile): MentorProfilePublicDto {
+export function toPublicDto(
+  profile: IMentorProfile,
+  slots: SlotPublicDto[],
+): MentorProfilePublicDto {
   return {
     displayName: profile.user.displayName,
     publicWorkUrl: profile.publicWorkUrl as string,
     bio: profile.bio as string,
     stackTags: profile.stackTags as StackTag[],
     slug: profile.slug as string,
+    slots,
   };
 }
 
@@ -73,17 +79,20 @@ export class MentorProfileService {
   private readonly clock: Clock;
   private readonly eventBus: EventBus;
   private readonly session: Promise<Session | null>;
+  private readonly slotService: SlotService;
 
   constructor({
     em,
     clock,
     eventBus,
     session,
+    slotService,
   }: {
     em: EntityManager;
     clock: Clock;
     eventBus: EventBus;
     session: Promise<Session | null>;
+    slotService: SlotService;
   }) {
     // Destructure the PROXY cradle synchronously. Retaining it and resolving a key after
     // an await can reach a request scope that has already been disposed.
@@ -91,6 +100,7 @@ export class MentorProfileService {
     this.clock = clock;
     this.eventBus = eventBus;
     this.session = session;
+    this.slotService = slotService;
     void session.catch(() => undefined);
   }
 
@@ -196,6 +206,6 @@ export class MentorProfileService {
       { populate: ['user'] },
     );
     if (profile === null) throw new NotFoundError('Mentor page not found.');
-    return toPublicDto(profile);
+    return toPublicDto(profile, await this.slotService.listPublic(profile.id));
   }
 }
