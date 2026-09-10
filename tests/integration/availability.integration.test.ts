@@ -1,9 +1,11 @@
 import { EventBus, SlotService, type Logger } from '@devmentor/core';
 import { MikroORM, Slot, entities } from '@devmentor/db';
+import { resolve } from 'node:path';
 import { describe, expect, inject, it } from 'vitest';
 import {
   captureBrowserFailure,
   closeAgentBrowser,
+  integrationArtifactsDirectory,
   runAgentBrowser,
   signInCookieHeader,
 } from './agent-browser';
@@ -53,7 +55,17 @@ describe('TC-AVAILABILITY-001 published slot lifecycle', () => {
       await runAgentBrowser(session, 'open', `${baseUrl}/m/${mentor.slug}`);
       let snapshot = await runAgentBrowser(session, 'snapshot');
       expect(snapshot).toContain('heading "Available times"');
-      expect(snapshot).toContain('Available');
+      expect(snapshot).not.toContain('No future times are published.');
+      await expect(runAgentBrowser(session, 'get', 'attr', 'time', 'datetime'))
+        .resolves.toBe(startsAt);
+      await expect(runAgentBrowser(session, 'get', 'text', '[role="status"]'))
+        .resolves.toBe('Available');
+      await runAgentBrowser(
+        session,
+        'screenshot',
+        resolve(integrationArtifactsDirectory, 'availability-published-slot.png'),
+        '--full',
+      );
 
       const remove = await fetch(`${baseUrl}/api/availability/slots/${first.data.id}`, {
         method: 'DELETE',

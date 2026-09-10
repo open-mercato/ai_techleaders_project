@@ -17,10 +17,11 @@ it('renders an owner slot through LocalTime without a public state', () => {
 
 it('marks a slot at or beyond the server lead-time boundary as available', () => {
   render(<SlotTime startsAt={startsAt} meetsLeadTime />);
-  expect(screen.getByText('Available')).toBeTruthy();
+  expect(screen.getByRole('status').textContent).toBe('Available');
 });
 
 it('explains why a slot beyond the cutoff is unavailable', () => {
   render(<SlotTime startsAt={startsAt} meetsLeadTime={false} />);
-  expect(screen.getByText('Unavailable because this time starts in less than two hours.')).toBeTruthy();
+  expect(screen.getByRole('status').textContent)
+    .toBe('Unavailable because this time starts in less than two hours.');
 });
