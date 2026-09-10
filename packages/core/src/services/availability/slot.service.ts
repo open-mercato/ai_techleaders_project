@@ -24,14 +24,22 @@ export const MAX_ACTIVE_SLOTS = 500;
 export interface SlotOwnerDto {
   id: string;
   startsAt: string;
+  /** Optional for source compatibility; live owner projections always include this key. */
+  isFuture?: boolean;
 }
 
-export interface SlotPublicDto extends SlotOwnerDto {
+export interface SlotPublicDto {
+  id: string;
+  startsAt: string;
   meetsLeadTime: boolean;
 }
 
-function toOwnerDto(slot: ISlot): SlotOwnerDto {
-  return { id: slot.id, startsAt: slot.startsAt.toISOString() };
+function toOwnerDto(slot: ISlot, now: Date): SlotOwnerDto {
+  return {
+    id: slot.id,
+    startsAt: slot.startsAt.toISOString(),
+    isFuture: slot.startsAt.getTime() >= now.getTime(),
+  };
 }
 
 function constraintName(error: unknown): string | null {
@@ -85,6 +93,7 @@ export class SlotService {
 
   async listOwner(): Promise<SlotOwnerDto[]> {
     const session = await this.mentorSession();
+    const now = this.clock.now();
     const profile = await this.em.findOne(MentorProfile, { user: session.userId });
     if (profile === null) throw new NotFoundError('Your mentor profile does not exist.');
     const slots = await this.em.find(
@@ -92,7 +101,7 @@ export class SlotService {
       { mentorProfile: profile.id, removedAt: null },
       { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
-    return slots.map(toOwnerDto);
+    return slots.map((slot) => toOwnerDto(slot, now));
   }
 
   async publish(input: SlotCreateInput): Promise<SlotOwnerDto> {
@@ -123,7 +132,7 @@ export class SlotService {
         await tx.flush();
         return created;
       });
-      const dto = toOwnerDto(slot);
+      const dto = toOwnerDto(slot, now);
       await this.eventBus.emit('availability.slot.published', {
         mentorProfileId: slot.mentorProfile.id,
         slotId: slot.id,
@@ -163,7 +172,8 @@ export class SlotService {
       { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
     return slots.map((slot) => ({
-      ...toOwnerDto(slot),
+      id: slot.id,
+      startsAt: slot.startsAt.toISOString(),
       meetsLeadTime: slot.startsAt.getTime() >= leadTimeBoundary,
     }));
   }

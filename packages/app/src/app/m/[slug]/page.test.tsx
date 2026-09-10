@@ -25,6 +25,7 @@ const profile = {
   bio: 'I help developers reason about systems.',
   stackTags: ['TypeScript', 'AI agents'] as const,
   slug: 'ada-lovelace',
+  prices: { price25Cents: 9_000, price50Cents: 18_000, currency: 'PLN' },
   slots: [
     { id: 'boundary', startsAt: '2026-09-10T18:00:00.000Z', meetsLeadTime: true },
     { id: 'late', startsAt: '2026-09-10T18:30:00.000Z', meetsLeadTime: false },

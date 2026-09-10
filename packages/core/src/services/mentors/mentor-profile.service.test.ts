@@ -111,7 +111,7 @@ describe('mentor profile projections', () => {
       SETTINGS,
     );
     expect(Object.keys(dto).sort()).toEqual([
-      'bio', 'displayName', 'id', 'offerReadiness', 'priceBounds', 'prices', 'publicWorkUrl',
+      'bio', 'displayName', 'id', 'offerReadiness', 'priceBounds', 'priceCurrency', 'prices', 'publicWorkUrl',
       'publishedAt', 'readiness', 'slug', 'stackTags',
     ]);
     expect(dto.publicWorkUrl).toBeNull();
@@ -121,6 +121,7 @@ describe('mentor profile projections', () => {
     expect(dto.readiness.ready).toBe(false);
     expect(dto.prices).toEqual({ price25Cents: 9_000, price50Cents: 18_000, currency: 'PLN' });
     expect(dto.priceBounds).toEqual(SETTINGS.priceBounds);
+    expect(dto.priceCurrency).toBe('PLN');
     expect(dto.offerReadiness?.ready).toBe(true);
   });
 

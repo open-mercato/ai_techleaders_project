@@ -31,8 +31,8 @@ describe('mentor home page', () => {
     expect(text(tree)).toContain('Mentor workspace');
     expect(elements(tree).some((element) => element.type === MentorOnboardingStatus)).toBe(true);
     expect((empty?.props as { title: string }).title).toBe('No session requests yet');
-    expect((empty?.props as { description: string }).description).toContain(
-      'not available yet',
+    expect((empty?.props as { description: string }).description).toBe(
+      'Requests from mentees will be listed here when booking launches.',
     );
   });
 

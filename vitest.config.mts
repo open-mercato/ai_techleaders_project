@@ -72,6 +72,8 @@ export default defineConfig({
         'packages/app/src/app/\\(mentor\\)/layout.tsx',
         'packages/app/src/app/\\(mentor\\)/mentor/page.tsx',
         'packages/app/src/app/\\(mentor\\)/mentor/mentor-onboarding-status.tsx',
+        'packages/app/src/app/\\(mentor\\)/mentor/prices/mentor-prices-client.tsx',
+        'packages/app/src/app/\\(mentor\\)/mentor/prices/page.tsx',
         'packages/app/src/app/\\(mentor\\)/mentor/profile/mentor-profile-client.tsx',
         'packages/app/src/app/\\(mentor\\)/mentor/profile/page.tsx',
         'packages/app/src/app/invitation/\\[token\\]/page.tsx',

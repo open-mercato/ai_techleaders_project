@@ -20,7 +20,7 @@ export default async function MentorHomePage() {
       <MentorOnboardingStatus />
       <EmptyState
         title="No session requests yet"
-        description="Publishing availability and prices is not available yet. Requests from mentees will be listed here."
+        description="Requests from mentees will be listed here when booking launches."
       />
     </div>
   );
