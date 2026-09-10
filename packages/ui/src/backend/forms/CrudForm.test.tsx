@@ -136,7 +136,7 @@ describe('CrudForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('This name is unavailable.');
     expect(input('Name').disabled).toBe(false);
-    expect(document.activeElement).toBe(input('Name'));
+    await waitFor(() => expect(document.activeElement).toBe(input('Name')));
     request.mockResolvedValueOnce({ ok: false, error: { code: 'unavailable', message: 'Try again later.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const alert = await screen.findByText('Try again later.');
