@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Cradle } from '../container/cradle';
 import type { ApiRouteContext } from './apiHandler';
-import { ForbiddenError, UnauthorizedError } from './errors';
+import { ConflictError, ForbiddenError, UnauthorizedError } from './errors';
 import { z } from 'zod';
 import { makeOwnedCollectionRoute, makeOwnedResourceRoute, ownedAction } from './owned-route';
 
@@ -245,5 +245,41 @@ describe('makeOwnedCollectionRoute', () => {
     expect((await unsupported.POST(request(), context())).status).toBe(400);
     const noSchema = makeOwnedCollectionRoute({ create: () => ({}) });
     expect((await noSchema.POST(request(), context())).status).toBe(400);
+  });
+
+  it('maps invalid JSON and a create conflict through the standard failure envelope', async () => {
+    const create = vi.fn(() => {
+      throw new ConflictError('That resource already exists.');
+    });
+    const handlers = makeOwnedCollectionRoute({
+      role: 'mentor',
+      create,
+      createSchema: z.object({ value: z.string() }),
+    });
+    const malformed = new Request('http://devmentor.test/api/resources', {
+      method: 'POST',
+      headers: { 'x-devmentor-request': '1', 'content-type': 'application/json' },
+      body: '{',
+    });
+
+    const invalidResponse = await handlers.POST(malformed, context());
+    expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'bad_request' },
+    });
+    expect(create).not.toHaveBeenCalled();
+
+    const duplicate = new Request('http://devmentor.test/api/resources', {
+      method: 'POST',
+      headers: { 'x-devmentor-request': '1', 'content-type': 'application/json' },
+      body: JSON.stringify({ value: 'duplicate' }),
+    });
+    const conflictResponse = await handlers.POST(duplicate, context());
+    expect(conflictResponse.status).toBe(409);
+    await expect(conflictResponse.json()).resolves.toEqual({
+      ok: false,
+      error: { code: 'conflict', message: 'That resource already exists.' },
+    });
   });
 });

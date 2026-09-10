@@ -43,6 +43,8 @@ export default defineConfig({
         'packages/app/src/app/api/auth/logout/route.ts',
         'packages/app/src/app/api/auth/register/route.ts',
         'packages/app/src/app/api/auth/verify-email/route.ts',
+        'packages/app/src/app/api/availability/slots/route.ts',
+        'packages/app/src/app/api/availability/slots/\\[id\\]/route.ts',
         'packages/app/src/app/api/invitations/\\[token\\]/route.ts',
         'packages/app/src/app/api/invitations/\\[token\\]/accept/route.ts',
         'packages/app/src/app/api/mentors/me/onboarding/route.ts',
