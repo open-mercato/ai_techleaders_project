@@ -106,7 +106,9 @@ describe('MentorPricesClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save prices' }));
     expect(await screen.findByText('Enter an amount from PLN 90.01 to PLN 600.00.')).toBeTruthy();
     expect(screen.getByLabelText<HTMLInputElement>(/25-minute price/).value).toBe('90.00');
-    expect(document.activeElement).toBe(screen.getByLabelText(/25-minute price/));
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByLabelText(/25-minute price/));
+    });
     expect(reload).not.toHaveBeenCalled();
   });
 
