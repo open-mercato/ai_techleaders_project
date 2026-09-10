@@ -21,7 +21,10 @@ const MOCK_OPERATOR_EMAIL = 'mock-operator@devmentor.test';
  * inherits the parent environment only to pass an ephemeral database URL to child
  * processes. Production code continues to read environment through zod config.
  */
-export function integrationChildEnvironment(databaseUrl: string): NodeJS.ProcessEnv {
+export function integrationChildEnvironment(
+  databaseUrl: string,
+  appUrl: string,
+): NodeJS.ProcessEnv {
   return {
     ...process.env,
     NODE_ENV: 'production',
@@ -42,8 +45,16 @@ export function integrationChildEnvironment(databaseUrl: string): NodeJS.Process
     AUTH_IDENTITY_ADAPTER: 'mock',
     INTEGRATION_TEST_RUN: '1',
     OPERATOR_EMAILS: process.env.OPERATOR_EMAILS ?? MOCK_OPERATOR_EMAIL,
-    // APP_URL is deliberately left at its default: the app's port is only chosen after
-    // this environment is built. Wire it through when a scenario needs an absolute
-    // self-referencing URL (the mock identity adapter does not).
+    // The app must know its own address, because one of its own routes builds an absolute
+    // URL back to itself: `MockGithubIdentityAdapter.authorizeUrl` resolves
+    // `/api/auth/github/callback` against `APP_URL` to stand in for github.com. Left at the
+    // schema default the harness would start a sign-in on its ephemeral port and hand the
+    // browser a callback on `http://localhost:3000`, which nothing is listening on — every
+    // signed-in scenario would fail with a connection error rather than an assertion.
+    //
+    // Which is why this is a **required parameter**, and why `global-setup.ts` reserves the
+    // port before it builds this environment rather than just before it spawns the app: an
+    // optional `appUrl` would be one forgotten argument away from the same silent default.
+    APP_URL: appUrl,
   };
 }

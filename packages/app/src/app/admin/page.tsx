@@ -6,11 +6,20 @@ import {
   CardTitle,
 } from "@devmentor/ui";
 import { checkDbConnection, getEnv } from "@devmentor/core";
+import { requirePageRole } from "../../lib/session";
 
 // Touches the DB — keep it out of the static prerender.
 export const dynamic = "force-dynamic";
 
+/**
+ * The operator dashboard. It guards itself rather than relying on `admin/layout.tsx`: the
+ * layout does not re-run on a client-side navigation back from `/admin/users`, and a
+ * founder removed from `OPERATOR_EMAILS` mid-session must lose this screen on their next
+ * navigation, not when their cookie expires.
+ */
 export default async function AdminDashboard() {
+  await requirePageRole("operator", "/admin");
+
   const env = getEnv();
   const db = await checkDbConnection();
 

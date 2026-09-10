@@ -1,50 +1,25 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { apiCall, DataTable, type Column } from "@devmentor/ui/backend";
+import { requirePageRole } from "../../../lib/session";
+import { UsersList } from "./users-list";
 
 /**
- * Reference concept page: fetches through `apiCall` (never a raw `fetch`) and renders
- * with `DataTable`, which owns the loading / error / empty states. Every later concept
- * list screen copies this shape.
+ * `/admin/users` — the screen edge case 21 is written about.
+ *
+ * It used to be a single `'use client'` file. A Client Component cannot `await` a page
+ * guard, and a guard that only ran in `admin/layout.tsx` would not run at all when the
+ * router fetches this segment on a client-side navigation from `/admin` — which is exactly
+ * how a revoked operator would still be served the page. So the page is a Server Component
+ * that enforces the role and renders the heading, and the table moved to `users-list.tsx`
+ * behind its own client boundary.
+ *
+ * That leaves three checks on the same data, none of them redundant: this guard, the
+ * `authorize` on `GET /api/users`, and the operator check inside `UserService.list`.
  */
-type UserRow = {
-  id: string;
-  email: string;
-  displayName: string;
-  mentorProfile: { id: string; headline: string } | null;
-};
 
-const columns: Column<UserRow>[] = [
-  { key: "displayName", header: "Name" },
-  { key: "email", header: "Email" },
-  {
-    key: "mentor",
-    header: "Mentor profile",
-    render: (row) => row.mentorProfile?.headline ?? "—",
-  },
-];
+// The guard reads the session cookie and reloads the user; never prerendered.
+export const dynamic = "force-dynamic";
 
-export default function UsersPage() {
-  const [rows, setRows] = useState<UserRow[]>();
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    apiCall<UserRow[]>("/api/users").then((result) => {
-      if (!active) return;
-      if (result.ok) {
-        setRows(result.data);
-      } else {
-        setError(result.error.message);
-      }
-      setLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+export default async function AdminUsersPage() {
+  await requirePageRole("operator", "/admin/users");
 
   return (
     <div className="flex flex-col gap-6">
@@ -56,14 +31,7 @@ export default function UsersPage() {
         </p>
       </div>
 
-      <DataTable
-        columns={columns}
-        rows={rows}
-        getRowId={(row) => row.id}
-        loading={loading}
-        error={error}
-        emptyMessage="No users yet — seed the database with npm run db:seed."
-      />
+      <UsersList />
     </div>
   );
 }

@@ -136,6 +136,29 @@ export async function requirePageSession(currentPath: string): Promise<Session> 
 }
 
 /**
+ * Send a visitor who already holds a valid session to their role home, or return and let
+ * `/sign-in` render its form (edge case 28).
+ *
+ * The mirror image of `requirePageSession`, and it lives here for the same reason: this
+ * file owns every `redirect()` in the page tree, so the sign-in page never imports
+ * `next/navigation` itself. A signed-in visitor who lands back on `/sign-in` — a stale tab,
+ * a bookmark, the browser's back button after signing in — has nothing to do there, and
+ * sending them through GitHub a second time would cost a round trip to arrive exactly where
+ * they already are.
+ *
+ * The destination is `homeFor(roles)` and deliberately **not** `?returnTo`: that parameter
+ * is honoured by the OAuth flow itself (`/api/auth/github` carries it through the round trip
+ * as the state token's subject), so the only visitor reaching this branch is one whose
+ * sign-in already finished. Their home is the one destination that is always right.
+ */
+export async function redirectIfSignedIn(): Promise<void> {
+  const session = await getPageSession();
+  if (session !== null) {
+    redirect(homeFor(session.roles));
+  }
+}
+
+/**
  * Require a session holding `role`, or redirect and never return.
  *
  * Membership, not equality — mentor and operator are independent assignments, so an operator

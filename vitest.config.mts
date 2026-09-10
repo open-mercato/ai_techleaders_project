@@ -34,6 +34,23 @@ export default defineConfig({
         'packages/app/src/app/api/auth/github/callback/route.ts',
         'packages/app/src/app/api/auth/logout/route.ts',
         'packages/app/src/app/api/users/route.ts',
+        // Every guarded page and layout. Page-level enforcement is per file by design — a
+        // layout does not re-run on a client-side navigation — so each one is its own entry
+        // and each one needs both the authorized and the redirected branch.
+        //
+        // **The parentheses of a Next route group must be escaped.** These entries are
+        // globs, and `(auth)` unescaped is a picomatch group that matches the *directory*
+        // `auth`, so the pattern silently matches nothing and the file drops out of the
+        // report — a coverage gate that passes because it is measuring less than it says.
+        'packages/app/src/app/\\(auth\\)/sign-in/page.tsx',
+        'packages/app/src/app/\\(mentee\\)/layout.tsx',
+        'packages/app/src/app/\\(mentee\\)/home/page.tsx',
+        'packages/app/src/app/\\(mentor\\)/layout.tsx',
+        'packages/app/src/app/\\(mentor\\)/mentor/page.tsx',
+        'packages/app/src/app/admin/layout.tsx',
+        'packages/app/src/app/admin/page.tsx',
+        'packages/app/src/app/admin/users/page.tsx',
+        'packages/app/src/app/admin/users/users-list.tsx',
         'packages/app/src/lib/session.ts',
         'packages/app/src/lib/sign-in-redirect.ts',
         'packages/core/src/config/env.ts',

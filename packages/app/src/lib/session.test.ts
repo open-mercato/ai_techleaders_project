@@ -35,7 +35,13 @@ vi.mock('@devmentor/core', async (importOriginal) => ({
   withCookieScope: core.withCookieScope,
 }));
 
-const { getPageSession, homeFor, requirePageRole, requirePageSession } = await import(
+const {
+  getPageSession,
+  homeFor,
+  redirectIfSignedIn,
+  requirePageRole,
+  requirePageSession,
+} = await import(
   './session'
 );
 
@@ -245,5 +251,28 @@ describe('requirePageRole', () => {
     expect(await locationAfter(requirePageRole('operator', '/admin'))).toBe(
       '/sign-in?returnTo=%2Fadmin',
     );
+  });
+});
+
+describe('redirectIfSignedIn', () => {
+  it('lets a signed-out visitor through to the sign-in form', async () => {
+    scopeSession = null;
+
+    await expect(redirectIfSignedIn()).resolves.toBeUndefined();
+    expect(next.redirect).not.toHaveBeenCalled();
+  });
+
+  it('sends a signed-in visitor to their role home instead of round-tripping GitHub', async () => {
+    // Edge case 28. The destination is `homeFor`, not `?returnTo`: the OAuth flow carries
+    // that parameter itself, so anyone reaching this branch has already finished signing in.
+    scopeSession = OPERATOR;
+
+    expect(await locationAfter(redirectIfSignedIn())).toBe('/admin');
+  });
+
+  it('uses the same priority as every other landing decision', async () => {
+    scopeSession = { userId: 'u-both', roles: ['mentee', 'mentor'] };
+
+    expect(await locationAfter(redirectIfSignedIn())).toBe('/mentor');
   });
 });

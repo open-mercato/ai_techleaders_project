@@ -155,7 +155,18 @@ export default async function setup(project: TestProject) {
       .withPassword('devmentor')
       .start();
 
-    const environment = integrationChildEnvironment(postgres.getConnectionUri());
+    // The port is reserved **before** the child environment is built, because `APP_URL` is
+    // part of that environment and the app resolves its own OAuth callback against it. The
+    // reservation is a hint rather than a lock — `availablePort` closes the probe socket so
+    // the app can bind it — and this order widens the gap between reserving and binding to
+    // include migrate, seed and build. That is acceptable here: the suite owns its machine
+    // for the duration, runs `fileParallelism: false`, and the alternative (two divergent
+    // environments, one for the build and one for the app) is a worse failure mode than a
+    // port collision, which fails loudly at startup.
+    const port = await availablePort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const environment = integrationChildEnvironment(postgres.getConnectionUri(), baseUrl);
     await runNpm(['run', 'db:migrate'], environment);
     await runNpm(['run', 'db:seed'], environment);
     // Seed a second time on purpose. `npm run setup` re-seeds on every invocation, so
@@ -165,8 +176,6 @@ export default async function setup(project: TestProject) {
     await runNpm(['run', 'db:seed'], environment);
     await runNpm(['run', 'build'], environment);
 
-    const port = await availablePort();
-    const baseUrl = `http://127.0.0.1:${port}`;
     appLog = createWriteStream(resolve(integrationArtifactsDirectory, 'app.log'), {
       flags: 'w',
     });
