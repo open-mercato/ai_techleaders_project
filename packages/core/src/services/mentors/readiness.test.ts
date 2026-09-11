@@ -10,7 +10,6 @@ describe('mentorPagePublishable', () => {
       items: [
         { key: 'publicWorkUrl', label: 'Add a link to your public work.', met: false },
         { key: 'bio', label: 'Write a description of the work you have done.', met: false },
-        { key: 'stackTags', label: 'Choose at least one technology.', met: false },
       ],
     });
   });
@@ -21,6 +20,16 @@ describe('mentorPagePublishable', () => {
         publicWorkUrl: 'https://github.com/ada',
         bio: 'Compiler engineer',
         stackTags: ['TypeScript'],
+      }).ready,
+    ).toBe(true);
+  });
+
+  it('does not require a technology', () => {
+    expect(
+      mentorPagePublishable.evaluate({
+        publicWorkUrl: 'https://github.com/ada',
+        bio: 'Compiler engineer',
+        stackTags: [],
       }).ready,
     ).toBe(true);
   });

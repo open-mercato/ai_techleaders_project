@@ -20,7 +20,6 @@ const profile = {
     items: [
       { key: 'publicWorkUrl', label: 'Add a link to your public work.', met: false },
       { key: 'bio', label: 'Write a description of the work you have done.', met: true },
-      { key: 'stackTags', label: 'Choose at least one technology.', met: true },
     ],
   },
   offerReadiness: {
@@ -78,16 +77,16 @@ describe('MentorOnboardingStatus', () => {
     const items = screen.getAllByRole('listitem');
     expect(items.map((item) => within(item).getByRole('heading').textContent)).toEqual([
       'Add a link to your public work.', 'Write a description of the work you have done.',
-      'Choose at least one technology.', 'Publish your mentor page.',
+      'Publish your mentor page.',
       'Set your 25-minute price.', 'Set your 50-minute price.',
       'Publish at least one future available time.',
     ]);
     expect(within(items[0]!).getByRole('link', { name: 'Edit profile' }).getAttribute('href')).toBe('/mentor/profile');
     expect(within(items[1]!).queryByRole('link')).toBeNull();
-    expect(within(items[3]!).getByRole('link', { name: 'Publish page' }).getAttribute('href')).toBe('/mentor/profile');
-    expect(within(items[4]!).getByRole('link', { name: 'Set prices' }).getAttribute('href')).toBe('/mentor/prices');
+    expect(within(items[2]!).getByRole('link', { name: 'Publish page' }).getAttribute('href')).toBe('/mentor/profile');
+    expect(within(items[3]!).getByRole('link', { name: 'Set prices' }).getAttribute('href')).toBe('/mentor/prices');
+    expect(within(items[4]!).queryByRole('link')).toBeNull();
     expect(within(items[5]!).queryByRole('link')).toBeNull();
-    expect(within(items[6]!).queryByRole('link')).toBeNull();
     expect(screen.getByText('Complete every requirement so developers can find your offer and request a session.')).toBeTruthy();
   });
 

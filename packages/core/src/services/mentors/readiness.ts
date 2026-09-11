@@ -9,7 +9,7 @@ export interface MentorPageReadinessInput {
 
 export const mentorPagePublishable = defineReadiness<
   MentorPageReadinessInput,
-  'publicWorkUrl' | 'bio' | 'stackTags'
+  'publicWorkUrl' | 'bio'
 >([
   {
     key: 'publicWorkUrl',
@@ -20,11 +20,6 @@ export const mentorPagePublishable = defineReadiness<
     key: 'bio',
     label: 'Write a description of the work you have done.',
     met: ({ bio }) => bio !== null && bio.trim().length > 0,
-  },
-  {
-    key: 'stackTags',
-    label: 'Choose at least one technology.',
-    met: ({ stackTags }) => stackTags.length > 0,
   },
 ]);
 

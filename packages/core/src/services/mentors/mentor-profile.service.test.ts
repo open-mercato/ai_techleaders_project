@@ -233,11 +233,17 @@ describe('MentorProfileService owner operations', () => {
 
   it('will not make an already-public page incomplete', async () => {
     const h = makeHarness(undefined, profile({ slug: 'ada', publishedAt: NOW }));
-    await expect(h.service.update({ stackTags: [] })).rejects.toMatchObject({
+    await expect(h.service.update({ bio: '  ' })).rejects.toMatchObject({
       status: 422,
-      fieldErrors: { stackTags: ['Choose at least one technology.'] },
+      fieldErrors: { bio: ['Write a description of the work you have done.'] },
     });
     expect(h.tx.flush).not.toHaveBeenCalled();
+  });
+
+  it('lets a published page remove every technology', async () => {
+    const h = makeHarness(undefined, profile({ slug: 'ada', publishedAt: NOW }));
+    await expect(h.service.update({ stackTags: [] })).resolves.toMatchObject({ stackTags: [] });
+    expect(h.tx.flush).toHaveBeenCalledOnce();
   });
 
   it('treats absent persisted optional fields as null on a published update', async () => {
@@ -370,6 +376,14 @@ describe('MentorProfileService publication', () => {
       fieldErrors: expect.objectContaining({ publicWorkUrl: expect.any(Array) }),
     });
     expect(h.tx.flush).not.toHaveBeenCalled();
+  });
+
+  it('publishes a page with no technology selected', async () => {
+    const h = makeHarness(undefined, profile({ stackTags: [] }));
+    await expect(h.service.publish()).resolves.toMatchObject({
+      stackTags: [],
+      publishedAt: NOW.toISOString(),
+    });
   });
 
   it('allocates the first slug, publishes, and emits only after the transaction', async () => {

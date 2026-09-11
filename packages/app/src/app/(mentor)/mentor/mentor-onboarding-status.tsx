@@ -73,7 +73,6 @@ export function MentorOnboardingStatus() {
             actionsByKey={{
               publicWorkUrl: <Button asChild variant="outline" size="sm"><a href="/mentor/profile">Edit profile</a></Button>,
               bio: <Button asChild variant="outline" size="sm"><a href="/mentor/profile">Edit profile</a></Button>,
-              stackTags: <Button asChild variant="outline" size="sm"><a href="/mentor/profile">Edit profile</a></Button>,
               publishedAt: <Button asChild variant="outline" size="sm"><a href="/mentor/profile">Publish page</a></Button>,
               price25: <Button asChild variant="outline" size="sm"><a href="/mentor/prices">Set prices</a></Button>,
               price50: <Button asChild variant="outline" size="sm"><a href="/mentor/prices">Set prices</a></Button>,
