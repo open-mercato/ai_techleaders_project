@@ -61,10 +61,10 @@ integration suite has a real regression to catch. The operator wants to see
 
 ### Phase 1: Remove the technology publish rule
 
-- [ ] 1.1 Drop the stackTags readiness item and dead consumer entries
-- [ ] 1.2 Update unit tests for the new behaviour
+- [x] 1.1 Drop the stackTags readiness item and dead consumer entries — bb5959f
+- [x] 1.2 Update unit tests for the new behaviour — bb5959f
 
 ### Phase 2: Verify
 
-- [ ] 2.1 Run the validation and coverage gates
+- [x] 2.1 Run the validation and coverage gates — bb5959f
 - [ ] 2.2 Run TC-MENTOR-PROFILE-001 locally and record the failure
