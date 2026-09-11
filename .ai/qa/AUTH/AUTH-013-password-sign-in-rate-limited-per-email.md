@@ -20,7 +20,7 @@ limit belongs to that address only.
 ## Prerequisites
 
 - Two unique addresses with no account (`acct-rate-limited-…`, `acct-rate-unrelated-…`).
-- `TRUSTED_PROXY_HOPS` is unset (0) in both the harness and the dev env, so the per-IP bucket is
+- `TRUSTED_PROXY_HOPS` is pinned to 0 by the harness (`environment.ts`) and unset in the dev env, so the per-IP bucket is
   disabled and only the per-email bucket (5 per 15 minutes, `SIGN_IN_EMAIL_POLICY`) applies. The
   scenario therefore cannot rate-limit other scenarios.
 - Cleanup: `deleteAccounts` deletes the `sign-in:email:<sha256>` counters for both addresses.

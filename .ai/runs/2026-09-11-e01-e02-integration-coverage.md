@@ -37,7 +37,7 @@ draft-profile helpers; existing helpers behave the same. Each scenario has a doc
 - `npm run test:integration`: 14 files, 85 tests, all passed in about 2.5 minutes. The run used a fresh
   Testcontainers database and a production build.
 - `npm run lint`: 0 errors. `npm run typecheck`: clean.
-- No production code changed. Nothing committed.
+- No production code changed. Committed as `87a68bc` and opened as PR #52.
 
 ## Follow-ups for a human
 - **Expected results taken from code or observed behaviour, not written in the spec** (each doc flags this):
@@ -46,7 +46,7 @@ draft-profile helpers; existing helpers behave the same. Each scenario has a doc
   - AUTH-012: `/register` also redirects home.
   - AUTH-013: an unknown email counts toward the limit.
   - AUTH-014: the `?error=state` copy.
-  - INVITE-005: the losing request got a 404; the test only asserts it wasn't a 200.
+  - INVITE-005: the losing request got a 404; the test accepts 404 `not_found` or 401 `unauthorized`.
   - MENTOR-PROFILE-001: the technology rule has no acceptance criterion in the spec.
   - MENTOR-PROFILE-003: the error is keyed `stackTags.1` with zod's default message.
 - **Product finding** (INVITE-006): an unverified account whose email matches the invitation is told to "sign out and sign in with"
@@ -58,6 +58,17 @@ draft-profile helpers; existing helpers behave the same. Each scenario has a doc
   - Renaming a mentor (mentor-page AC6); no rename feature exists.
   - Operator revocation (E01 #14-3) and missing currency or bounds (prices AC6). Both need a different environment at boot.
   - The E01 edge cases that need fault injection.
-- TC-MENTOR-PROFILE-001 is also in open PR #50. An untracked
-  `.ai/tmp/om-auto-create-pr/allow-publish-without-technology-*` folder suggests another session may change
-  that rule. Check this before merging either piece of work.
+- TC-MENTOR-PROFILE-001 landed on `master` through PR #50 (`201995a`). PR #51 deliberately removes the
+  technology rule to prove this suite catches it and is labelled `do-not-merge`.
+
+## Review fixes (om-auto-review-pr, 2026-09-11)
+- TC-INVITE-005 accepts only 404 `not_found` or 401 `unauthorized` for the losing request, so a 500 from a
+  broken lock fails the test.
+- The harness pins `TRUSTED_PROXY_HOPS=0` in `environment.ts`, so per-IP rate limits cannot leak between files.
+- TC-AVAILABILITY-003 seeds inside `try`, so a failed ORM connect still resets mock-mentor.
+- TC-AUTH-006, TC-MENTOR-PAGE-003 and TC-MENTOR-PRICES-004 assert exactly one alert (and one invalid control)
+  with `get count`. TC-INVITE-006 asserts `button "Sign out"`. TC-AUTH-012 checks each form's own heading.
+- `throwawayAccount` refuses a login over the 39-character mock GitHub limit. The rate-limit cleanup only
+  clears the `sign-in` per-email bucket, the only one that exists.
+- Docs (AUTH-008, AUTH-013, AUTH-015, INVITE-005, MENTOR-PRICES-004, MENTOR-PROFILE-002) and one lesson
+  reworded to match what the tests assert.

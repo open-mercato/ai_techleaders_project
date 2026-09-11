@@ -19,7 +19,7 @@ Fixture `seedPublishedMentorProfile`, then prices set to 100.00 and 200.00 throu
 
 | # | Step | Expected result (observed) |
 | --- | --- | --- |
-| Given | Mentor opens `/mentor/prices` | The page shows `textbox "25-minute price"` with the value 100.00 and the help text `Allowed range: PLN 90.00 to PLN 600.00. Currency: PLN.` |
+| Given | Mentor opens `/mentor/prices` | The page shows the required `textbox "25-minute price"` and the help text `Allowed range: PLN 90.00 to PLN 600.00. Currency: PLN.` |
 | When | Mentor enters `89.99` as the 25-minute price and clicks **Save prices** | The server refuses the save. The format is valid, so the client-side schema lets it through. |
 | Then | The bound is shown on the refused field | Exactly one `[role="alert"]` appears, with the text `Enter an amount from PLN 90.00 to PLN 600.00.` The only control with `aria-invalid="true"` is `name="price25"`. `Session prices saved.` does not appear. |
 | Then | Stored prices are unchanged | `price25Cents = 10000`, `price50Cents = 20000`. |

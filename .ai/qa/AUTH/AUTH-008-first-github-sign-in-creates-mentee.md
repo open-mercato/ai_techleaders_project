@@ -46,9 +46,10 @@ Screenshot: `test-results/integration/auth-github-first-sign-in.png`.
 
 ## Edge cases and notes
 
-- Verified on the first harness run: the app log recorded "lost the GitHub identity race,
-  re-reading the winner" twice. The concurrent case really reaches the
-  unique-constraint recovery path; it is not passing just because the requests were serialized.
+- On the first harness run the app log recorded "lost the GitHub identity race, re-reading the
+  winner" twice, so the concurrent case usually reaches the unique-constraint recovery path.
+  The test does not assert that: if the three requests happen to arrive one after another, it
+  still passes, and only the one-row outcome is proven.
 - Whether all three land on the same row is inferred from "exactly one row + three working
   sessions". The spec requires both sign-ins to succeed and one account to exist; it does not
   require equal session payloads.

@@ -21,7 +21,8 @@ sign-in by a two-role account lands on `/admin` and keeps the mentor surface rea
 
 - The seeder gives `mock-operator` the committed `SEED_PASSWORD` (`database.seeder.ts`,
   `password: true`) and `OPERATOR_EMAILS` is forced to that address by `environment.ts`.
-- Read-only for the persona: nothing about the operator row is changed.
+- The operator's user row is not changed. The only side effect is one entry in its
+  `sign-in:email` rate-limit counter (see the notes below).
 
 ## Steps (Given / When / Then)
 

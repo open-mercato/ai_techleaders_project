@@ -19,10 +19,10 @@ Fixture `seedEmptyMentorProfileDraft` creates an unpublished draft with no link,
 
 | # | Step | Expected result (observed) |
 | --- | --- | --- |
-| Given | Mentor opens `/mentor/profile` | The form is empty and the readiness items are Required. |
+| Given | Mentor opens `/mentor/profile` | The editor loads and shows `Ready to publish?`. The fixture has left the work link, bio and technologies empty. |
 | When | Mentor fills **Public work link** and **About your work**, checks **React** and clicks **Save profile** | The saved profile reloads as publishable and the `Page preview` section appears. |
 | When | Mentor clicks **Publish page** | `heading "Your share link"` appears with a link `<APP_URL>/m/<slug>`, and the Publication card now offers `button "Unpublish page"`. |
-| Then | A signed-out visitor opens the share link | The page shows `heading "Mock Mentor"`, the saved bio as text, `list "Technology stacks"` containing `React`, and a "View public work" link to the saved URL. |
+| Then | A signed-out visitor opens the share link | The page shows `heading "Mock Mentor"`, the saved bio as text, `list "Technology stacks"` containing `React`, and a link whose `href` is the saved public-work URL. |
 | Then | The data is stored | `publishedAt` is set, `slug` matches the share-link path, and `publicWorkUrl`, `bio` and `stackTags = ['React']` match what was entered. |
 
 Screenshot: `test-results/integration/mentor-profile-saved-and-published.png`.
