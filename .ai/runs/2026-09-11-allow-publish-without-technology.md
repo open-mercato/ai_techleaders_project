@@ -55,6 +55,17 @@ integration suite has a real regression to catch. The operator wants to see
   publish click. Either failure proves the suite catches the regression; the run records
   which assertion fails.
 
+## Outcome
+
+- Validation gate on `bb5959f`: `npm run typecheck`, `npm run lint`, `npm run test:unit:coverage`
+  (150 files, 1745 tests, per-file 100% coverage) and `npm run build` all pass.
+- `npx vitest run --config vitest.integration.config.mts tests/integration/mentor-profile.integration.test.ts -t TC-MENTOR-PROFILE-001`
+  **fails**, as intended:
+  `AssertionError: expected '- generic\n  - link "Skip to content"…' to contain 'heading "Choose at least one technolo…'`.
+  It fails at the first "Given" assertion, because the readiness list no longer shows the
+  technology item, so the test never reaches the publish click. The suite catches the
+  regression before any publish request is sent.
+
 ## Progress
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
@@ -67,4 +78,4 @@ integration suite has a real regression to catch. The operator wants to see
 ### Phase 2: Verify
 
 - [x] 2.1 Run the validation and coverage gates — bb5959f
-- [ ] 2.2 Run TC-MENTOR-PROFILE-001 locally and record the failure
+- [x] 2.2 Run TC-MENTOR-PROFILE-001 locally and record the failure — bb5959f
