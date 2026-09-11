@@ -68,6 +68,8 @@ integration suite has a real regression to catch. The operator wants to see
 
 ## Progress
 
+PR: #51
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Remove the technology publish rule
