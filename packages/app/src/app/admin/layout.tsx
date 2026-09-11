@@ -1,36 +1,32 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { WorkspaceShell } from "../../components/workspace-shell";
+import { requirePageRole } from "../../lib/session";
 
 /**
  * Admin/backend shell. Pages under `/admin` use shadcn-ui components from
- * `@devmentor/ui`. This layout provides the persistent nav.
+ * `@devmentor/ui`, now inside `AppShell` (primitives F1/F2) like the other two signed-in
+ * surfaces.
+ *
+ * The guard is for the redirect, not for enforcement: `/admin` and `/admin/users` each call
+ * it themselves, because a layout does not re-run when the router fetches a sibling segment
+ * on a client-side navigation (edge case 21). `'/admin'` is the path it reports, and it is
+ * the layout's own segment rather than the visitor's exact URL — a Server Component has no
+ * way to ask for the latter — so a signed-out visitor deep-linking to `/admin/users` returns
+ * to `/admin` after signing in. The page below carries the precise `returnTo`; whichever
+ * guard runs first wins, and on a full navigation that is this one.
+ *
+ * The bespoke sidebar this file used to carry is gone, and the accessible semantics it
+ * carried are not: `admin.integration.test.ts` asserts `link "Users"`, and the operator's
+ * links in `lib/nav.ts` still spell it exactly that way. The wordmark is no longer a link to
+ * `/` — `AppShell` renders it as the workspace brand — which nothing asserts on and which
+ * `BACKWARD_COMPATIBILITY.md` does not protect; the spec grades this port as not a breaking
+ * change for that reason.
+ *
+ * An operator who also holds `mentor` now sees the mentor surface from here too: the
+ * navigation is built from the union of the held roles, not from the segment.
  */
-const nav = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/users", label: "Users" },
-];
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const session = await requirePageRole("operator", "/admin");
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r border-border bg-card p-6">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          DevMentor
-        </Link>
-        <p className="mt-1 text-xs text-muted-foreground">Admin</p>
-        <nav className="mt-8 flex flex-col gap-1">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-      <main className="flex-1 p-8">{children}</main>
-    </div>
-  );
+  return <WorkspaceShell session={session}>{children}</WorkspaceShell>;
 }

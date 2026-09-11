@@ -5,6 +5,7 @@ import {
   closeAgentBrowser,
   integrationArtifactsDirectory,
   runAgentBrowser,
+  signInAs,
 } from './agent-browser';
 
 describe('TC-ADMIN-001 admin panel basics', () => {
@@ -13,6 +14,10 @@ describe('TC-ADMIN-001 admin panel basics', () => {
     const session = inject('adminBrowserSession');
 
     try {
+      // `/admin` and `/admin/users` are operator-only now, so this scenario signs in
+      // first. Anonymously it would be redirected to `/sign-in` and every assertion
+      // below would fail on a screen that is working exactly as intended.
+      await signInAs(session, baseUrl, 'mock-operator');
       await runAgentBrowser(session, 'open', `${baseUrl}/admin`);
       await runAgentBrowser(session, 'wait', '--text', 'Connected');
       const dashboard = await runAgentBrowser(session, 'snapshot');

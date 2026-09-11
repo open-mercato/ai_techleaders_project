@@ -25,7 +25,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --include=optional
-      # A production build must remain independent of a reachable database.
+      # A production build must remain independent of a reachable database *and* of
+      # every credential. This job deliberately sets no application environment: it is
+      # the standing guard that no "required in production" check ever migrates into
+      # the zod env schema, where it would run during `next build` (which forces
+      # NODE_ENV=production) and fail here. Such checks belong in `createContainer`.
       - run: npm run build
       - run: npm run typecheck
       - run: npm run typecheck:storybook
@@ -71,6 +75,14 @@ jobs:
     name: Integration tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # The harness generates the ephemeral database URL and session secret and sets
+      # AUTH_IDENTITY_ADAPTER=mock + INTEGRATION_TEST_RUN=1 itself, in
+      # tests/integration/environment.ts. Only the operator allowlist is declared here,
+      # and it is an obviously fake address matching the seeded mock persona — the real
+      # founder addresses live solely in deployment configuration, so this file is never
+      # a second editor of the allowlist.
+      OPERATOR_EMAILS: mock-operator@devmentor.test
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v7

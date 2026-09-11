@@ -97,6 +97,22 @@ type because `ui` must not import `core`. `/api/users` + `/admin/users/page.tsx`
 the reference example every new concept copies. See
 `.ai/specs/2026-09-01-engineering-standards.md` for the full rationale.
 
+**A navigated route redirects; a fetched route returns the envelope.** A route a browser
+navigates to directly — the two OAuth `GET`s, the email-verification `GET` — catches its
+own failures and returns a redirect `Response`, which `apiHandler` passes through
+unchanged. Someone who clicked "Sign in with GitHub" must never be shown a JSON envelope
+rendered as a page. Every other route returns the envelope and is read through `apiCall`.
+Decide which kind a new route is before writing it; the two error paths are not
+interchangeable.
+
+**Every state-changing route is JSON-only.** `apiHandler` requires the CSRF header
+`x-devmentor-request` on every method other than `GET`, `HEAD` and `OPTIONS`, so
+`makeCrudRoute`'s mutating verbs inherit the check and no route can forget it. Mutations
+are therefore called through `apiCall` or `CrudForm`, never a native HTML form — a form
+post cannot set a header, so it is refused with 403 `forbidden` before the route body
+runs. The one opt-out, `apiHandler(logic, { csrf: false })`, is reserved for the payment
+webhook, which authenticates by verifying a signature. See `BACKWARD_COMPATIBILITY.md` §7.
+
 ### Scripts (run from the repo root)
 
 - `npm run setup` — one-command installer: `npm install`, `.env` from `.env.example`,
@@ -166,9 +182,13 @@ the reference example every new concept copies. See
 - **`em.persistAndFlush()` was removed** — use `em.persist(e); await em.flush()`.
 - Touch the DB only in **dynamic** routes (`export const dynamic = "force-dynamic"`)
   and degrade gracefully; the app must build and boot with no database reachable.
-- **Public pages use Tailwind utilities; `/admin/*` pages use shadcn-ui components**
-  from `@devmentor/ui`. Add shadcn components with `npx shadcn@latest add <c>` run in
-  `packages/ui` (its `components.json` is committed).
+- **Three UI surfaces.** Public pages — landing, `/mentors`, `/m/<slug>` and `(auth)/*`
+  — **use Tailwind utilities**; the signed-in surfaces — `(mentee)/*`, `(mentor)/*` and
+  `/admin/*` — **use shadcn-ui components** from `@devmentor/ui` inside `AppShell`
+  (`ui/src/backend/shell/AppShell.tsx`), whose `nav` is a `ReactNode` slot because `ui`
+  may not import `next` and cannot render `next/link`. Add shadcn components with
+  `npx shadcn@latest add <c>` run in `packages/ui` (its `components.json` is committed).
+  The full taxonomy is F1 in `.ai/specs/2026-09-04-platform-primitives.md`.
 - Request-scoped work goes through `withScope(fn)` from `@devmentor/core`, which opens
   an awilix scope with a forked `EntityManager` and disposes it afterward.
 - **Never hand-roll fetch / validation / error-handling / CRUD.** Server routes use
@@ -178,6 +198,18 @@ the reference example every new concept copies. See
   lists use `DataTable`, and loading/error/empty states use the `feedback/` components.
 - **Collection routes are non-dynamic**, so Next passes no `params` — CRUD helpers
   guard `ctx.params` before reading it.
+- **Never narrow an `AppError` with `instanceof`; match on its `code`.** Next evaluates
+  `@devmentor/core` once per module graph (SSR/RSC and each Route Handler) while
+  `getContainer()` shares one container through `globalThis`, so the class a service threw is
+  routinely not the class the route imported. `isAppError` is therefore a brand check
+  (`Symbol.for`, cross-realm) rather than an `instanceof` — see `APP_ERROR_BRAND` in
+  `core/src/http/errors.ts`. The same rule covers any other cross-graph identity test.
+- **Logs are redacted at the logger, but do not rely on it.** `createLogger`
+  (`packages/core/src/logger.ts`) censors `password`, `passwordHash`, `token`,
+  `authorization` and `cookie` at the top level and one and two levels below any key, so
+  `err.password` and `req.headers.authorization` are covered. That is the backstop for the
+  log call that forgets; the rule is still to log ids and outcomes, never credentials, and
+  `fetchJson` never hands a request body or request headers to a logger at all.
 
 ### Design-system rules confirmed by the user
 
@@ -239,6 +271,28 @@ the reference example every new concept copies. See
 GitHub Actions runs Build, Lint, Unit tests, and Integration tests independently on
 every pull request. A workflow result becomes merge-blocking only when the repository
 ruleset requires those four exact check names.
+
+### Testing React components and pages
+
+- **Server components are invoked, not rendered.** `page.tsx` and `layout.tsx` are async
+  functions returning an element tree. Test them by calling the exported function and
+  asserting on the tree it returns — no DOM, no renderer, the default `node` environment.
+- **Client components use Testing Library under jsdom.** Render `CrudForm`,
+  `WorkflowAction`, `AppShell` and the other `'use client'` components with
+  `@testing-library/react`. jsdom is opt-in per file through a `// @vitest-environment jsdom`
+  pragma on the first line; `node` stays the project-wide default, so no existing test
+  changes.
+- **A guarded page needs two mocking seams, because `redirect()` throws.** It does not
+  return — it raises a framework control-flow error — so the denied path yields no tree to
+  assert on. A `page.tsx` test mocks `packages/app/src/lib/session.ts`, asserts the rendered
+  tree on the authorized path, and asserts a sentinel throw from the mocked guard on the
+  denied one. `session.test.ts` mocks `next/navigation` instead and asserts `redirect` was
+  called with the expected URL. Neither test asserts against Next internals.
+- **Page-level enforcement is a recurring coverage cost.** Every guarded `page.tsx` calls the
+  guard itself rather than relying on its layout, so every guarded `page.tsx` is its own
+  `coverage.include` entry, and each one needs both the authorized and the redirected branch
+  to clear the per-file 100% bar above. That cost repeats per page; it is not a one-time
+  setup.
 
 ## Spec-Driven Development (SDD)
 

@@ -2,7 +2,6 @@ import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { createWriteStream, type WriteStream } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import type { TestProject } from 'vitest/node';
@@ -11,6 +10,8 @@ import {
   integrationArtifactsDirectory,
 } from './agent-browser';
 import { integrationChildEnvironment } from './environment';
+// The one definition of where the app's output lands, shared with the reader that polls it.
+import { appLogPath } from './mail';
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
@@ -155,7 +156,19 @@ export default async function setup(project: TestProject) {
       .withPassword('devmentor')
       .start();
 
-    const environment = integrationChildEnvironment(postgres.getConnectionUri());
+    // The port is reserved **before** the child environment is built, because `APP_URL` is
+    // part of that environment and must describe the address the app is actually served on
+    // (the OAuth callback no longer depends on it — see the note in `environment.ts`). The
+    // reservation is a hint rather than a lock — `availablePort` closes the probe socket so
+    // the app can bind it — and this order widens the gap between reserving and binding to
+    // include migrate, seed and build. That is acceptable here: the suite owns its machine
+    // for the duration, runs `fileParallelism: false`, and the alternative (two divergent
+    // environments, one for the build and one for the app) is a worse failure mode than a
+    // port collision, which fails loudly at startup.
+    const port = await availablePort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const environment = integrationChildEnvironment(postgres.getConnectionUri(), baseUrl);
     await runNpm(['run', 'db:migrate'], environment);
     await runNpm(['run', 'db:seed'], environment);
     // Seed a second time on purpose. `npm run setup` re-seeds on every invocation, so
@@ -165,11 +178,8 @@ export default async function setup(project: TestProject) {
     await runNpm(['run', 'db:seed'], environment);
     await runNpm(['run', 'build'], environment);
 
-    const port = await availablePort();
-    const baseUrl = `http://127.0.0.1:${port}`;
-    appLog = createWriteStream(resolve(integrationArtifactsDirectory, 'app.log'), {
-      flags: 'w',
-    });
+    // `'w'` truncates, so a run never reads a previous run's mail out of a stale file.
+    appLog = createWriteStream(appLogPath, { flags: 'w' });
     app = spawn(
       npmExecutable,
       [

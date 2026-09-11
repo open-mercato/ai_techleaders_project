@@ -40,7 +40,9 @@ export function createOrmConfig() {
     migrations: {
       path: resolve(packageRoot, 'migrations'),
       pathTs: resolve(packageRoot, 'migrations'),
-      snapshot: true,
+      // On for real work; the integration harness sets DB_MIGRATIONS_SNAPSHOT=false so a
+      // throwaway database can never rewrite this repository's committed snapshot.
+      snapshot: env.DB_MIGRATIONS_SNAPSHOT,
       // Fixed name so the snapshot file is deterministic regardless of the connected
       // database name (which may come from DATABASE_URL and vary per environment).
       snapshotName: 'devmentor',

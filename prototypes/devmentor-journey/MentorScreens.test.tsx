@@ -124,6 +124,9 @@ it('keeps invitation acceptance available after a failed request and grants the 
 it('explains missing publication requirements, keeps failed edits and publishes saved content with copy recovery', async () => {
   renderAs('taylor', 's27');
   let editor = region('Edit mentor profile');
+  const previewButton = () => editor.getByRole<HTMLButtonElement>('button', { name: 'Preview public page' });
+  expect(previewButton().disabled).toBe(false);
+  expect(previewButton().hasAttribute('aria-describedby')).toBe(false);
   fireEvent.click(editor.getByRole('button', { name: 'Publish profile' }));
   await waitFor(() => expect(editor.getByRole('alert').textContent).toContain('Describe the work you can help with.'));
   expect(editor.getByRole('alert').textContent).toContain('Choose at least one technology.');
@@ -132,8 +135,10 @@ it('explains missing publication requirements, keeps failed edits and publishes 
   expect(editor.getByText('Describe the problems you can help with.')).toBeTruthy();
   expect(document.activeElement).toBe(editor.getByRole('textbox', { name: 'About your mentoring' }));
   editor = fillProfile();
-  expect(editor.getByText('Save your changes before publishing or previewing the saved page.')).toBeTruthy();
+  expect(editor.getByText('Save your changes before publishing or previewing.')).toBeTruthy();
   expect(editor.getByRole<HTMLButtonElement>('button', { name: 'Publish profile' }).disabled).toBe(true);
+  expect(previewButton().disabled).toBe(true);
+  expect(document.getElementById(previewButton().getAttribute('aria-describedby')!)?.textContent).toBe('Save your changes before publishing or previewing.');
   mentorDemo.setFailure(true);
   fireEvent.click(editor.getByRole('button', { name: 'Save profile' }));
   await waitFor(() => expect(editor.getAllByRole('alert').some(alert => alert.textContent?.includes('We could not save this change.'))).toBe(true));
@@ -141,8 +146,10 @@ it('explains missing publication requirements, keeps failed edits and publishes 
   expect(editor.getByRole<HTMLInputElement>('checkbox', { name: 'React' }).checked).toBe(true);
   fireEvent.click(editor.getByRole('button', { name: 'Save profile' }));
   await waitFor(() => expect(editor.getByText('Profile saved. Publish it when you are ready.')).toBeTruthy());
-  expect(editor.queryByText('Save your changes before publishing or previewing the saved page.')).toBeNull();
+  expect(editor.queryByText('Save your changes before publishing or previewing.')).toBeNull();
   expect(editor.getByRole<HTMLButtonElement>('button', { name: 'Publish profile' }).disabled).toBe(false);
+  expect(previewButton().disabled).toBe(false);
+  expect(previewButton().hasAttribute('aria-describedby')).toBe(false);
   fireEvent.click(editor.getByRole('button', { name: 'Publish profile' }));
   await waitFor(() => expect(editor.getByText('Published', { exact: true })).toBeTruthy());
   expect(mentorDemo.getPublic('taylor')).toMatchObject({ displayName: 'Taylor Morgan', stacks: ['React'], description: 'I help developers trace React state changes and test their forms.' });
@@ -197,7 +204,8 @@ it('discards an unsaved profile draft on Cancel and restores the last saved fiel
   fireEvent.change(editor.getByRole('textbox', { name: 'About your mentoring' }), { target: { value: 'Discard this draft.' } });
   fireEvent.click(editor.getByRole('checkbox', { name: 'React' }));
   fireEvent.click(editor.getByRole('checkbox', { name: 'Python' }));
-  expect(editor.getByText('Save your changes before publishing or previewing the saved page.')).toBeTruthy();
+  expect(editor.getByText('Save your changes before publishing or previewing.')).toBeTruthy();
+  expect(editor.getByRole<HTMLButtonElement>('button', { name: 'Preview public page' }).disabled).toBe(true);
   fireEvent.click(editor.getByRole('button', { name: 'Cancel' }));
   expect(currentScreen()).toBe('s11');
   await go('s27');
@@ -205,7 +213,8 @@ it('discards an unsaved profile draft on Cancel and restores the last saved fiel
   expect(editor.getByRole<HTMLTextAreaElement>('textbox', { name: 'About your mentoring' }).value).toBe('I help developers trace React state changes and test their forms.');
   expect(editor.getByRole<HTMLInputElement>('checkbox', { name: 'React' }).checked).toBe(true);
   expect(editor.getByRole<HTMLInputElement>('checkbox', { name: 'Python' }).checked).toBe(false);
-  expect(editor.queryByText('Save your changes before publishing or previewing the saved page.')).toBeNull();
+  expect(editor.queryByText('Save your changes before publishing or previewing.')).toBeNull();
+  expect(editor.getByRole<HTMLButtonElement>('button', { name: 'Preview public page' }).disabled).toBe(false);
 });
 
 it('asks before removing a time, supports retry and explains why a paid booking cannot be removed', async () => {

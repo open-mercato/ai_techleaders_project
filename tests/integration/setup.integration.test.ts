@@ -5,6 +5,8 @@ import {
   closeAgentBrowser,
   integrationArtifactsDirectory,
   runAgentBrowser,
+  signInAs,
+  signInCookieHeader,
 } from './agent-browser';
 
 /**
@@ -17,7 +19,10 @@ describe('TC-SETUP-001 setup is idempotent', () => {
   it('leaves exactly one sample mentor after the seeder ran twice', async () => {
     const baseUrl = inject('integrationBaseUrl');
 
-    const response = await fetch(`${baseUrl}/api/users`);
+    // `/api/users` is operator-only, so the seeder check authenticates like any other
+    // caller would — through the real sign-in flow, without a browser.
+    const cookie = await signInCookieHeader(baseUrl, 'mock-operator');
+    const response = await fetch(`${baseUrl}/api/users`, { headers: { cookie } });
     const payload = (await response.json()) as {
       ok: boolean;
       data?: { email: string; displayName: string }[];
@@ -37,6 +42,7 @@ describe('TC-SETUP-001 setup is idempotent', () => {
     const session = `devmentor-setup-${process.pid}`;
 
     try {
+      await signInAs(session, baseUrl, 'mock-operator');
       await runAgentBrowser(session, 'open', `${baseUrl}/admin/users`);
       await runAgentBrowser(session, 'wait', '--text', 'Ada Lovelace');
       const snapshot = await runAgentBrowser(session, 'snapshot');

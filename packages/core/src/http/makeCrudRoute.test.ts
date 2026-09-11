@@ -2,19 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import type { Cradle } from '../container/cradle';
 import type { ApiRouteContext } from './apiHandler';
+import { UnauthorizedError } from './errors';
 import {
   makeCrudRoute,
+  parseJsonBody,
   type CrudService,
   type MakeCrudRouteOptions,
 } from './makeCrudRoute';
 
 const testState = vi.hoisted(() => ({
   cradle: {} as unknown,
-  withScope: vi.fn(),
+  withRequestScope: vi.fn(),
 }));
 
+// `makeCrudRoute` opens a *request* scope, so the session cookie on the request reaches the
+// scope's lazy `session` key and an `authorize` hook and the service it guards share one
+// lookup. The stub stands in for the whole scope, as the `withScope` stub did before it.
 vi.mock('../container/container', () => ({
-  withScope: testState.withScope,
+  withRequestScope: testState.withRequestScope,
 }));
 
 type Entity = { id: string; name: string };
@@ -28,12 +33,20 @@ function context(params?: Record<string, string | string[]>): ApiRouteContext {
     : { params: Promise.resolve(params) };
 }
 
+/**
+ * Every request carries the CSRF header, because `apiHandler` now refuses a mutating
+ * request without it before the route body runs (primitives B3) — as `apiCall`, the only
+ * sanctioned client, always sends it. The refusal itself is asserted in `apiHandler.test.ts`;
+ * here it would only mask the CRUD behaviour under test.
+ */
 function request(method: string, body?: string): Request {
   return new Request('http://devmentor.test/api/resources', {
     method,
-    ...(body === undefined
-      ? {}
-      : { body, headers: { 'content-type': 'application/json' } }),
+    headers: {
+      'x-devmentor-request': '1',
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+    },
+    ...(body === undefined ? {} : { body }),
   });
 }
 
@@ -66,8 +79,8 @@ function route(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  testState.withScope.mockImplementation(
-    async (callback: (cradle: Cradle) => Promise<unknown>) =>
+  testState.withRequestScope.mockImplementation(
+    async (_req: Request, callback: (cradle: Cradle) => Promise<unknown>) =>
       callback(testState.cradle as Cradle),
   );
 });
@@ -88,6 +101,31 @@ describe('makeCrudRoute GET', () => {
     });
     expect(authorize).toHaveBeenCalledWith(req, testState.cradle);
     expect(currentService.list).toHaveBeenCalledOnce();
+  });
+
+  it('denies before the service is resolved when authorization throws', async () => {
+    // The ordering guarantee every guarded route depends on: `/api/users` refuses an
+    // anonymous caller here *and* inside `UserService.list`, and the route half is only
+    // defence in depth if it runs first. `resolve` is spied on too, because a service that
+    // is never resolved is a database query that never happens.
+    const currentService = service();
+    const resolve = vi.fn(() => currentService);
+    const handlers = route(currentService, {
+      resolve,
+      authorize: () => {
+        throw new UnauthorizedError();
+      },
+    });
+
+    const response = await handlers.GET(request('GET'), context());
+
+    expect(response.status).toBe(401);
+    expect(await body(response)).toEqual({
+      ok: false,
+      error: { code: 'unauthorized', message: 'Authentication required' },
+    });
+    expect(resolve).not.toHaveBeenCalled();
+    expect(currentService.list).not.toHaveBeenCalled();
   });
 
   it('lists when an empty params object is provided', async () => {
@@ -289,6 +327,56 @@ describe('makeCrudRoute DELETE', () => {
     expect(response.status).toBe(400);
     expect(await body(response)).toMatchObject({
       error: { message: 'This operation is not supported' },
+    });
+  });
+});
+
+/**
+ * The same two decisions a CRUD `POST` makes about a body, exported for the routes that are
+ * not CRUD: `/api/auth/register` and `/api/auth/login` take a JSON body, use `apiHandler`
+ * directly, and must answer the same envelope for the same mistake.
+ */
+describe('parseJsonBody', () => {
+  function post(body: string): Request {
+    return new Request('http://devmentor.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    });
+  }
+
+  it('returns the parsed value on a body the schema accepts', async () => {
+    await expect(parseJsonBody(post('{"name":"Ada"}'), inputSchema)).resolves.toEqual({
+      name: 'Ada',
+    });
+  });
+
+  it('drops keys the schema does not declare, so a posted extra never reaches a service', async () => {
+    await expect(
+      parseJsonBody(post('{"name":"Ada","roles":["operator"]}'), inputSchema),
+    ).resolves.toEqual({ name: 'Ada' });
+  });
+
+  it('raises a 400 for a body that is not JSON at all', async () => {
+    await expect(parseJsonBody(post('not json'), inputSchema)).rejects.toMatchObject({
+      status: 400,
+      code: 'bad_request',
+      message: 'Request body must be valid JSON',
+    });
+  });
+
+  it('raises a 422 with fieldErrors for JSON of the wrong shape', async () => {
+    await expect(parseJsonBody(post('{"name":""}'), inputSchema)).rejects.toMatchObject({
+      status: 422,
+      code: 'validation_failed',
+      fieldErrors: { name: [expect.any(String)] },
+    });
+  });
+
+  it('keys an issue with no path as _root', async () => {
+    await expect(parseJsonBody(post('"a string"'), inputSchema)).rejects.toMatchObject({
+      status: 422,
+      fieldErrors: { _root: [expect.any(String)] },
     });
   });
 });
