@@ -36,6 +36,10 @@ export function integrationChildEnvironment(
     INVITATION_TTL_DAYS: '14',
     MENTOR_PUBLISH_WINDOW_DAYS: '14',
     PLATFORM_CURRENCY: 'PLN',
+    // Pinned, not inherited: with one or more trusted hops the per-IP rate-limit buckets
+    // switch on, and every scenario would share one loopback bucket, so 429s would depend
+    // on test order. Only the per-email buckets, which scenarios own, stay active.
+    TRUSTED_PROXY_HOPS: '0',
     PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}',
     // A throwaway database must never author a repository file. `migration:up` rewrites
     // the migration snapshot from introspection whenever the migrated schema differs from

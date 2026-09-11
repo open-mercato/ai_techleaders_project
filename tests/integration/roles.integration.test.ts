@@ -343,3 +343,34 @@ describe('TC-ROLE-005 /api/users refuses everyone but the operator', () => {
     expect(refused.data).toBeUndefined();
   });
 });
+
+describe('TC-ROLE-006 /api/mentors/me refuses a signed-in mentee', () => {
+  it('answers a mentee 403 forbidden while the mentor still gets their profile', async () => {
+    const baseUrl = inject('integrationBaseUrl');
+
+    const mentor = await fetch(`${baseUrl}/api/mentors/me`, {
+      headers: { cookie: await signInCookieHeader(baseUrl, 'mock-mentor') },
+    });
+    const allowed = (await mentor.json()) as { ok: boolean; data?: { displayName?: string } };
+
+    expect(mentor.status).toBe(200);
+    expect(allowed.ok).toBe(true);
+    expect(allowed.data?.displayName).toBe('Mock Mentor');
+
+    const mentee = await fetch(`${baseUrl}/api/mentors/me`, {
+      headers: { cookie: await signInCookieHeader(baseUrl, 'mock-mentee') },
+    });
+    const refused = (await mentee.json()) as {
+      ok: boolean;
+      error?: { code?: string; message?: string };
+      data?: unknown;
+    };
+
+    expect(mentee.status).toBe(403);
+    expect(refused).toEqual({
+      ok: false,
+      error: { code: 'forbidden', message: 'You do not have access to this resource' },
+    });
+    expect(refused.data).toBeUndefined();
+  });
+});

@@ -53,6 +53,43 @@ export async function seedPublishedMentorProfile(
   }
 }
 
+export interface DraftMentorProfileFixture {
+  profileId: string;
+  publicWorkUrl: string | null;
+  bio: string | null;
+  stackTags: StackTag[];
+}
+
+const DRAFT_PUBLIC_WORK_URL = 'https://github.com/open-mercato';
+const DRAFT_BIO = 'I build TypeScript systems and help engineers make reliable architecture choices.';
+
+/** Seed the mock mentor as an unpublished draft with exactly the given page fields. */
+async function seedDraftMentorProfile(
+  databaseUrl: string,
+  fields: Omit<DraftMentorProfileFixture, 'profileId'>,
+): Promise<DraftMentorProfileFixture> {
+  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+  await orm.connect();
+  try {
+    const em = orm.em.fork();
+    const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
+    const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
+    profile.slug = null;
+    profile.publicWorkUrl = fields.publicWorkUrl;
+    profile.bio = fields.bio;
+    profile.stackTags = [...fields.stackTags];
+    profile.publishedAt = null;
+    profile.lastPublishedAvailabilityAt = null;
+    profile.price25Cents = null;
+    profile.price50Cents = null;
+    await em.nativeDelete(Slot, { mentorProfile: profile.id });
+    await em.flush();
+    return { profileId: profile.id, ...fields };
+  } finally {
+    await orm.close(true);
+  }
+}
+
 export interface MentorProfileMissingStackFixture {
   profileId: string;
   publicWorkUrl: string;
@@ -66,31 +103,30 @@ export interface MentorProfileMissingStackFixture {
 export async function seedMentorProfileMissingStackTags(
   databaseUrl: string,
 ): Promise<MentorProfileMissingStackFixture> {
-  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
-  await orm.connect();
-  try {
-    const em = orm.em.fork();
-    const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
-    const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
-    const fixture = {
-      profileId: profile.id,
-      publicWorkUrl: 'https://github.com/open-mercato',
-      bio: 'I build TypeScript systems and help engineers make reliable architecture choices.',
-    };
-    profile.slug = null;
-    profile.publicWorkUrl = fixture.publicWorkUrl;
-    profile.bio = fixture.bio;
-    profile.stackTags = [];
-    profile.publishedAt = null;
-    profile.lastPublishedAvailabilityAt = null;
-    profile.price25Cents = null;
-    profile.price50Cents = null;
-    await em.nativeDelete(Slot, { mentorProfile: profile.id });
-    await em.flush();
-    return fixture;
-  } finally {
-    await orm.close(true);
-  }
+  const { profileId } = await seedDraftMentorProfile(databaseUrl, {
+    publicWorkUrl: DRAFT_PUBLIC_WORK_URL,
+    bio: DRAFT_BIO,
+    stackTags: [],
+  });
+  return { profileId, publicWorkUrl: DRAFT_PUBLIC_WORK_URL, bio: DRAFT_BIO };
+}
+
+/** Seed an unpublished draft with no link, no bio and no technologies. */
+export async function seedEmptyMentorProfileDraft(
+  databaseUrl: string,
+): Promise<DraftMentorProfileFixture> {
+  return seedDraftMentorProfile(databaseUrl, { publicWorkUrl: null, bio: null, stackTags: [] });
+}
+
+/** Seed a draft whose only unmet publish requirement is the public-work link. */
+export async function seedMentorProfileMissingPublicWorkUrl(
+  databaseUrl: string,
+): Promise<DraftMentorProfileFixture> {
+  return seedDraftMentorProfile(databaseUrl, {
+    publicWorkUrl: null,
+    bio: DRAFT_BIO,
+    stackTags: ['TypeScript'],
+  });
 }
 
 /** Seed one future slot owned by a fixture profile. */

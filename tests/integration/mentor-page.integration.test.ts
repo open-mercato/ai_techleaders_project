@@ -20,11 +20,13 @@ import {
   closeAgentBrowser,
   integrationArtifactsDirectory,
   runAgentBrowser,
+  signInAs,
   signInCookieHeader,
 } from './agent-browser';
 import { expectAbsent } from './assertions';
 import {
   resetPublishedMentorProfile,
+  seedMentorProfileMissingPublicWorkUrl,
   seedPublishedMentorProfile,
 } from './fixtures/mentor';
 
@@ -267,5 +269,63 @@ describe('TC-MENTOR-PAGE-002 publication transaction races', () => {
     expect(final.slug).toBe('serial-mentor');
     expect(final.publishedAt).toBeNull();
     unsubscribe();
+  });
+});
+
+describe('TC-MENTOR-PAGE-003 publish requires a public-work link', () => {
+  it('refuses to publish and names the missing link on its field', async () => {
+    const baseUrl = inject('integrationBaseUrl');
+    const databaseUrl = inject('integrationDatabaseUrl');
+    const session = `devmentor-page-missing-link-${process.pid}`;
+
+    try {
+      const fixture = await seedMentorProfileMissingPublicWorkUrl(databaseUrl);
+
+      await signInAs(session, baseUrl, 'mock-mentor');
+      await runAgentBrowser(session, 'open', `${baseUrl}/mentor/profile`);
+      await runAgentBrowser(session, 'wait', '--text', 'Ready to publish?');
+
+      const before = await runAgentBrowser(session, 'snapshot');
+      expect(before).toContain('heading "Add a link to your public work."');
+      expect(before).toContain('checkbox "TypeScript" [checked=true');
+      expect(before).toContain('button "Publish page"');
+
+      await runAgentBrowser(session, 'find', 'role', 'button', 'click', '--name', 'Publish page');
+      await runAgentBrowser(session, 'wait', '[role="alert"]');
+
+      await expect(runAgentBrowser(session, 'get', 'text', '[role="alert"]'))
+        .resolves.toBe('Add a link to your public work.');
+      await expect(runAgentBrowser(session, 'get', 'attr', '[aria-invalid="true"]', 'name'))
+        .resolves.toBe('publicWorkUrl');
+      await expect(runAgentBrowser(session, 'get', 'count', '[role="alert"]')).resolves.toBe('1');
+      await expect(runAgentBrowser(session, 'get', 'count', '[aria-invalid="true"]')).resolves.toBe('1');
+
+      const after = await runAgentBrowser(session, 'snapshot');
+      expect(after).toContain('button "Publish page"');
+      expect(after).not.toContain('button "Unpublish page"');
+      await runAgentBrowser(
+        session,
+        'screenshot',
+        resolve(integrationArtifactsDirectory, 'mentor-page-publish-blocked-missing-link.png'),
+        '--full',
+      );
+
+      const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+      await orm.connect();
+      try {
+        const profile = await orm.em.fork().findOneOrFail(MentorProfile, { id: fixture.profileId });
+        expect(profile.publishedAt).toBeNull();
+        expect(profile.slug).toBeNull();
+        expect(profile.publicWorkUrl).toBeNull();
+      } finally {
+        await orm.close(true);
+      }
+    } catch (error) {
+      await captureBrowserFailure(session, 'mentor-page-missing-link');
+      throw error;
+    } finally {
+      await closeAgentBrowser(session);
+      await resetPublishedMentorProfile(databaseUrl);
+    }
   });
 });

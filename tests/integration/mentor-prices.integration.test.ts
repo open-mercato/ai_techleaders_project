@@ -6,6 +6,7 @@ import {
   closeAgentBrowser,
   integrationArtifactsDirectory,
   runAgentBrowser,
+  signInAs,
   signInCookieHeader,
 } from './agent-browser';
 import { expectAbsent } from './assertions';
@@ -288,6 +289,62 @@ describe('TC-MENTOR-PRICES-003 unpriced availability', () => {
     } finally {
       await closeAgentBrowser(session);
       await resetPublishedMentorProfile(databaseUrl);
+    }
+  });
+});
+
+describe('TC-MENTOR-PRICES-004 a price below the bound in the editor', () => {
+  it('shows the allowed range on the refused field and keeps both stored prices', async () => {
+    const baseUrl = inject('integrationBaseUrl');
+    const databaseUrl = inject('integrationDatabaseUrl');
+    const session = `devmentor-prices-editor-${process.pid}`;
+    let orm: MikroORM | undefined;
+
+    try {
+      const mentor = await seedPublishedMentorProfile(databaseUrl);
+      const cookie = await signInCookieHeader(baseUrl, 'mock-mentor');
+      await responseData<OwnerPayload>(await updatePrices(baseUrl, cookie, '100.00', '200.00'));
+
+      await signInAs(session, baseUrl, 'mock-mentor');
+      await runAgentBrowser(session, 'open', `${baseUrl}/mentor/prices`);
+      await runAgentBrowser(session, 'wait', '--text', 'Your session prices');
+      const before = await runAgentBrowser(session, 'snapshot');
+      expect(before).toContain('textbox "25-minute price" [required, ref=');
+      expect(before).toContain('Allowed range: PLN 90.00 to PLN 600.00. Currency: PLN.');
+
+      await runAgentBrowser(session, 'find', 'label', '25-minute price', 'fill', '89.99');
+      await runAgentBrowser(session, 'find', 'role', 'button', 'click', '--name', 'Save prices');
+      await runAgentBrowser(session, 'wait', '[role="alert"]');
+
+      await expect(runAgentBrowser(session, 'get', 'text', '[role="alert"]'))
+        .resolves.toBe('Enter an amount from PLN 90.00 to PLN 600.00.');
+      await expect(runAgentBrowser(session, 'get', 'attr', '[aria-invalid="true"]', 'name'))
+        .resolves.toBe('price25');
+      await expect(runAgentBrowser(session, 'get', 'count', '[role="alert"]')).resolves.toBe('1');
+      await expect(runAgentBrowser(session, 'get', 'count', '[aria-invalid="true"]')).resolves.toBe('1');
+      const after = await runAgentBrowser(session, 'snapshot');
+      expect(after).not.toContain('Session prices saved.');
+      await runAgentBrowser(
+        session,
+        'screenshot',
+        resolve(integrationArtifactsDirectory, 'mentor-prices-below-bound.png'),
+        '--full',
+      );
+
+      orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+      await orm.connect();
+      const profile = await orm.em.fork().findOneOrFail(MentorProfile, { id: mentor.profileId });
+      expect([profile.price25Cents, profile.price50Cents]).toEqual([10_000, 20_000]);
+    } catch (error) {
+      await captureBrowserFailure(session, 'mentor-prices-below-bound');
+      throw error;
+    } finally {
+      await closeAgentBrowser(session);
+      try {
+        await orm?.close(true);
+      } finally {
+        await resetPublishedMentorProfile(databaseUrl);
+      }
     }
   });
 });
