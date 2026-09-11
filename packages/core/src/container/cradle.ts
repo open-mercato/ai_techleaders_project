@@ -8,6 +8,10 @@ import type { PasswordService } from '../services/auth/password.service';
 import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
+import type { SlotService } from '../services/availability/slot.service';
+import type { InvitationService } from '../services/invitations/invitation.service';
+import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
+import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
 import type { Mailer } from '../services/notifications/mailer.port';
 import type { Session } from '../http/auth';
@@ -57,6 +61,10 @@ export interface Cradle {
   mailer: Mailer;
   em: EntityManager;
   userService: UserService;
+  invitationService: InvitationService;
+  mentorProfileService: MentorProfileService;
+  slotService: SlotService;
+  platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes
    * `email_verified_at` — exactly like `userService`, and for the same forced reason: a

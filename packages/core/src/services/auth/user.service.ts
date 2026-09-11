@@ -324,7 +324,13 @@ function toUserDto(user: IUser): UserDto {
 }
 
 /** A `roles_changed` payload waiting for its transaction to commit, or nothing to say. */
-type PendingRolesChange = EventMap['auth.user.roles_changed'] | null;
+export type PendingRolesChange = EventMap['auth.user.roles_changed'] | null;
+
+export interface StagedRoleGrant {
+  roles: readonly Role[];
+  sessionVersion: number;
+  change: PendingRolesChange;
+}
 
 /** Everything one attempt at the GitHub sign-in produced, before anything is announced. */
 interface GithubSignInOutcome {
@@ -656,14 +662,50 @@ export class UserService {
    * strip it again unless the address is allowlisted. Adding a founder is an allowlist
    * commit, not a call to this method.
    *
-   * Not wrapped in a transaction, unlike `findOrCreateFromGithub`: E01 exposes no path that
-   * calls this, so there is nothing to race with yet, and B10 names exactly one E01
-   * transaction. #15 adds the first caller — read-modify-write on `roles` and
-   * `session_version` needs the row locked (or the version incremented in SQL) before two
-   * concurrent invitation acceptances can exist.
+   * The standalone operation is not wrapped in a transaction. Invitation acceptance is
+   * the first larger transaction that needs the same mutation; it locks the user and calls
+   * `stageRoleGrant`, then announces the staged event only after its whole transaction
+   * commits. Keeping that seam here prevents a role event escaping from a rolled-back
+   * invitation acceptance.
    */
   async grantRole(userId: string, role: Role): Promise<SignedInUser> {
     return this.changeRoleMembership(userId, role, 'granted');
+  }
+
+  /**
+   * Apply an additive role grant to an already locked entity without flushing or
+   * emitting. Invitation acceptance owns a larger transaction (user, invitation and
+   * mentor profile); emitting before that transaction commits could announce a role
+   * grant that is later rolled back. The caller must flush its transaction and invoke
+   * `announceStagedRoleChange` only after commit.
+   */
+  stageRoleGrant(user: IUser, role: Role): StagedRoleGrant {
+    const previousRoles = normalizeRoles(user.roles);
+    const roles = normalizeRoles(new Set<Role>([...previousRoles, role]));
+
+    if (sameMembership(previousRoles, roles)) {
+      return { roles, sessionVersion: user.sessionVersion, change: null };
+    }
+
+    user.roles = [...roles];
+    user.sessionVersion += 1;
+    return {
+      roles,
+      sessionVersion: user.sessionVersion,
+      change: { userId: user.id, roles, previousRoles, reason: 'granted' },
+    };
+  }
+
+  /** Announce a role mutation after the transaction that persisted it has committed. */
+  async announceStagedRoleChange(change: PendingRolesChange): Promise<void> {
+    if (change === null) {
+      return;
+    }
+    this.logger.info(
+      { userId: change.userId, reason: change.reason, roles: change.roles },
+      'changed a user role assignment',
+    );
+    await this.eventBus.emit('auth.user.roles_changed', change);
   }
 
   /**
@@ -997,12 +1039,17 @@ export class UserService {
     }
 
     const previousRoles = normalizeRoles(user.roles);
-    const held = new Set<Role>(previousRoles);
     if (reason === 'granted') {
-      held.add(role);
-    } else {
-      held.delete(role);
+      const staged = this.stageRoleGrant(user, role);
+      if (staged.change !== null) {
+        await this.em.flush();
+      }
+      await this.announceStagedRoleChange(staged.change);
+      return { user: toUserDto(user), sessionVersion: staged.sessionVersion };
     }
+
+    const held = new Set<Role>(previousRoles);
+    held.delete(role);
     const roles = normalizeRoles(held);
 
     if (roles.length === 0) {
@@ -1024,8 +1071,7 @@ export class UserService {
     user.sessionVersion += 1;
     await this.em.flush();
 
-    this.logger.info({ userId, role, reason, roles }, 'changed a user role assignment');
-    await this.eventBus.emit('auth.user.roles_changed', {
+    await this.announceStagedRoleChange({
       userId,
       roles,
       previousRoles,

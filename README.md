@@ -126,6 +126,10 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `LOG_LEVEL` | `info` | pino level, from `fatal` to `silent`. |
 | `APP_URL` | `http://localhost:3000` | Absolute origin of this deployment. Builds the OAuth redirect URI and the links in outbound mail, so it must be the address a browser actually reaches. Must be `http://` or `https://`. |
 | `TRUSTED_PROXY_HOPS` | `0` | How many reverse proxies sit in front of the app. The rate limiter takes the client IP this many hops from the right of `x-forwarded-for`; `0` trusts no forwarded header, so per-IP limiting is off and only the per-email limits apply (a warning says so once per process). Counting from the right is deliberate: a proxy appends to the header, so a value a client forged always sits to the left of the one infrastructure wrote. |
+| `INVITATION_TTL_DAYS` | `14` | Days a newly created mentor invitation remains valid. Snapshotted when the invitation is created. |
+| `MENTOR_PUBLISH_WINDOW_DAYS` | `14` | Days an accepted mentor has to publish a bookable session. Snapshotted at acceptance. |
+| `PLATFORM_CURRENCY` | `PLN` | Fixed platform currency for mentor prices. The first release rejects every other currency. |
+| `PLATFORM_PRICE_BOUNDS` | `{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}` | Integer-cent inclusive bounds for 25- and 50-minute sessions. Must be valid JSON in the exact documented shape and no longer than 256 characters. |
 
 ### Database
 
@@ -255,6 +259,9 @@ signals (`tests/integration/environment.ts`); you do not need any of them in a l
 | `npm run test:unit:coverage` | Run unit tests with per-file 100% coverage gates |
 | `npm run test:browser:install` | Install agent-browser's Chrome runtime locally |
 | `npm run test:integration` | Test an ephemeral PostgreSQL + production app with agent-browser |
+| `npm run invite -- create <email> --operator <label> --tags TypeScript,React [--batch <label>]` | Create a single-use mentor invitation. The audit line is token-free; the link is printed separately once. |
+| `npm run invite -- revoke <id> --operator <label>` | Revoke a pending mentor invitation. |
+| `npm run invite -- resend <id> --operator <label>` | Rotate a pending invitation token and expiry, then print the new link separately. |
 | `npm run db:up` / `npm run db:down` | Start / stop local Postgres (Docker) |
 | `npm run db:migration:create -- --name <x>` | Generate a migration from entity diff |
 | `npm run db:migrate` / `npm run db:migrate:down` | Apply / revert migrations |

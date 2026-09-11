@@ -71,6 +71,27 @@ error does not carry them — they are never emitted as `null`.
   route's `authorize` hook denies before the service is resolved, and `UserService.list`
   refuses independently. The service check is the authority; the route check is defence in
   depth, because a caller can reach a service by another route (E01 spec, edge case 21).
+- `GET` and `POST /api/availability/slots` list and publish the signed-in mentor's active
+  start times; `DELETE /api/availability/slots/[id]` soft-removes only a slot owned by that
+  mentor. The mutating verbs inherit the standard CSRF check. A duplicate active start answers
+  the existing 409 `conflict` envelope, and owner responses are explicit `{ id, startsAt }`
+  DTOs rather than entities. The owner DTO additively exposes optional `isFuture`, populated on
+  every live response from one server-clock snapshot with an inclusive `startsAt >= now` rule;
+  the exact public slot allowlist remains `{ id, startsAt, meetsLeadTime }`. A mentor may retain up to 500 active slots; publication at the
+  cap answers 422 and asks the mentor to remove an existing time. Owner and public reads use
+  that same explicit upper bound.
+- `GET /api/mentors/[slug]` additively includes `slots`, ordered by start time, with
+  `{ id, startsAt, meetsLeadTime }`. `meetsLeadTime` is true through the exact two-hour
+  boundary. Source-level `MentorProfilePublicDto.slots` remains optional for Slice 2 callers,
+  while the HTTP projection always supplies the array.
+- Mentor profile projections add integer-cent pricing without changing the existing keys.
+  The live owner projection includes `prices`, `priceCurrency`, `priceBounds` and `offerReadiness`; the live
+  public projection includes only `prices`, which is `{ price25Cents, price50Cents, currency }`
+  when both stored prices exist and `null` otherwise. The new fields remain optional in the
+  exported TypeScript DTOs so Slice 2 object constructors compile unchanged. `priceCurrency`
+  is likewise optional at the source boundary and always populated on live owner reads, including
+  before prices exist, so clients never invent platform policy. The public
+  projection never exposes operator bounds, readiness internals, email or invitation state.
 - `POST /api/users` **was removed** (E01 Slice 2). It was public, had zero in-repo callers,
   and let anyone create an unverified row for an address they did not own — the
   account-takeover vector the GitHub linking rule closes. No `POST` is exported from
@@ -153,14 +174,17 @@ API between packages. `npm run typecheck` is the consumer check.
 - `@devmentor/core` declares five subpaths and they are **not** interchangeable: `.` is the
   full barrel; `./http` and `./events` re-export their folders; `./container` exports only
   `getContainer`, `withScope`, `withRequestScope`, `withCookieScope` and `Cradle`;
-  `./services` exports only `UserService`; `./validators/*` maps to `src/validators/*.ts`
+  `./services` exports `UserService`, `InvitationService` and `SlotService`;
+  `./validators/*` maps to `src/validators/*.ts`
   and is how a shared client/server schema reaches `packages/ui` (see below). Moving a name
   between subpaths is a breaking change even when `.` still exports it.
 
   From `.`: `getEnv` with `AppEnv`, `createLogger` with `Logger`, `getContainer`, `withScope`,
   `withRequestScope`, `withCookieScope`, the `Cradle` keys (`env`, `logger`, `orm`, `eventBus`,
   `clock`, `sessionService`, `tokenService`, `githubIdentity`, `em`, `userService`,
-  `rateLimiter`, `sessionCookie`, `session`), `UserService` and `UserDto`, `SessionService` with
+  `rateLimiter`, `sessionCookie`, `session`, `invitationService`, `mentorProfileService`,
+  `slotService`, `platformSettingsService`), `UserService` and `UserDto`, `SlotService` with `SlotOwnerDto` and
+  `SlotPublicDto`, `slotCreateSchema` with `SlotCreateInput`, `SessionService` with
   `SESSION_COOKIE_NAME`, `IssuedSession`, `SessionClaims` and `SessionUser`, `TokenService`
   with `TokenPurpose`, `PurposeTokenClaims`, `SignPurposeTokenInput` and
   `VerifyPurposeTokenInput`, `GithubIdentityPort` with `GithubIdentity`, `AuthorizeUrlInput`,
@@ -173,6 +197,20 @@ API between packages. `npm run typecheck` is the consumer check.
   with `Clock`, `EventBus`, `EventMap`, `EventId`, `EventHandler`, the two shared auth
   bodies (`registerSchema` with `RegisterInput`, `loginSchema` with `LoginInput`), and the
   re-exported `checkDbConnection`.
+
+  `PlatformSettingsService` with `PlatformSettings` and
+  `PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE` is additive on both `.` and `./services`.
+  `get()` returns the resolved PLN policy and `boundsFor('25' | '50')` returns the
+  matching inclusive integer-cent bounds. Its `platformSettingsService` cradle key is
+  process-singleton and fails closed with the standard 503 code if resolved policy is
+  missing, unsupported, malformed or internally inconsistent.
+
+  `MentorProfileService.updatePrices` and `MentorPricesDto`, `mentorOfferReady`,
+  `mentorPricesUpdateSchema` with `MentorPricesUpdateInput`, and `exactMajorDecimalString`
+  are additive exports from `.`. The service constructor's `platformSettingsService` input is
+  optional for source compatibility with direct Slice 2 constructions; price writes fail with
+  the standard 503 when it is absent. The existing `toPublicDto(profile, slots?)` arguments are
+  unchanged; settings are an optional third argument.
 
   From `./http`, also re-exported by `.`: the `AppError` family (`BadRequestError`,
   `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`, `ValidationError`,
@@ -242,8 +280,8 @@ API between packages. `npm run typecheck` is the consumer check.
   entry point for unauthenticated and system work; `withRequestScope(req, fn)` and
   `withCookieScope(cookieValue, fn)` are additive and register the request-scoped
   `session`, which resolves lazily, once per scope, to `Session | null`.
-- `@devmentor/db` (`.`, `./entities`, `./config`): `User`, `MentorProfile`, `IUser`,
-  `IMentorProfile`, `baseProperties`, `entities`, `ROLES` and `Role` (the single source of
+- `@devmentor/db` (`.`, `./entities`, `./config`): `User`, `MentorProfile`, `Slot`, `IUser`,
+  `IMentorProfile`, `ISlot`, `baseProperties`, `entities`, `ROLES` and `Role` (the single source of
   truth behind the `users.roles` column, §7), `createOrmConfig`, `getOrm`, `closeOrm`,
   `checkDbConnection`, `getDbEnv` with `DbEnv`, `MikroORM`, `EntityManager`,
   `UniqueConstraintViolationException` (exported on purpose:
@@ -253,6 +291,9 @@ API between packages. `npm run typecheck` is the consumer check.
   real `PasswordService`, which is why they are on the barrel rather than behind a deep
   path), and the re-exported `EntityRepository`, `FilterQuery`, `Loaded`,
   `RequiredEntityData`.
+  `MentorProfile` additively carries nullable `price25Cents` and `price50Cents` integer
+  properties backed by `price_25_cents` and `price_50_cents`; named database checks reject
+  non-positive stored values while preserving all pre-price rows as `null`.
 - `@devmentor/ui` (`.`, `./backend`, `./tokens.css`, `./lib/utils`, `./components/*`).
   `./components/*` maps to `src/components/ui/*.tsx` only — the shadcn primitives. The domain
   components below are reachable through `.` and nowhere else.
@@ -264,7 +305,7 @@ API between packages. `npm run typecheck` is the consumer check.
   `textarea`, `tooltip`), and the domain components under `components/<concept>/`:
   `AccessStatus`, `AccountForm`, `AuthFeedback` with `AuthFeedbackState`, `SignOutAction`,
   `AvailabilityPicker`, `BookingSummary`, `DisputeDetail`, `InvitationBatch`,
-  `MentorProfileCard`, `MentorProfileEditor`, `MentorOnboarding`, `MentorSearch`,
+  `MentorProfileCard`, `MentorProfileEditor`, `MentorOnboarding`, `MentorSearch`, `SlotTime`,
   `MentorReviews`, `TechnologyChips`, `NoteReview`, `MetricSummary`, `PaymentStatus`,
   `SessionCard`, `WrittenAnswer`, each with its props type.
 
@@ -274,6 +315,12 @@ API between packages. `npm run typecheck` is the consumer check.
   `WorkflowActionProps`, `DataTable` with `Column`, `DataTableProps` and
   `DataTablePagination`, `AppShell` with `AppShellProps`, `AuthLayout` with
   `AuthLayoutProps`, `LoadingMessage`, `ErrorMessage`, `EmptyState`.
+
+  `CrudFieldType` additively includes `money`, and the interface additively exposes its
+  fixed `currency` label. A money field renders a text control with decimal input mode
+  and preserves the exact major-unit string through validation and submission. It never coerces or rounds
+  through a JavaScript number. All existing `CrudForm` props, interface extensions and
+  field behavior remain source-compatible.
 
   From `./tokens.css`: the CSS variable names (`--background`, `--foreground`, `--primary`,
   `--destructive`, `--border`, `--ring`, ...) that Tailwind utilities map onto.
@@ -294,7 +341,12 @@ the change spans several concepts; note it in the PR body.
   `avatar_url` text nullable, `email_verified_at` timestamptz nullable, `password_hash` text
   nullable, `session_version` int default 0) and `mentor_profiles` (`id`, timestamps,
   `user_id` unique with a cascading foreign key to `users`, `headline`, `bio` nullable,
-  `years_of_experience` default 0), plus `auth_rate_limits` (see below). Column names are snake_case mappings of the
+  `years_of_experience` default 0, `last_published_availability_at` timestamptz nullable),
+  plus `slots` (`id`, timestamps, `mentor_profile_id` cascading to `mentor_profiles`,
+  `starts_at` timestamptz, `removed_at` timestamptz nullable) and `auth_rate_limits` (see
+  below). Active slots are uniquely keyed by mentor and start through the partial
+  `slots_active_mentor_profile_starts_at_unique` index where `removed_at is null`; the same
+  instant may therefore be republished after removal. Column names are snake_case mappings of the
   camelCase entity properties. `password_hash` is `text` on purpose — 60 is bcrypt's output
   width and this project hashes with `scrypt`, so pinning the width would close the
   `argon2id` upgrade path — and nullable on purpose: a GitHub-only account has no password,
@@ -381,9 +433,11 @@ and the integration test updated together; `risk-high` plus `needs-qa` per `SDLC
 Variables, as listed in `.env.example` and documented in `README.md`'s Configuration section:
 
 - Application: `NODE_ENV`, `APP_NAME`, `LOG_LEVEL`, `APP_URL` (absolute, `http`/`https` only),
-  `TRUSTED_PROXY_HOPS`.
+  `TRUSTED_PROXY_HOPS`, `PLATFORM_CURRENCY` (`PLN` only), `PLATFORM_PRICE_BOUNDS`
+  (strict JSON no longer than 256 characters, parsed to `p25`/`p50` integer-cent bounds).
 - Database: `DATABASE_URL` (takes precedence), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
-  `DB_PASSWORD`, `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_POOL_IDLE_MS`, `DB_DEBUG`.
+  `DB_PASSWORD`, `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_POOL_IDLE_MS`, `DB_DEBUG`, plus the
+  platform currency and bounds validated for deployment parity with the app schema.
 - Authentication: `SESSION_SECRET`, `SESSION_SECRET_PREVIOUS` (both optional, both at least
   32 characters when set), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `OPERATOR_EMAILS`
   (comma-separated; parsed into a trimmed, lower-cased list at parse time).
@@ -408,8 +462,10 @@ the schema breaks the Build job.
 `tests/integration/environment.ts` sets `NODE_ENV=production`, `NEXT_TELEMETRY_DISABLED=1`,
 `DATABASE_URL`, `DB_POOL_MIN`/`DB_POOL_MAX`, `MIKRO_ORM_MIGRATIONS_SNAPSHOT_NAME`, a per-run
 random `SESSION_SECRET`, `AUTH_IDENTITY_ADAPTER=mock`, `INTEGRATION_TEST_RUN=1`,
-`OPERATOR_EMAILS` and a required `APP_URL`. `.github/workflows/ci.yml` sets
-`NEXT_TELEMETRY_DISABLED` globally and `OPERATOR_EMAILS` on the integration job.
+`OPERATOR_EMAILS`, the approved platform price policy and a required `APP_URL`.
+`.github/workflows/ci.yml` sets `NEXT_TELEMETRY_DISABLED` and that same price policy
+globally, and `OPERATOR_EMAILS` on the integration job. The additive `AppEnv`/`DbEnv`
+fields and `Cradle.platformSettingsService` key are protected source contracts.
 
 **Breaking:** a new variable without a default; renaming or removing a variable;
 changing a default in a way that changes runtime behavior; dropping the
@@ -437,7 +493,7 @@ maintainer updates the ruleset before the PR merges, otherwise the PR blocks its
 
 ### 6. Domain events (`packages/core/src/events/event-map.ts`)
 
-Event ids follow `concept.entity.action`. Today there are two, both subscribed in
+Event ids follow `concept.entity.action`. Today there are three, all subscribed in
 `packages/core/src/container/container.ts`:
 
 - `auth.user.created`, payload `{ userId, email }`, emitted by `UserService.create` and by the
@@ -447,6 +503,8 @@ Event ids follow `concept.entity.action`. Today there are two, both subscribed i
   the operator reconciliation and by `grantRole`/`revokeRole`. It is **not** an audit record —
   reconciliation fires it on every request where the allowlist and the stored column disagree,
   so a subscriber must not treat one event as one deliberate administrative act.
+- `availability.slot.published`, payload `{ mentorProfileId, slotId, startsAt }`, emitted
+  only after the slot transaction commits.
 
 **Breaking:** renaming an event id; removing or retyping a payload field.
 

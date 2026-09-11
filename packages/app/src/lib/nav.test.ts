@@ -28,8 +28,13 @@ describe('navLinksFor', () => {
     expect(navLinksFor(['mentee'])).toEqual([{ href: '/home', label: 'My sessions' }]);
   });
 
-  it('gives a mentor the mentor workspace and nothing else', () => {
-    expect(navLinksFor(['mentor'])).toEqual([{ href: '/mentor', label: 'Mentor workspace' }]);
+  it('gives a mentor their workspace and profile editor', () => {
+    expect(navLinksFor(['mentor'])).toEqual([
+      { href: '/mentor', label: 'Mentor workspace' },
+      { href: '/mentor/profile', label: 'Mentor profile' },
+      { href: '/mentor/prices', label: 'Session prices' },
+      { href: '/mentor/slots', label: 'Available times' },
+    ]);
   });
 
   it('gives an operator the dashboard and the users list', () => {
@@ -50,6 +55,9 @@ describe('navLinksFor', () => {
       '/admin',
       '/admin/users',
       '/mentor',
+      '/mentor/profile',
+      '/mentor/prices',
+      '/mentor/slots',
     ]);
   });
 
@@ -58,6 +66,9 @@ describe('navLinksFor', () => {
       '/admin',
       '/admin/users',
       '/mentor',
+      '/mentor/profile',
+      '/mentor/prices',
+      '/mentor/slots',
       '/home',
     ]);
   });
@@ -70,6 +81,9 @@ describe('navLinksFor', () => {
   it('never repeats a link for a repeated role', () => {
     expect(navLinksFor(['mentor', 'mentor'])).toEqual([
       { href: '/mentor', label: 'Mentor workspace' },
+      { href: '/mentor/profile', label: 'Mentor profile' },
+      { href: '/mentor/prices', label: 'Session prices' },
+      { href: '/mentor/slots', label: 'Available times' },
     ]);
   });
 
@@ -83,7 +97,7 @@ describe('navLinksFor', () => {
   });
 
   it('exposes no route that would grant a role, for any combination of roles (R07)', () => {
-    const permitted = ['/admin', '/admin/users', '/mentor', '/home'];
+    const permitted = ['/admin', '/admin/users', '/mentor', '/mentor/profile', '/mentor/prices', '/mentor/slots', '/home'];
 
     for (const roles of roleCombinations()) {
       const links = navLinksFor(roles);

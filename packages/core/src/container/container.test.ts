@@ -86,6 +86,11 @@ const BASE_ENV = {
   TRUSTED_PROXY_HOPS: 0,
   PASSWORD_HASH_CONCURRENCY: 2,
   PASSWORD_HASH_WAIT_MS: 1000,
+  PLATFORM_CURRENCY: 'PLN',
+  PLATFORM_PRICE_BOUNDS: {
+    p25: { minCents: 9_000, maxCents: 60_000 },
+    p50: { minCents: 18_000, maxCents: 120_000 },
+  },
   INTEGRATION_TEST_RUN: false,
   // Present in the baseline so the *production* cases below are about the secret each of
   // them names. `assertProductionSecrets` requires this one too, and a baseline without it
@@ -153,6 +158,20 @@ describe('getContainer', () => {
     const second = await withScope((cradle) => cradle.sessionService);
 
     expect(first).toBe(second);
+  });
+
+  it('shares one configuration-backed platformSettingsService across scopes', async () => {
+    const first = await withScope((cradle) => cradle.platformSettingsService);
+    const second = await withScope((cradle) => cradle.platformSettingsService);
+
+    expect(first).toBe(second);
+    expect(first.get()).toEqual({
+      currency: 'PLN',
+      priceBounds: {
+        p25: { minCents: 9_000, maxCents: 60_000 },
+        p50: { minCents: 18_000, maxCents: 120_000 },
+      },
+    });
   });
 
   it('shares one passwordService across request scopes, because its gate counts hashes', async () => {
@@ -243,6 +262,54 @@ describe('getContainer', () => {
       'auth.user.roles_changed',
     );
   });
+
+  it('logs the default invitations.invitation.accepted subscriber without a token', async () => {
+    const container = await getContainer();
+
+    await container.cradle.eventBus.emit('invitations.invitation.accepted', {
+      invitationId: 'inv-1',
+      userId: 'user-1',
+      publishDueAt: '2026-09-24T12:00:00.000Z',
+    });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        invitationId: 'inv-1',
+        userId: 'user-1',
+        publishDueAt: '2026-09-24T12:00:00.000Z',
+      },
+      'invitations.invitation.accepted',
+    );
+  });
+
+  it('logs the default mentors.profile.published subscriber', async () => {
+    const container = await getContainer();
+    await container.cradle.eventBus.emit('mentors.profile.published', {
+      mentorProfileId: 'profile-1',
+      slug: 'ada-lovelace',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      { mentorProfileId: 'profile-1', slug: 'ada-lovelace' },
+      'mentors.profile.published',
+    );
+  });
+
+  it('logs the default availability.slot.published subscriber', async () => {
+    const container = await getContainer();
+    await container.cradle.eventBus.emit('availability.slot.published', {
+      mentorProfileId: 'profile-1',
+      slotId: 'slot-1',
+      startsAt: '2026-09-10T14:00:00.000Z',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        mentorProfileId: 'profile-1',
+        slotId: 'slot-1',
+        startsAt: '2026-09-10T14:00:00.000Z',
+      },
+      'availability.slot.published',
+    );
+  });
 });
 
 describe('withScope', () => {
@@ -255,9 +322,16 @@ describe('withScope', () => {
   });
 
   it('resolves scoped services against the scope', async () => {
-    const service = await withScope((cradle) => cradle.userService);
+    const services = await withScope((cradle) => [
+      cradle.userService,
+      cradle.invitationService,
+      cradle.mentorProfileService,
+      cradle.slotService,
+      cradle.platformSettingsService,
+    ]);
 
-    expect(service).toBeDefined();
+    expect(services).toHaveLength(5);
+    expect(services.every(Boolean)).toBe(true);
   });
 
   it('gives the rate limiter its own scope’s EntityManager, never a shared one', async () => {

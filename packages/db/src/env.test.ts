@@ -32,22 +32,78 @@ describe('getDbEnv', () => {
       DB_POOL_MIN: 2,
       DB_POOL_MAX: 10,
       DB_POOL_IDLE_MS: 30_000,
+      INVITATION_TTL_DAYS: 14,
+      MENTOR_PUBLISH_WINDOW_DAYS: 14,
+      PLATFORM_CURRENCY: 'PLN',
+      PLATFORM_PRICE_BOUNDS: {
+        p25: { minCents: 9_000, maxCents: 60_000 },
+        p50: { minCents: 18_000, maxCents: 120_000 },
+      },
       DB_DEBUG: false,
       DB_MIGRATIONS_SNAPSHOT: true,
     });
+  });
+
+  it('parses the exact platform policy and allows JSON whitespace', async () => {
+    const parse = await freshGetDbEnv();
+    expect(parse(asEnv({
+      PLATFORM_PRICE_BOUNDS: ' { "25": { "minCents": 100, "maxCents": 200 }, "50": { "minCents": 300, "maxCents": 400 } } ',
+    }))).toMatchObject({
+      PLATFORM_CURRENCY: 'PLN',
+      PLATFORM_PRICE_BOUNDS: {
+        p25: { minCents: 100, maxCents: 200 },
+        p50: { minCents: 300, maxCents: 400 },
+      },
+    });
+  });
+
+  it('rejects unsupported, oversized, malformed and structurally invalid platform policy', async () => {
+    const invalid = [
+      { PLATFORM_CURRENCY: 'EUR' },
+      { PLATFORM_PRICE_BOUNDS: 'x'.repeat(257) },
+      { PLATFORM_PRICE_BOUNDS: '{bad json' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":1,"maxCents":2}}' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":1,"maxCents":2},"50":{"minCents":3,"maxCents":4},"extra":true}' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":0,"maxCents":2},"50":{"minCents":3,"maxCents":4}}' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":1.5,"maxCents":2},"50":{"minCents":3,"maxCents":4}}' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":1,"maxCents":2147483648},"50":{"minCents":3,"maxCents":4}}' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":2,"maxCents":1},"50":{"minCents":3,"maxCents":4}}' },
+      { PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":1,"maxCents":2,"extra":3},"50":{"minCents":3,"maxCents":4}}' },
+    ];
+    for (const raw of invalid) {
+      const parse = await freshGetDbEnv();
+      expect(() => parse(asEnv(raw))).toThrow();
+    }
   });
 
   it('coerces the numeric vars, which arrive as strings', async () => {
     const parse = await freshGetDbEnv();
 
     const env = parse(
-      asEnv({ DB_PORT: '6543', DB_POOL_MIN: '0', DB_POOL_MAX: '5', DB_POOL_IDLE_MS: '1000' }),
+      asEnv({
+        DB_PORT: '6543',
+        DB_POOL_MIN: '0',
+        DB_POOL_MAX: '5',
+        DB_POOL_IDLE_MS: '1000',
+        INVITATION_TTL_DAYS: '21',
+        MENTOR_PUBLISH_WINDOW_DAYS: '10',
+      }),
     );
 
     expect(env.DB_PORT).toBe(6543);
     expect(env.DB_POOL_MIN).toBe(0);
     expect(env.DB_POOL_MAX).toBe(5);
     expect(env.DB_POOL_IDLE_MS).toBe(1_000);
+    expect(env.INVITATION_TTL_DAYS).toBe(21);
+    expect(env.MENTOR_PUBLISH_WINDOW_DAYS).toBe(10);
+  });
+
+  it('rejects non-positive invitation windows', async () => {
+    const parse = await freshGetDbEnv();
+
+    expect(() => parse(asEnv({ INVITATION_TTL_DAYS: '0' }))).toThrow();
+    const parseAgain = await freshGetDbEnv();
+    expect(() => parseAgain(asEnv({ MENTOR_PUBLISH_WINDOW_DAYS: '-1' }))).toThrow();
   });
 
   it('turns the two "true"/"false" flags into booleans', async () => {

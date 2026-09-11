@@ -39,8 +39,15 @@ export function withoutQuery(url: string): string {
  */
 export function requestPath(url: string): string {
   try {
-    return new URL(url).pathname;
+    return redactSecretSegments(new URL(url).pathname);
   } catch {
-    return withoutQuery(url);
+    return redactSecretSegments(withoutQuery(url));
   }
+}
+
+/** Raw invitation tokens are credentials even though this API carries them in a path. */
+function redactSecretSegments(path: string): string {
+  return path
+    .replace(/^(\/api\/invitations\/)[^/]+/, '$1[token]')
+    .replace(/^(\/invitation\/)[^/]+/, '$1[token]');
 }

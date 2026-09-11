@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import type { AppEnv } from '../../config/env';
 import type { Clock } from '../../time/clock';
@@ -10,10 +11,9 @@ import { signingKey, verificationKeys } from './session-secret';
  * ("the browser that started this OAuth flow asked to return to `/mentors/ada`",
  * "the owner of this mailbox is user X"), signed with the `SESSION_SECRET` family and
  * valid for a bounded window. Nothing is stored: the token *is* the record. The
- * revocable, single-use half of B5 (`mintOpaqueToken` / `hashToken`) is deliberately
- * deferred to its first real consumer, invitation links (#15) — E01 needs the
- * stateless pair only, and an unused hash-and-store API would be dead code that still
- * had to be maintained and covered.
+ * revocable, single-use half of B5 (`mintOpaqueToken` / `hashToken`) is now used by
+ * invitation links (#15). These helpers only mint the pair; `InvitationService` owns
+ * persistence, expiry, revocation and the transactional single-use claim.
  *
  * **Audience separation is the whole point.** Every token this codebase signs carries
  * an `aud`, and every verifier names the one audience it accepts (B2). A verification
@@ -74,6 +74,18 @@ export interface PurposeTokenClaims {
   subject: string;
 }
 
+/**
+ * The two representations of a stored, single-use token.
+ *
+ * Only `tokenHash` is persisted. The raw `token` is returned once to the caller so it
+ * can be placed in the invitation link; neither this service nor the database keeps a
+ * recoverable copy.
+ */
+export interface OpaqueTokenPair {
+  token: string;
+  tokenHash: string;
+}
+
 /** `HS256` and nothing else — see the note on the allowlist in `verifyPurposeToken`. */
 const ALGORITHM = 'HS256';
 
@@ -92,6 +104,23 @@ export class TokenService {
   constructor({ env, clock }: { env: AppEnv; clock: Clock }) {
     this.env = env;
     this.clock = clock;
+  }
+
+  /**
+   * Mint a 256-bit bearer secret and its storage-safe SHA-256 digest.
+   *
+   * Base64url keeps the token URL-safe without padding; 32 random bytes encode to 43
+   * characters. The digest is a fixed-width lowercase hex value suitable for the
+   * invitation table's unique `varchar(64)` column.
+   */
+  mintOpaqueToken(): OpaqueTokenPair {
+    const token = randomBytes(32).toString('base64url');
+    return { token, tokenHash: this.hashToken(token) };
+  }
+
+  /** Hash an opaque bearer token for indexed lookup; never persist the raw token. */
+  hashToken(token: string): string {
+    return createHash('sha256').update(token, 'utf8').digest('hex');
   }
 
   /**

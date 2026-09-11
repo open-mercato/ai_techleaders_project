@@ -44,20 +44,31 @@ export const PublishAvailability: Story = { render: () => <WorkspaceForm title="
   initialValues: { startsAt: '2026-09-24T14:00' }, endpoint: '/storybook-api/mentor-workspace/availability', submitLabel: 'Add available time',
 }} /> };
 
+function storyPrice(minCents: bigint, maxCents: bigint, minMessage: string, maxMessage: string) {
+  return z.string().regex(/^(?:0|[1-9]\d*)(?:\.(\d{1,2}))?$/, 'Use a PLN amount with no more than two decimal places.')
+    .superRefine((value, context) => {
+      if (!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(value)) return;
+      const [whole, fraction = ''] = value.split('.');
+      const cents = BigInt(`${whole}${fraction.padEnd(2, '0')}`);
+      if (cents < minCents) context.addIssue({ code: 'custom', message: minMessage });
+      if (cents > maxCents) context.addIssue({ code: 'custom', message: maxMessage });
+    });
+}
+
 const priceForm: CrudFormProps<Record<string, unknown>> = {
   schema: z.object({
-    '25': z.number('Set a price for 25 minutes.').int('Use a whole PLN amount.').min(90, 'The 25-minute price must be at least PLN 90.').max(600, 'The 25-minute price must be at most PLN 600.'),
-    '50': z.number('Set a price for 50 minutes.').int('Use a whole PLN amount.').min(180, 'The 50-minute price must be at least PLN 180.').max(1200, 'The 50-minute price must be at most PLN 1,200.'),
+    '25': storyPrice(9_000n, 60_000n, 'The 25-minute price must be at least PLN 90.', 'The 25-minute price must be at most PLN 600.'),
+    '50': storyPrice(18_000n, 120_000n, 'The 50-minute price must be at least PLN 180.', 'The 50-minute price must be at most PLN 1,200.'),
   }),
   fields: [
-    { name: '25', label: '25-minute price (PLN)', type: 'number', required: true, description: 'Allowed price: PLN 90 to 600. Use a whole PLN amount.' },
-    { name: '50', label: '50-minute price (PLN)', type: 'number', required: true, description: 'Allowed price: PLN 180 to 1,200. Use a whole PLN amount.' },
+    { name: '25', label: '25-minute price', type: 'money', currency: 'PLN', required: true, description: 'Allowed price: PLN 90 to 600.' },
+    { name: '50', label: '50-minute price', type: 'money', currency: 'PLN', required: true, description: 'Allowed price: PLN 180 to 1,200.' },
   ],
-  initialValues: { '25': 180, '50': 340 }, endpoint: '/storybook-api/mentor-workspace/prices', submitLabel: 'Save prices',
+  initialValues: { '25': '180.00', '50': '340.00' }, endpoint: '/storybook-api/mentor-workspace/prices', submitLabel: 'Save prices',
 };
 export const SetSessionPrices: Story = { render: () => <WorkspaceForm title="Session prices" description="Set both prices before accepting bookings. Changes apply to new bookings; confirmed bookings keep their agreed price." form={priceForm} /> };
 export const PriceBoundsError: Story = {
-  render: () => <WorkspaceForm title="Session prices" description="Enter a PLN price within the allowed range for each session length." form={{ ...priceForm, initialValues: { '25': 89, '50': 1201 } }} />,
+  render: () => <WorkspaceForm title="Session prices" description="Enter a PLN price within the allowed range for each session length." form={{ ...priceForm, initialValues: { '25': '89.00', '50': '1201.00' } }} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Save prices' }));

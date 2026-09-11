@@ -1,5 +1,35 @@
 import { z } from 'zod';
 
+const POSTGRES_INTEGER_MAX = 2_147_483_647;
+const DEFAULT_PLATFORM_PRICE_BOUNDS =
+  '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}';
+const priceRangeSchema = z.object({
+  minCents: z.number().int().positive().max(POSTGRES_INTEGER_MAX),
+  maxCents: z.number().int().positive().max(POSTGRES_INTEGER_MAX),
+}).strict().refine((range) => range.minCents <= range.maxCents, {
+  message: 'minCents must not exceed maxCents',
+});
+const serializedPriceBoundsSchema = z.object({
+  '25': priceRangeSchema,
+  '50': priceRangeSchema,
+}).strict();
+
+function parsePlatformPriceBounds(raw: string, ctx: z.RefinementCtx) {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'PLATFORM_PRICE_BOUNDS must be valid JSON' });
+    return z.NEVER;
+  }
+  const parsed = serializedPriceBoundsSchema.safeParse(value);
+  if (!parsed.success) {
+    ctx.addIssue({ code: 'custom', message: 'PLATFORM_PRICE_BOUNDS has an invalid shape' });
+    return z.NEVER;
+  }
+  return { p25: parsed.data['25'], p50: parsed.data['50'] };
+}
+
 /**
  * Database environment schema. This is the *only* place in the `db` package that
  * reads `process.env`. `core` re-exports a superset schema for the rest of the app;
@@ -16,6 +46,15 @@ const dbEnvSchema = z.object({
   DB_POOL_MIN: z.coerce.number().int().nonnegative().default(2),
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
   DB_POOL_IDLE_MS: z.coerce.number().int().positive().default(30_000),
+  // Kept in step with the application schema. The CLI does not calculate these
+  // deadlines, but validating one shared deployment environment must not give the
+  // app and migration commands different answers about malformed values.
+  INVITATION_TTL_DAYS: z.coerce.number().int().positive().default(14),
+  MENTOR_PUBLISH_WINDOW_DAYS: z.coerce.number().int().positive().default(14),
+  // Kept in step with the application schema even though the CLI only validates it.
+  PLATFORM_CURRENCY: z.literal('PLN').default('PLN'),
+  PLATFORM_PRICE_BOUNDS: z.string().max(256).default(DEFAULT_PLATFORM_PRICE_BOUNDS)
+    .transform(parsePlatformPriceBounds),
   DB_DEBUG: z
     .enum(['true', 'false'])
     .default('false')

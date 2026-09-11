@@ -73,8 +73,13 @@ describe('WorkspaceShell', () => {
     expect(await navOf(sessionWith('mentee'))).toEqual([['/home', 'My sessions']]);
   });
 
-  it('navigates a single-role mentor to the mentor workspace', async () => {
-    expect(await navOf(sessionWith('mentor'))).toEqual([['/mentor', 'Mentor workspace']]);
+  it('navigates a single-role mentor to their workspace tools', async () => {
+    expect(await navOf(sessionWith('mentor'))).toEqual([
+      ['/mentor', 'Mentor workspace'],
+      ['/mentor/profile', 'Mentor profile'],
+      ['/mentor/prices', 'Session prices'],
+      ['/mentor/slots', 'Available times'],
+    ]);
   });
 
   it('keeps an accessible Users link for an operator', async () => {
@@ -91,6 +96,9 @@ describe('WorkspaceShell', () => {
       ['/admin', 'Dashboard'],
       ['/admin/users', 'Users'],
       ['/mentor', 'Mentor workspace'],
+      ['/mentor/profile', 'Mentor profile'],
+      ['/mentor/prices', 'Session prices'],
+      ['/mentor/slots', 'Available times'],
     ]);
   });
 
@@ -101,6 +109,9 @@ describe('WorkspaceShell', () => {
       '/admin',
       '/admin/users',
       '/mentor',
+      '/mentor/profile',
+      '/mentor/prices',
+      '/mentor/slots',
     ]);
   });
 });

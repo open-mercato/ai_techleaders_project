@@ -14,8 +14,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./backend": "./src/backend/index.ts",
+    "./time": "./src/time/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./lib/utils": "./src/lib/utils.ts",
+    "./components/mentors/*": "./src/components/mentors/*.tsx",
     "./components/*": "./src/components/ui/*.tsx"
   },
   "dependencies": {

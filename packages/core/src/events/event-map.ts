@@ -26,6 +26,20 @@ export interface EventMap {
     previousRoles: readonly Role[];
     reason: 'reconciled' | 'granted' | 'revoked';
   };
+  'invitations.invitation.accepted': {
+    invitationId: string;
+    userId: string;
+    publishDueAt: string;
+  };
+  'mentors.profile.published': {
+    mentorProfileId: string;
+    slug: string;
+  };
+  'availability.slot.published': {
+    mentorProfileId: string;
+    slotId: string;
+    startsAt: string;
+  };
 }
 
 export type EventId = keyof EventMap;

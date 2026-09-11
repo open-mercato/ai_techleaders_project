@@ -36,6 +36,7 @@ export {
 export { PasswordService, type PasswordWork } from './services/auth/password.service';
 export {
   TokenService,
+  type OpaqueTokenPair,
   type PurposeTokenClaims,
   type SignPurposeTokenInput,
   type TokenPurpose,
@@ -56,6 +57,56 @@ export {
   type SignedInUser,
   type UserDto,
 } from './services/auth/user.service';
+export {
+  InvitationService,
+  INVALID_INVITATION_MESSAGE,
+  type AcceptedInvitation,
+  type CreatedInvitation,
+  type InvitationCreateInput,
+  type InvitationPublicDto,
+  type InvitationViewer,
+  type ResentInvitation,
+} from './services/invitations/invitation.service';
+export {
+  MentorProfileService,
+  MAX_SLUG_ATTEMPTS,
+  toOwnerDto,
+  toPublicDto,
+  type MentorProfileOwnerDto,
+  type MentorProfilePublicDto,
+  type MentorPricesDto,
+} from './services/mentors/mentor-profile.service';
+export {
+  SlotService,
+  type SlotOwnerDto,
+  type SlotPublicDto,
+} from './services/availability/slot.service';
+export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
+export {
+  mentorProfileUpdateSchema,
+  type MentorProfileUpdateInput,
+} from './validators/mentors/mentor-profile-update.schema';
+export {
+  exactMajorDecimalString,
+  mentorPricesUpdateSchema,
+  type MentorPricesUpdateInput,
+} from './validators/mentors/mentor-prices-update.schema';
+export {
+  slotCreateSchema,
+  type SlotCreateInput,
+} from './validators/availability/slot-create.schema';
+export {
+  MAX_SLUG_LENGTH,
+  RESERVED_SLUGS,
+  slugify,
+  uniqueSlug,
+} from './domain/slug';
+export {
+  defineReadiness,
+  type Readiness,
+  type ReadinessItem,
+  type ReadinessRequirement,
+} from './domain/readiness';
 // `userCreateSchema` and `UserCreateInput` are deliberately absent: `POST /api/users` is
 // gone, and `UserService.create` now names its two writable fields itself rather than
 // depending on a schema to strip everything else. See BACKWARD_COMPATIBILITY.md §2.
@@ -85,6 +136,25 @@ export { MAIL_SENT_MESSAGE } from './services/notifications/adapters/log-mailer'
 export type { Mailer, MailMessage } from './services/notifications/mailer.port';
 export { EventBus, type EventHandler, type EventId, type EventMap } from './events/index';
 export { systemClock, type Clock } from './time/clock';
+export { defineVocabulary, type VocabularyOption } from './domain/vocabulary';
+export { StackTags, type StackTag } from './domain/vocabularies/stack-tags';
+export {
+  SessionLengths,
+  sessionLengthMinutes,
+  type SessionLength,
+  type SessionLengthMinutes,
+} from './domain/vocabularies/session-lengths';
+export {
+  parseMajorAmount,
+  withinBounds,
+  type Cents,
+  type PriceBounds,
+} from './money/money';
+export {
+  PlatformSettingsService,
+  PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE,
+  type PlatformSettings,
+} from './services/operator/platform-settings.service';
 
 // Reusable HTTP layer (typed errors, route wrappers, auth guards).
 export * from './http/index';

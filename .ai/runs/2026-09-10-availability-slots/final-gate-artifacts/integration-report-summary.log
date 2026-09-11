@@ -1,0 +1,9 @@
+2026-09-10T18:27:30Z
+Command: npm run test:integration
+Scope: full integration suite with owned ephemeral PostgreSQL, production app and agent-browser sessions
+Result: PASS
+Test files: 10 passed
+Tests: 55 passed
+Duration: 84.69s
+Availability proof: exact published datetime attribute, standalone Available status, non-empty public state, lifecycle screenshot, removal, republish and two-hour boundary
+Cleanup: integration harness completed without leaked browser sessions, app processes or database containers

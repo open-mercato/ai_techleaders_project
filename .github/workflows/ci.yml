@@ -12,6 +12,8 @@ concurrency:
 
 env:
   NEXT_TELEMETRY_DISABLED: "1"
+  PLATFORM_CURRENCY: "PLN"
+  PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}'
 
 jobs:
   build:

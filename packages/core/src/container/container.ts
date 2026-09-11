@@ -16,6 +16,10 @@ import { PasswordService } from '../services/auth/password.service';
 import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
+import { SlotService } from '../services/availability/slot.service';
+import { InvitationService } from '../services/invitations/invitation.service';
+import { MentorProfileService } from '../services/mentors/mentor-profile.service';
+import { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
 import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
@@ -241,6 +245,12 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // which is exactly what makes the limit hold across restarts and across instances —
     // so constructing one per scope costs two field assignments.
     rateLimiter: asClass(RateLimiter).scoped(),
+    invitationService: asClass(InvitationService).scoped(),
+    mentorProfileService: asClass(MentorProfileService).scoped(),
+    slotService: asClass(SlotService).scoped(),
+    // Configuration-backed and immutable for the process lifetime. E05 may replace
+    // the backing store while preserving this service contract.
+    platformSettingsService: asClass(PlatformSettingsService).singleton(),
     // The default for a scope nobody opened for a request: no cookie, so no session. Each
     // of `withRequestScope`/`withCookieScope` overrides it on its own scope. Registering it
     // at the root keeps the key resolvable in a `strict` container, which is what lets a
@@ -269,6 +279,30 @@ async function build(): Promise<AwilixContainer<Cradle>> {
       container.cradle.logger.info(
         { userId, roles, previousRoles, reason },
         'auth.user.roles_changed',
+      );
+    },
+  );
+  container.cradle.eventBus.on(
+    'invitations.invitation.accepted',
+    ({ invitationId, userId, publishDueAt }) => {
+      container.cradle.logger.info(
+        { invitationId, userId, publishDueAt },
+        'invitations.invitation.accepted',
+      );
+    },
+  );
+  container.cradle.eventBus.on(
+    'mentors.profile.published',
+    ({ mentorProfileId, slug }) => {
+      container.cradle.logger.info({ mentorProfileId, slug }, 'mentors.profile.published');
+    },
+  );
+  container.cradle.eventBus.on(
+    'availability.slot.published',
+    ({ mentorProfileId, slotId, startsAt }) => {
+      container.cradle.logger.info(
+        { mentorProfileId, slotId, startsAt },
+        'availability.slot.published',
       );
     },
   );

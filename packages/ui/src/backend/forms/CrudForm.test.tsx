@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { apiCall } from '../api/apiCall';
 import type { ApiResult } from '../api/types';
-import { CrudForm, type CrudField } from './CrudForm';
+import { CrudForm, localDateTimeToUtc, type CrudField } from './CrudForm';
 
 vi.mock('../api/apiCall', () => ({ apiCall: vi.fn() }));
 
@@ -27,6 +27,14 @@ const allFields: CrudField[] = [
 const allSchema = z.object({
   name: z.string(), headline: z.string(), email: z.string(), price: z.number().optional(),
   description: z.string(), available: z.boolean(), stack: z.string(),
+});
+
+beforeAll(() => {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 });
 
 function input(label: string) {
@@ -128,11 +136,31 @@ describe('CrudForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('This name is unavailable.');
     expect(input('Name').disabled).toBe(false);
-    expect(document.activeElement).toBe(input('Name'));
+    await waitFor(() => expect(document.activeElement).toBe(input('Name')));
     request.mockResolvedValueOnce({ ok: false, error: { code: 'unavailable', message: 'Try again later.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const alert = await screen.findByText('Try again later.');
     expect(document.activeElement).toBe(alert);
+  });
+
+  it('associates and focuses field errors supplied by a related transition', () => {
+    const props = {
+      schema: textSchema,
+      fields: textFields,
+      endpoint: '/api/profile',
+      initialValues: { name: 'Ada' },
+    };
+    const { rerender } = render(<CrudForm {...props} />);
+    rerender(<CrudForm {...props} externalFieldErrors={{ name: ['Add your public name.'] }} />);
+    const name = input('Name');
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(name.getAttribute('aria-describedby')!)?.textContent).toBe('Add your public name.');
+    expect(document.activeElement).toBe(name);
+
+    rerender(<CrudForm {...props} externalFieldErrors={{ _root: ['Complete the missing details.'] }} />);
+    expect(document.activeElement).toBe(screen.getByText('Complete the missing details.').closest('[role="alert"]'));
+    rerender(<CrudForm {...props} externalFieldErrors={{ name: [] }} />);
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('marks required fields visibly and semantically while validating with the schema', () => {
@@ -160,6 +188,104 @@ describe('CrudForm', () => {
     await waitFor(() => expect(request).toHaveBeenCalledWith('/api/availability', {
       method: 'POST', body: { day: '2026-09-08', startsAt: '2026-09-08T15:00' },
     }));
+  });
+
+  it('renders datetime in the active timezone and submits its UTC instant', async () => {
+    const timeZone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+    render(<CrudForm schema={z.object({ startsAt: z.iso.datetime() })}
+      fields={[{ name: 'startsAt', label: 'Starts at', type: 'datetime', required: true, description: 'Choose a future time.' }]}
+      endpoint="/api/availability/slots" />);
+
+    const startsAt = screen.getByLabelText<HTMLInputElement>(/Starts at/);
+    expect(startsAt.type).toBe('datetime-local');
+    await waitFor(() => expect(screen.getByText(`Choose a future time. Times use ${timeZone}.`)).toBeTruthy());
+    expect(startsAt.getAttribute('aria-describedby')).toBe(screen.getByText(`Choose a future time. Times use ${timeZone}.`).id);
+
+    fireEvent.change(startsAt, { target: { value: '2026-09-10T19:30' } });
+    submitForm();
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/availability/slots', {
+      method: 'POST', body: { startsAt: new Date('2026-09-10T19:30').toISOString() },
+    }));
+  });
+
+  it('retains an invalid datetime value for schema feedback', () => {
+    render(<CrudForm schema={z.object({ startsAt: z.string().refine(value => value !== 'not-a-date', 'Enter a valid start time.') })}
+      fields={[{ name: 'startsAt', label: 'Starts at', type: 'datetime' }]}
+      endpoint="/api/availability/slots" initialValues={{ startsAt: 'not-a-date' }} />);
+    // The native control cannot display malformed values, but CrudForm retains the raw
+    // state so the schema receives it and can explain the problem.
+    submitForm();
+    expect(input('Starts at').value).toBe('');
+    expect(screen.getByRole('alert').textContent).toBe('Enter a valid start time.');
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('converts valid local datetimes through an environment-independent seam and preserves invalid inputs', () => {
+    const utcInstant = {
+      getTime: vi.fn(() => 1_789_063_800_000),
+      toISOString: vi.fn(() => '2026-09-10T17:30:00.000Z'),
+      getFullYear: () => 2026,
+      getMonth: () => 8,
+      getDate: () => 10,
+      getHours: () => 19,
+      getMinutes: () => 30,
+      getSeconds: () => 0,
+      getMilliseconds: () => 0,
+      getTimezoneOffset: () => -120,
+    };
+    const parseLocal = vi.fn(() => utcInstant);
+    const adjacentInstant = { ...utcInstant, getTimezoneOffset: () => -120 };
+    expect(localDateTimeToUtc('2026-09-10T19:30', parseLocal, () => adjacentInstant)).toBe('2026-09-10T17:30:00.000Z');
+    expect(parseLocal).toHaveBeenCalledExactlyOnceWith('2026-09-10T19:30');
+    expect(utcInstant.toISOString).toHaveBeenCalledOnce();
+
+    const invalid = { ...utcInstant, getTime: () => Number.NaN, toISOString: vi.fn() };
+    expect(localDateTimeToUtc('2026-09-10T19:30', () => invalid)).toBe('2026-09-10T19:30');
+    expect(invalid.toISOString).not.toHaveBeenCalled();
+    expect(localDateTimeToUtc('not-a-date')).toBe('not-a-date');
+    expect(localDateTimeToUtc('')).toBe('');
+    expect(localDateTimeToUtc(null)).toBeNull();
+
+    const shiftedOffset = { ...utcInstant, getTimezoneOffset: () => -60, getHours: () => 20 };
+    expect(localDateTimeToUtc('2026-09-10T19:30', () => utcInstant, () => shiftedOffset))
+      .toBe('2026-09-10T17:30:00.000Z');
+  });
+
+  it('preserves nonexistent and ambiguous local times for schema feedback', () => {
+    const base = {
+      getTime: () => 1_000_000,
+      toISOString: vi.fn(() => '2026-03-29T01:30:00.000Z'),
+      getFullYear: () => 2026,
+      getMonth: () => 2,
+      getDate: () => 29,
+      getHours: () => 3,
+      getMinutes: () => 30,
+      getSeconds: () => 0,
+      getMilliseconds: () => 0,
+      getTimezoneOffset: () => -120,
+    };
+    expect(localDateTimeToUtc('2026-03-29T02:30', () => base)).toBe('2026-03-29T02:30');
+    expect(base.toISOString).not.toHaveBeenCalled();
+
+    const fold = {
+      ...base,
+      getMonth: () => 9,
+      getDate: () => 25,
+      getHours: () => 2,
+      getTimezoneOffset: () => -120,
+    };
+    const otherSide = {
+      ...fold,
+      getTime: () => 4_600_000,
+      getTimezoneOffset: () => -60,
+    };
+    const adjacent = { ...fold, getTimezoneOffset: () => -60 };
+    expect(localDateTimeToUtc(
+      '2026-10-25T02:30',
+      () => fold,
+      (timestamp) => timestamp === 4_600_000 ? otherSide : adjacent,
+    )).toBe('2026-10-25T02:30');
+    expect(fold.toISOString).not.toHaveBeenCalled();
   });
 
   it('renders all field types with empty defaults and submits the schema output with POST', async () => {
@@ -217,6 +343,41 @@ describe('CrudForm', () => {
       },
     }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalledExactlyOnceWith({ id: 'created' }));
+  });
+
+  it('renders a multiselect as an accessible checkbox group and submits selected option values', async () => {
+    render(<CrudForm schema={z.object({ stackTags: z.array(z.string()) })} endpoint="/api/mentors/me"
+      fields={[{
+        name: 'stackTags', label: 'Technology stacks', type: 'multiselect',
+        description: 'Choose up to four.',
+        options: [
+          { label: 'TypeScript', value: 'typescript' },
+          { label: 'React', value: 'react' },
+        ],
+      }]}
+      initialValues={{ stackTags: 'invalid stored value' }} />);
+
+    const group = screen.getByRole('group', { name: 'Technology stacks' });
+    expect(group.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TypeScript' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'React' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'TypeScript' }));
+    submitForm();
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/mentors/me', {
+      method: 'POST', body: { stackTags: ['react'] },
+    }));
+  });
+
+  it('defaults a multiselect to an empty array and permits a field with no options', async () => {
+    render(<CrudForm schema={z.object({ stackTags: z.array(z.string()) })} endpoint="/api/mentors/me"
+      fields={[{ name: 'stackTags', label: 'Technology stacks', type: 'multiselect' }]} />);
+    expect(screen.getByRole('group', { name: 'Technology stacks' }).children).toHaveLength(0);
+    submitForm();
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/mentors/me', {
+      method: 'POST', body: { stackTags: [] },
+    }));
   });
 
   it('coerces a cleared numeric field to undefined and lets the schema supply its default', async () => {
