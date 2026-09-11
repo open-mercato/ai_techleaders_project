@@ -9,6 +9,8 @@ Omit the link for lessons short enough to state inline.
 
 <!-- Add new entries below this line, most recent first. -->
 
+- 2026-09-11 — **On `/mentor/profile`, a readiness label and a publish refusal use the same text.** The `ReadinessChecklist` always renders each unmet requirement (e.g. "Choose at least one technology.") as an `h3`, and a refused publish renders that same label again as the field error. `agent-browser wait --text` therefore passes before the publish request returns. Wait for `[role="alert"]` instead: only `CrudForm` field and form errors carry that role on this page. See `TC-MENTOR-PROFILE-001`.
+
 - 2026-09-10 — **Removing a macOS launchd job that starts `npm run dev` does not guarantee Next's child process is gone.** The orphan keeps `.next/dev/lock`, while a generated QA launcher can start a replacement job, record its transient PID and publish a dead URL. A forced bootstrap must always tear down the recorded descriptor, then remove stale same-worktree launchd jobs and terminate their validated process groups before starting Next. Scope stale-job cleanup by the exact project root embedded in `launchctl print`; never kill every `devmentor-qa-*` job across worktrees.
 
 - 2026-09-10 — **Commit every non-sensitive `.ai` artifact with the work that produced it.** Run logs, QA reports/screenshots, generated test-environment helpers, PR drafts, working references and previews are repository records, not disposable session material. Before staging, redact invitation/auth tokens, credentials, cookies and machine-specific secret values; keep secret-bearing files such as `.ai/qa/test-env.env` ignored. This supersedes the former `AGENTS.md` rule that kept session materials local.
