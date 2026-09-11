@@ -102,7 +102,8 @@ describe('TC-MENTOR-PROFILE-002 save then publish from the editor', () => {
       expect(published).toContain('button "Unpublish page"');
       expect(published).not.toContain('button "Publish page"');
       const shareUrl = await runAgentBrowser(mentorSession, 'get', 'attr', 'a[href*="/m/"]', 'href');
-      expect(shareUrl).toMatch(new RegExp(`^${baseUrl}/m/[a-z0-9-]+$`));
+      expect(new URL(shareUrl).origin).toBe(new URL(baseUrl).origin);
+      expect(new URL(shareUrl).pathname).toMatch(/^\/m\/[a-z0-9-]+$/);
       await runAgentBrowser(
         mentorSession,
         'screenshot',

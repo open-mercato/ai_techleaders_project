@@ -4,8 +4,14 @@ import { MikroORM, User, entities } from '@devmentor/db';
 /** Where the mock GitHub adapter puts every login it vouches for. */
 const MOCK_EMAIL_DOMAIN = 'devmentor.test';
 
-/** The per-email rate-limit buckets an account scenario can fill (`http/rate-limit.ts`). */
-const EMAIL_RATE_LIMIT_SCOPES = ['sign-in', 'register', 'verify-resend'] as const;
+/**
+ * The only per-email rate-limit bucket (`user.service.ts` password sign-in). Registration is
+ * keyed per IP, which the harness switches off (`TRUSTED_PROXY_HOPS=0`).
+ */
+const EMAIL_RATE_LIMIT_SCOPES = ['sign-in'] as const;
+
+/** The mock GitHub start route drops a longer login and falls back to `mock-mentee`. */
+const MAX_GITHUB_LOGIN_LENGTH = 39;
 
 export interface ThrowawayAccount {
   /** The GitHub login the mock adapter turns into this identity. */
@@ -19,6 +25,9 @@ export interface ThrowawayAccount {
 /** A login no other scenario or run can produce, and the identity the mock derives from it. */
 export function throwawayAccount(scenario: string): ThrowawayAccount {
   const login = `acct-${scenario}-${process.pid}-${Date.now().toString(36)}`;
+  if (login.length > MAX_GITHUB_LOGIN_LENGTH) {
+    throw new Error(`Login "${login}" exceeds ${MAX_GITHUB_LOGIN_LENGTH} characters; shorten the scenario name.`);
+  }
   return { login, email: `${login}@${MOCK_EMAIL_DOMAIN}`, githubId: `mock-${login}` };
 }
 

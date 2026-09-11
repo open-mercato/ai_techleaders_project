@@ -320,6 +320,8 @@ describe('TC-MENTOR-PRICES-004 a price below the bound in the editor', () => {
         .resolves.toBe('Enter an amount from PLN 90.00 to PLN 600.00.');
       await expect(runAgentBrowser(session, 'get', 'attr', '[aria-invalid="true"]', 'name'))
         .resolves.toBe('price25');
+      await expect(runAgentBrowser(session, 'get', 'count', '[role="alert"]')).resolves.toBe('1');
+      await expect(runAgentBrowser(session, 'get', 'count', '[aria-invalid="true"]')).resolves.toBe('1');
       const after = await runAgentBrowser(session, 'snapshot');
       expect(after).not.toContain('Session prices saved.');
       await runAgentBrowser(

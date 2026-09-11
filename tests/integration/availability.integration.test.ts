@@ -157,11 +157,12 @@ describe('TC-AVAILABILITY-003 a start time that has passed', () => {
   it('refuses to publish the slot and writes nothing', async () => {
     const baseUrl = inject('integrationBaseUrl');
     const databaseUrl = inject('integrationDatabaseUrl');
-    const mentor = await seedPublishedMentorProfile(databaseUrl);
-    const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
-    await orm.connect();
+    let orm: MikroORM | undefined;
 
     try {
+      const mentor = await seedPublishedMentorProfile(databaseUrl);
+      orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+      await orm.connect();
       const cookie = await signInCookieHeader(baseUrl, 'mock-mentor');
       const response = await fetch(`${baseUrl}/api/availability/slots`, {
         method: 'POST',
@@ -189,7 +190,7 @@ describe('TC-AVAILABILITY-003 a start time that has passed', () => {
       expect(publicPayload.data.slots).toEqual([]);
     } finally {
       try {
-        await orm.close(true);
+        await orm?.close(true);
       } finally {
         await resetPublishedMentorProfile(databaseUrl);
       }

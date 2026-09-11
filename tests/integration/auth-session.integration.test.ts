@@ -230,13 +230,16 @@ describe('TC-AUTH-012 a signed-in visitor opening sign-in or register', () => {
     try {
       await signInAs(session, baseUrl, login);
 
-      for (const form of ['/sign-in', '/register']) {
+      for (const [form, formHeading] of [
+        ['/sign-in', 'Welcome back'],
+        ['/register', 'Create your account'],
+      ] as const) {
         await runAgentBrowser(session, 'open', `${baseUrl}${form}`);
         await runAgentBrowser(session, 'wait', '--text', 'My sessions');
         expect(new URL(await runAgentBrowser(session, 'get', 'url')).pathname, form).toBe('/home');
         const snapshot = await runAgentBrowser(session, 'snapshot');
         expect(snapshot).toContain('heading "My sessions"');
-        expect(snapshot).not.toContain('heading "Welcome back"');
+        expect(snapshot).not.toContain(`heading "${formHeading}"`);
       }
 
       await runAgentBrowser(

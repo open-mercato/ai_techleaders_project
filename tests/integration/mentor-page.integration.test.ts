@@ -297,6 +297,8 @@ describe('TC-MENTOR-PAGE-003 publish requires a public-work link', () => {
         .resolves.toBe('Add a link to your public work.');
       await expect(runAgentBrowser(session, 'get', 'attr', '[aria-invalid="true"]', 'name'))
         .resolves.toBe('publicWorkUrl');
+      await expect(runAgentBrowser(session, 'get', 'count', '[role="alert"]')).resolves.toBe('1');
+      await expect(runAgentBrowser(session, 'get', 'count', '[aria-invalid="true"]')).resolves.toBe('1');
 
       const after = await runAgentBrowser(session, 'snapshot');
       expect(after).toContain('button "Publish page"');

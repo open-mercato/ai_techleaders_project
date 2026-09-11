@@ -275,7 +275,7 @@ describe('TC-INVITE-005 two accepts of one invitation at the same time', () => {
       const outcomes = await Promise.all(
         responses.map(async (response) => ({
           status: response.status,
-          body: (await response.json()) as { ok: boolean },
+          body: (await response.json()) as { ok: boolean; error?: { code: string } },
         })),
       );
       const accepted = outcomes.filter(({ status }) => status === 200);
@@ -283,6 +283,13 @@ describe('TC-INVITE-005 two accepts of one invitation at the same time', () => {
       expect(accepted).toHaveLength(1);
       expect(accepted[0]?.body).toMatchObject({ ok: true, data: { roles: ['mentee', 'mentor'] } });
       expect(refused).toHaveLength(1);
+      // The loser either finds the invitation already accepted (404) or, if its session
+      // check runs after the winner's commit, a stale session (401). A 500 or 409 would
+      // mean the lock let both requests reach the write.
+      expect([
+        { status: 404, code: 'not_found' },
+        { status: 401, code: 'unauthorized' },
+      ]).toContainEqual({ status: refused[0]?.status, code: refused[0]?.body.error?.code });
       expect(refused[0]?.body.ok).toBe(false);
 
       const state = await readInviteeState(databaseUrl, invitation.id, email);
@@ -312,6 +319,7 @@ describe('TC-INVITE-006 an invited account whose email is not verified', () => {
       await runAgentBrowser(session, 'open', `${baseUrl}/invitation/${invitation.token}`);
       const snapshot = await runAgentBrowser(session, 'snapshot');
       expect(snapshot).toContain('heading "Use the invited account"');
+      expect(snapshot).toContain('button "Sign out"');
       expectAbsent(
         snapshot,
         { role: 'button', text: 'Accept invitation' },

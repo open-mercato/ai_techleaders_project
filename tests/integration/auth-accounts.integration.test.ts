@@ -78,6 +78,7 @@ describe('TC-AUTH-006 a GitHub sign-in whose email matches an unconfirmed regist
       expect(await runAgentBrowser(session, 'get', 'text', '[role="alert"]')).toBe(
         GITHUB_EMAIL_REFUSAL,
       );
+      expect(await runAgentBrowser(session, 'get', 'count', '[role="alert"]')).toBe('1');
       expect(await runAgentBrowser(session, 'cookies')).not.toContain(SESSION_COOKIE_NAME);
 
       await runAgentBrowser(
