@@ -1,24 +1,26 @@
 # Handoff — 2026-09-14-epic-03-booking-and-payment
 
-**Last updated:** 2026-09-14T07:55:00Z
+**Last updated:** 2026-09-14T08:02:00Z
 **Branch:** `feat/epic-03-booking-and-payment`
 **PR:** https://github.com/open-mercato/ai_techleaders_project/pull/53 (draft)
-**Current phase/step:** Phase 3 Step 3.6
-**Last commit:** `d7d6d33` — feat(payments): confirm a booking exactly once from the webhook
+**Current phase/step:** Phase 4 Step 4.1
+**Last commit:** `e9387c9` — feat(payments): take the mentee through checkout and back
 
 ## What just happened
-- Phase 3 is half landed (Steps 3.1–3.5) and verified at checkpoint 3: the `PaymentGateway`
-  port with its mock and Stripe adapters, the payment columns and `ProcessedWebhookEvent`
-  with their migration, `startCheckout`, and the exactly-once `handleWebhookEvent`.
+- Phase 3 (E03-S03 / #22 and #34) is complete and verified at checkpoint 4. The money path
+  was proved end to end against the running production build: reserve, refuse a second
+  reservation, open the payment, refuse a forged delivery, confirm from a verified one, and
+  answer a redelivery as a no-op.
 - Phases 1 and 2 shipped and were verified at checkpoints 1 and 2.
-- A payment can be opened and confirmed from a verified delivery. No route exposes either
-  yet — that is 3.7 and 3.8.
+- A mentee can now find a mentor, reserve a time and pay for it. Neither party is told yet,
+  and neither has a sessions list — that is Phase 4.
 
 ## Next concrete action
-- Step 3.6 — `PaymentService.expirePending(now)`: mark every `pending` booking past
-  `expiresAt` as `expired` (clearing `expiresAt`), which releases its slot through the
-  partial unique index, and return the count. Leave live holds and confirmed bookings
-  alone.
+- Step 4.1 — add the `Notification` entity
+  (`packages/db/src/entities/notifications/notification.entity.ts`: `user`, `kind`,
+  `booking` nullable, `readAt` nullable, index on `(user, readAt)`), register it, generate
+  the migration with `DB_MIGRATIONS_SNAPSHOT=false` on `db:migrate`, and add its entity and
+  migration tests.
 
 ## Blockers / open questions
 - None blocking.
