@@ -69,9 +69,11 @@ export {
 } from './services/invitations/invitation.service';
 export {
   MentorProfileService,
+  MAX_LISTED_MENTORS,
   MAX_SLUG_ATTEMPTS,
   toOwnerDto,
   toPublicDto,
+  type MentorListingDto,
   type MentorProfileOwnerDto,
   type MentorProfilePublicDto,
   type MentorPricesDto,

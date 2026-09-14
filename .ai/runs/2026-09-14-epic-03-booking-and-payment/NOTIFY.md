@@ -38,3 +38,11 @@
 - Corrected: Step 1.1 now adds `MentorListingCard`, the public-list card the shell is
   missing (`MentorProfileCard` is the mentor's own card — status chip, no price). Spec and
   PLAN updated together. No Step ids changed; no Step has landed yet.
+
+## 2026-09-14T07:14:00Z — decision: Commit cells are backfilled at checkpoints
+- Filling a Step's `Commit` cell inside its own commit is self-referential: amending to
+  write the SHA changes the SHA. Step 1.1 landed with a stale value (`3b54e12`) for
+  exactly that reason; the real commit is `219290a`.
+- From Step 1.2 on, a Step's own commit writes `pending` and the checkpoint commit
+  backfills the real short SHAs. `Status` — the cell `om-auto-continue-pr-loop` actually
+  resumes from — is still flipped inside the Step's own commit, unchanged.

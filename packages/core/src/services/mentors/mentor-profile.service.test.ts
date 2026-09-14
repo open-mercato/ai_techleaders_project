@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   MentorProfile,
+  Slot,
   UniqueConstraintViolationException,
   type EntityManager,
   type IMentorProfile,
@@ -9,8 +10,15 @@ import {
 import type { Session } from '../../http/auth';
 import type { SlotPublicDto } from '../availability/slot.service';
 import type { PlatformSettings } from '../operator/platform-settings.service';
-import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../../http/errors';
 import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ServiceUnavailableError,
+  UnauthorizedError,
+} from '../../http/errors';
+import {
+  MAX_LISTED_MENTORS,
   MAX_SLUG_ATTEMPTS,
   MentorProfileService,
   toOwnerDto,
@@ -467,5 +475,119 @@ describe('MentorProfileService public read', () => {
     await expect(makeHarness(undefined, null).service.getPublicBySlug('missing')).rejects.toThrow(
       NotFoundError,
     );
+  });
+});
+
+describe('public mentor list', () => {
+  const OTHER_ID = '30000000-0000-4000-8000-000000000002';
+
+  function bookable(overrides: Partial<IMentorProfile> = {}): IMentorProfile {
+    return profile({
+      slug: 'ada',
+      publishedAt: NOW,
+      lastPublishedAvailabilityAt: new Date('2026-09-09T08:00:00.000Z'),
+      price25Cents: 12_000,
+      price50Cents: 22_000,
+      ...overrides,
+    });
+  }
+
+  function futureSlot(mentorProfile: IMentorProfile, startsAt: string) {
+    return { id: `slot-${startsAt}`, mentorProfile, startsAt: new Date(startsAt) };
+  }
+
+  function makeListHarness(profiles: IMentorProfile[], slots: unknown[] = []) {
+    const em = {
+      find: vi.fn(async (entity: unknown) => (entity === MentorProfile ? profiles : slots)),
+    };
+    const service = new MentorProfileService({
+      em: em as unknown as EntityManager,
+      clock: { now: () => NOW },
+      eventBus: { emit: vi.fn(async () => undefined) } as never,
+      session: Promise.resolve(null),
+      slotService: { listPublic: vi.fn(async () => []) } as never,
+      platformSettingsService: { get: vi.fn(() => SETTINGS) },
+    });
+    return { service, em };
+  }
+
+  it('lists a bookable mentor with both prices and the earliest future time', async () => {
+    const ada = bookable();
+    const h = makeListHarness([ada], [
+      futureSlot(ada, '2026-09-12T09:00:00.000Z'),
+      futureSlot(ada, '2026-09-14T09:00:00.000Z'),
+    ]);
+
+    await expect(h.service.listPublished()).resolves.toEqual([
+      {
+        slug: 'ada',
+        displayName: 'Ada Lovelace',
+        bio: 'I built compilers.',
+        stackTags: ['TypeScript'],
+        prices: { price25Cents: 12_000, price50Cents: 22_000, currency: 'PLN' },
+        nextAvailableAt: '2026-09-12T09:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('asks only for published mentors who have both prices, newest availability first', async () => {
+    const h = makeListHarness([bookable()], [futureSlot(bookable(), '2026-09-12T09:00:00.000Z')]);
+
+    await h.service.listPublished();
+
+    expect(h.em.find).toHaveBeenNthCalledWith(
+      1,
+      MentorProfile,
+      { publishedAt: { $ne: null }, price25Cents: { $ne: null }, price50Cents: { $ne: null } },
+      {
+        populate: ['user'],
+        orderBy: [{ lastPublishedAvailabilityAt: 'desc' }, { id: 'asc' }],
+        limit: MAX_LISTED_MENTORS,
+      },
+    );
+    expect(h.em.find).toHaveBeenNthCalledWith(
+      2,
+      Slot,
+      { mentorProfile: { $in: [PROFILE_ID] }, removedAt: null, startsAt: { $gt: NOW } },
+      { orderBy: { startsAt: 'asc' } },
+    );
+  });
+
+  it('narrows to one stack tag with an array-membership operator', async () => {
+    const h = makeListHarness([], []);
+
+    await expect(h.service.listPublished('React')).resolves.toEqual([]);
+
+    expect(h.em.find).toHaveBeenCalledExactlyOnceWith(
+      MentorProfile,
+      expect.objectContaining({ stackTags: { $contains: ['React'] } }),
+      expect.anything(),
+    );
+  });
+
+  it('keeps the caller order and drops a mentor whose times have all passed', async () => {
+    const ada = bookable();
+    const grace = bookable({
+      id: OTHER_ID,
+      slug: 'grace',
+      user: user({ displayName: 'Grace Hopper' }),
+      lastPublishedAvailabilityAt: new Date('2026-09-08T08:00:00.000Z'),
+    });
+    const h = makeListHarness([ada, grace], [futureSlot(grace, '2026-09-13T09:00:00.000Z')]);
+
+    const listed = await h.service.listPublished();
+
+    expect(listed.map((mentor) => mentor.slug)).toEqual(['grace']);
+  });
+
+  it('refuses to price a list when platform settings are unavailable', async () => {
+    const service = new MentorProfileService({
+      em: { find: vi.fn(async () => []) } as unknown as EntityManager,
+      clock: { now: () => NOW },
+      eventBus: { emit: vi.fn(async () => undefined) } as never,
+      session: Promise.resolve(null),
+    });
+
+    await expect(service.listPublished()).rejects.toThrow(ServiceUnavailableError);
   });
 });

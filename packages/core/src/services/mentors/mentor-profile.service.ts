@@ -1,6 +1,7 @@
 import {
   LockMode,
   MentorProfile,
+  Slot,
   UniqueConstraintViolationException,
   type EntityManager,
   type IMentorProfile,
@@ -30,6 +31,15 @@ import { mentorOfferReady, mentorPagePublishable } from './readiness';
 
 const SLUG_CONSTRAINT = 'mentor_profiles_slug_unique';
 export const MAX_SLUG_ATTEMPTS = 100;
+
+/**
+ * The public list is capped rather than paginated (#20 asks for a list, not a pager).
+ *
+ * R13's own change path says more than 30 published mentors reopens the search question,
+ * so a cap three times that size is the point at which the product has already outgrown
+ * this screen. Raising it is not the fix; adding search or pagination is.
+ */
+export const MAX_LISTED_MENTORS = 100;
 
 export interface MentorPricesDto {
   price25Cents: number;
@@ -63,6 +73,25 @@ export interface MentorProfilePublicDto {
   slots?: SlotPublicDto[];
   /** Optional for source compatibility; live service projections always include this key. */
   prices?: MentorPricesDto | null;
+}
+
+/**
+ * One mentor in the public list (#20).
+ *
+ * `bio` rather than a headline because the product collects exactly one plain description
+ * (R04) — `MentorProfile.headline` exists in the schema but nothing writes it, so a listing
+ * that read it would render an empty subtitle for every mentor.
+ *
+ * `nextAvailableAt` is non-nullable on purpose: a mentor without a future slot is not
+ * listed at all, so an absent time is not a state this DTO can be in.
+ */
+export interface MentorListingDto {
+  slug: string;
+  displayName: string;
+  bio: string;
+  stackTags: readonly StackTag[];
+  prices: MentorPricesDto;
+  nextAvailableAt: string;
 }
 
 function pricesFor(profile: IMentorProfile, currency: string): MentorPricesDto | null {
@@ -313,6 +342,74 @@ export class MentorProfileService {
       profile.publishedAt = null;
       await tx.flush();
       return this.ownerDto(profile);
+    });
+  }
+
+  /**
+   * The public mentor list (#20): published mentors who can actually be booked, filtered
+   * by at most one stack tag and ordered by most recent published availability.
+   *
+   * "Bookable" is three conditions, all of them refusals a mentee would otherwise hit at
+   * the booking step: the page is published, both session prices are set (E02-S04 —
+   * without them there is nothing to charge), and at least one active slot starts in the
+   * future. There is deliberately **no free-text parameter and no sort parameter** (R13):
+   * the ordering is the product's, not the caller's.
+   *
+   * Two queries rather than one join. The first is bounded by `MAX_LISTED_MENTORS` and
+   * hits the published/price predicate; the second reads the candidates' future slots
+   * through the `(mentor_profile_id, starts_at)` index and keeps the earliest per mentor.
+   * A mentor whose slots have all passed falls out here rather than in SQL, which is what
+   * keeps the ordering key (`lastPublishedAvailabilityAt`, a column) and the filter (a
+   * row that may not exist) from having to agree inside one query plan.
+   */
+  async listPublished(tag?: StackTag | null): Promise<MentorListingDto[]> {
+    const now = this.clock.now();
+    const settings = this.settings();
+
+    const profiles = await this.em.find(
+      MentorProfile,
+      {
+        publishedAt: { $ne: null },
+        price25Cents: { $ne: null },
+        price50Cents: { $ne: null },
+        // Array membership needs an explicit operator on a native `text[]` column — see
+        // the note on `User.roles`.
+        ...(tag == null ? {} : { stackTags: { $contains: [tag] } }),
+      },
+      {
+        populate: ['user'],
+        orderBy: [{ lastPublishedAvailabilityAt: 'desc' }, { id: 'asc' }],
+        limit: MAX_LISTED_MENTORS,
+      },
+    );
+    if (profiles.length === 0) return [];
+
+    const slots = await this.em.find(
+      Slot,
+      {
+        mentorProfile: { $in: profiles.map((profile) => profile.id) },
+        removedAt: null,
+        startsAt: { $gt: now },
+      },
+      { orderBy: { startsAt: 'asc' } },
+    );
+    const nextByProfile = new Map<string, Date>();
+    for (const slot of slots) {
+      const profileId = slot.mentorProfile.id;
+      if (!nextByProfile.has(profileId)) nextByProfile.set(profileId, slot.startsAt);
+    }
+
+    return profiles.flatMap((profile) => {
+      const nextAvailableAt = nextByProfile.get(profile.id);
+      if (nextAvailableAt === undefined) return [];
+      return [{
+        slug: profile.slug as string,
+        displayName: profile.user.displayName,
+        bio: profile.bio as string,
+        stackTags: profile.stackTags as StackTag[],
+        prices: pricesFor(profile, settings.currency) as MentorPricesDto,
+        nextAvailableAt: nextAvailableAt.toISOString(),
+      }];
     });
   }
 
