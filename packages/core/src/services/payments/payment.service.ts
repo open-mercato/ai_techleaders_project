@@ -7,8 +7,17 @@ import {
 } from '@devmentor/db';
 import type { AppEnv } from '../../config/env';
 import { assertOwnership, requireRole, type Session } from '../../http/auth';
-import { ConflictError, NotFoundError, UnauthorizedError } from '../../http/errors';
+import {
+  ConflictError,
+  NotFoundError,
+  ServiceUnavailableError,
+  UnauthorizedError,
+} from '../../http/errors';
 import type { Clock } from '../../time/clock';
+import {
+  PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE,
+  type PlatformSettingsService,
+} from '../operator/platform-settings.service';
 import type { EventBus } from '../../events/event-bus';
 import type { GatewayEvent, PaymentGateway } from './payment-gateway.port';
 
@@ -64,6 +73,7 @@ export class PaymentService {
   private readonly paymentGateway: PaymentGateway;
   private readonly eventBus: EventBus;
   private readonly session: Promise<Session | null>;
+  private readonly platformSettingsService?: Pick<PlatformSettingsService, 'get' | 'splitFor'>;
 
   constructor({
     em,
@@ -72,6 +82,7 @@ export class PaymentService {
     eventBus,
     paymentGateway,
     session,
+    platformSettingsService,
   }: {
     em: EntityManager;
     clock: Clock;
@@ -79,6 +90,7 @@ export class PaymentService {
     eventBus: EventBus;
     paymentGateway: PaymentGateway;
     session: Promise<Session | null>;
+    platformSettingsService?: Pick<PlatformSettingsService, 'get' | 'splitFor'>;
   }) {
     // Destructure the PROXY cradle synchronously — resolving a key after an await can reach
     // a request scope that has already been disposed.
@@ -88,6 +100,7 @@ export class PaymentService {
     this.paymentGateway = paymentGateway;
     this.eventBus = eventBus;
     this.session = session;
+    this.platformSettingsService = platformSettingsService;
     void session.catch(() => undefined);
   }
 
@@ -202,6 +215,17 @@ export class PaymentService {
           await tx.flush();
           return 'amount_mismatch';
         }
+
+        // R10: the fee **in force now** is what this session owes. Snapshotting it here is
+        // what makes a later change to the percentage apply to later sessions only.
+        const settings = this.platformSettingsService;
+        if (settings === undefined) {
+          throw new ServiceUnavailableError(PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE);
+        }
+        const split = settings.splitFor(booking.priceCents);
+        booking.feePercentApplied = settings.get().feePercent;
+        booking.platformFeeCents = split.platformFeeCents;
+        booking.mentorShareCents = split.mentorShareCents;
 
         booking.status = 'confirmed';
         // R15/D22: booking-to-start is `startsAt - bookedAt`, both on this row.

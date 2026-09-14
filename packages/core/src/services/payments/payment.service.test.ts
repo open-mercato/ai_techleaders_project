@@ -6,6 +6,7 @@ import {
   type IBooking,
 } from '@devmentor/db';
 import type { AppEnv } from '../../config/env';
+import type { PlatformSettings } from '../operator/platform-settings.service';
 import type { Session } from '../../http/auth';
 import {
   ConflictError,
@@ -26,6 +27,14 @@ const MENTEE_ID = '10000000-0000-4000-8000-000000000001';
 const PROFILE_ID = '30000000-0000-4000-8000-000000000001';
 const BOOKING_ID = '50000000-0000-4000-8000-000000000001';
 const APP_URL = 'https://devmentor.test';
+const SETTINGS: PlatformSettings = {
+  currency: 'PLN',
+  priceBounds: {
+    p25: { minCents: 9_000, maxCents: 60_000 },
+    p50: { minCents: 18_000, maxCents: 120_000 },
+  },
+  feePercent: 20,
+};
 
 function booking(overrides: Partial<IBooking> = {}): IBooking {
   return {
@@ -232,8 +241,15 @@ describe('PaymentService.handleWebhookEvent', () => {
 
   function webhookHarness({
     stored = booking({ stripeCheckoutSessionId: 'cs_mock_000001' }),
+    feePercent = 20,
+    withoutSettings = false,
     onFlush,
-  }: { stored?: IBooking | null; onFlush?: () => void } = {}) {
+  }: {
+    stored?: IBooking | null;
+    feePercent?: number;
+    withoutSettings?: boolean;
+    onFlush?: () => void;
+  } = {}) {
     const recorded: Record<string, unknown>[] = [];
     const tx = {
       create: vi.fn((_entity: unknown, data: Record<string, unknown>) => {
@@ -255,6 +271,13 @@ describe('PaymentService.handleWebhookEvent', () => {
       eventBus: eventBus as never,
       paymentGateway: new MockPaymentGateway(),
       session: Promise.resolve(null),
+      platformSettingsService: withoutSettings ? undefined : {
+        get: () => ({ ...SETTINGS, feePercent }),
+        splitFor: (priceCents: number) => {
+          const platformFeeCents = Math.round((priceCents * feePercent) / 100);
+          return { platformFeeCents, mentorShareCents: priceCents - platformFeeCents };
+        },
+      },
     });
     return { service, tx, eventBus, stored, recorded };
   }
@@ -274,6 +297,41 @@ describe('PaymentService.handleWebhookEvent', () => {
       // The hold is over: the slot is held by a confirmed booking now, not by a timer.
       expiresAt: null,
     });
+  });
+
+  it('snapshots the fee in force now, so a later change cannot rewrite it (R10)', async () => {
+    const h = webhookHarness();
+
+    await h.service.handleWebhookEvent(completed);
+
+    expect(h.stored).toMatchObject({
+      feePercentApplied: 20,
+      platformFeeCents: 2_400,
+      mentorShareCents: 9_600,
+    });
+    // The two always sum back to the price.
+    expect(h.stored!.platformFeeCents! + h.stored!.mentorShareCents!).toBe(12_000);
+  });
+
+  it('applies whatever fee is configured at the moment of confirmation', async () => {
+    const h = webhookHarness({ feePercent: 30 });
+
+    await h.service.handleWebhookEvent(completed);
+
+    expect(h.stored).toMatchObject({
+      feePercentApplied: 30,
+      platformFeeCents: 3_600,
+      mentorShareCents: 8_400,
+    });
+  });
+
+  it('refuses to confirm a payment it cannot split rather than guessing a fee', async () => {
+    const h = webhookHarness({ withoutSettings: true });
+
+    await expect(h.service.handleWebhookEvent(completed)).rejects.toThrow(
+      'Platform pricing is temporarily unavailable',
+    );
+    expect(h.stored?.status).toBe('pending');
   });
 
   it('records the delivery before it acts on it', async () => {
