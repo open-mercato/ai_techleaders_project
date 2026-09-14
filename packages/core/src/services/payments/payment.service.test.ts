@@ -85,7 +85,7 @@ beforeEach(() => vi.clearAllMocks());
 describe('checkoutReturnUrls', () => {
   it('sends a payer to their sessions and an abandoner back to the mentor page', () => {
     expect(checkoutReturnUrls(APP_URL, booking())).toEqual({
-      successUrl: `${APP_URL}/sessions?booked=${BOOKING_ID}`,
+      successUrl: `${APP_URL}/home?booked=${BOOKING_ID}`,
       cancelUrl: `${APP_URL}/m/mock-mentor`,
     });
   });
@@ -143,14 +143,14 @@ describe('PaymentService.startCheckout', () => {
     expect(started).toEqual({
       bookingId: BOOKING_ID,
       checkoutSessionId: 'cs_mock_000001',
-      url: `${APP_URL}/sessions?booked=${BOOKING_ID}`,
+      url: `${APP_URL}/home?booked=${BOOKING_ID}`,
     });
     expect(h.gateway.sessionRequest('cs_mock_000001')).toEqual({
       bookingId: BOOKING_ID,
       // From the booking, never from the caller: there is no amount in the request at all.
       amountCents: 12_000,
       currency: 'PLN',
-      successUrl: `${APP_URL}/sessions?booked=${BOOKING_ID}`,
+      successUrl: `${APP_URL}/home?booked=${BOOKING_ID}`,
       cancelUrl: `${APP_URL}/m/mock-mentor`,
       // Exactly the booking's own hold, so the provider and this database cannot disagree
       // about who owns the slot.

@@ -116,7 +116,7 @@ export class NotificationService {
       text:
         `Your text session with ${mentor.displayName} is confirmed.\n`
         + `When: ${whenAndHowLong(booking)}\n`
-        + `Your sessions: ${this.env.APP_URL}/sessions\n`,
+        + `Your sessions: ${this.env.APP_URL}/home\n`,
     });
   }
 

@@ -74,6 +74,7 @@ export default defineConfig({
         'packages/app/src/app/\\(auth\\)/sign-in/page.tsx',
         'packages/app/src/app/\\(mentee\\)/layout.tsx',
         'packages/app/src/app/\\(mentee\\)/home/page.tsx',
+        'packages/app/src/app/\\(mentee\\)/home/booked-banner.tsx',
         'packages/app/src/app/\\(mentor\\)/layout.tsx',
         'packages/app/src/app/\\(mentor\\)/mentor/page.tsx',
         'packages/app/src/app/\\(mentor\\)/mentor/mentor-onboarding-status.tsx',
@@ -99,6 +100,7 @@ export default defineConfig({
         'packages/app/src/components/email-auth-form.tsx',
         // The signed-in chrome the three layouts above delegate to, and the two modules
         // it composes: which links a role set may see, and the name in the user block.
+        'packages/app/src/components/sessions-list.tsx',
         'packages/app/src/components/workspace-shell.tsx',
         // The default landing, in its own module because the client form needs it too and
         // `lib/session.ts` imports `next/headers`.

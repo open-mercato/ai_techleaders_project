@@ -34,6 +34,7 @@ describe('navLinksFor', () => {
       { href: '/mentor/profile', label: 'Mentor profile' },
       { href: '/mentor/prices', label: 'Session prices' },
       { href: '/mentor/slots', label: 'Available times' },
+      { href: '/mentor/sessions', label: 'Booked sessions' },
     ]);
   });
 
@@ -58,6 +59,7 @@ describe('navLinksFor', () => {
       '/mentor/profile',
       '/mentor/prices',
       '/mentor/slots',
+      '/mentor/sessions',
     ]);
   });
 
@@ -69,6 +71,7 @@ describe('navLinksFor', () => {
       '/mentor/profile',
       '/mentor/prices',
       '/mentor/slots',
+      '/mentor/sessions',
       '/home',
     ]);
   });
@@ -84,6 +87,7 @@ describe('navLinksFor', () => {
       { href: '/mentor/profile', label: 'Mentor profile' },
       { href: '/mentor/prices', label: 'Session prices' },
       { href: '/mentor/slots', label: 'Available times' },
+      { href: '/mentor/sessions', label: 'Booked sessions' },
     ]);
   });
 
@@ -97,7 +101,11 @@ describe('navLinksFor', () => {
   });
 
   it('exposes no route that would grant a role, for any combination of roles (R07)', () => {
-    const permitted = ['/admin', '/admin/users', '/mentor', '/mentor/profile', '/mentor/prices', '/mentor/slots', '/home'];
+    const permitted = [
+      '/admin', '/admin/users',
+      '/mentor', '/mentor/profile', '/mentor/prices', '/mentor/slots', '/mentor/sessions',
+      '/home',
+    ];
 
     for (const roles of roleCombinations()) {
       const links = navLinksFor(roles);

@@ -138,7 +138,7 @@ describe('NotificationService.onBookingConfirmed', () => {
 
     const [toMentor, toMentee] = h.mailer.send.mock.calls.map(([message]) => message.text);
     expect(toMentor).toContain(`${APP_URL}/mentor/sessions`);
-    expect(toMentee).toContain(`${APP_URL}/sessions`);
+    expect(toMentee).toContain(`${APP_URL}/home`);
     expect(toMentee).not.toContain('/mentor/sessions');
   });
 

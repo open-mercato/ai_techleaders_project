@@ -110,3 +110,16 @@
   review. 22 Steps have landed. The standing instruction for this run is to continue until
   the epic is implemented and tested, and PR #53 carries a checkpoint comment with evidence
   after every phase, so the review surface is live rather than deferred. Continuing.
+
+## 2026-09-14T08:16:30Z — decision: the mentee's sessions live at /home, not /sessions
+- The plan and the spec named `(mentee)/sessions/page.tsx`. `/home` already **is** that
+  screen in this codebase: `homeFor` sends a mentee there, its heading has read "My
+  sessions" since #12, and `tests/integration/{auth,roles,invitations}.integration.test.ts`
+  assert that heading and that link in eleven places.
+- A second route would have been the same list at a second address, and would have made
+  every one of those assertions describe a page nobody lands on. The list was built into
+  `/home` instead, and the Checkout `success_url` and the mentee notification email were
+  retargeted from `/sessions` to `/home?booked=<id>`.
+- The mentor's list is new and does need its own route: `/mentor/sessions`, with a
+  "Booked sessions" nav entry. `nav.test.ts`'s closed href set and `workspace-shell`'s
+  ordering assertions were extended for it.

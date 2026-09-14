@@ -39,13 +39,19 @@ export interface StartedCheckout {
   url: string;
 }
 
-/** Where a paid mentee lands, and where an abandoned Checkout returns them. */
+/**
+ * Where a paid mentee lands, and where an abandoned Checkout returns them.
+ *
+ * `/home` rather than a separate `/sessions`: `/home` is already the mentee's sessions
+ * screen — `homeFor` sends them there and its heading has read "My sessions" since #12 —
+ * so a second route would be the same list at a second address.
+ */
 export function checkoutReturnUrls(appUrl: string, booking: IBooking): {
   successUrl: string;
   cancelUrl: string;
 } {
   return {
-    successUrl: `${appUrl}/sessions?booked=${encodeURIComponent(booking.id)}`,
+    successUrl: `${appUrl}/home?booked=${encodeURIComponent(booking.id)}`,
     cancelUrl: `${appUrl}/m/${encodeURIComponent(booking.mentorProfile.slug as string)}`,
   };
 }
