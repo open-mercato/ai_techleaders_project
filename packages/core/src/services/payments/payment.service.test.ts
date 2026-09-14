@@ -399,3 +399,50 @@ describe('PaymentService.handleWebhookEvent', () => {
     expect(h.tx.findOne).not.toHaveBeenCalled();
   });
 });
+
+describe('PaymentService.expirePending', () => {
+  function sweepHarness(lapsed: IBooking[]) {
+    const tx = {
+      find: vi.fn(async () => lapsed),
+      flush: vi.fn(async () => undefined),
+    };
+    const em = { transactional: vi.fn(async (run: (inner: typeof tx) => unknown) => run(tx)) };
+    const service = new PaymentService({
+      em: em as unknown as EntityManager,
+      clock: { now: () => NOW },
+      env: { APP_URL } as AppEnv,
+      eventBus: { emit: vi.fn(async () => undefined) } as never,
+      paymentGateway: new MockPaymentGateway(),
+      session: Promise.resolve(null),
+    });
+    return { service, tx };
+  }
+
+  it('releases every lapsed hold and clears its deadline', async () => {
+    const lapsed = [
+      booking({ id: 'a', expiresAt: new Date(NOW.getTime() - 1) }),
+      booking({ id: 'b', expiresAt: NOW }),
+    ];
+    const h = sweepHarness(lapsed);
+
+    await expect(h.service.expirePending(NOW)).resolves.toBe(2);
+
+    for (const released of lapsed) {
+      // Expired drops the row out of the partial unique index, so the slot is bookable
+      // again; a terminal row carrying a deadline would read like a hold still honoured.
+      expect(released.status).toBe('expired');
+      expect(released.expiresAt).toBeNull();
+    }
+  });
+
+  it('asks only for pending bookings whose deadline has passed', async () => {
+    const h = sweepHarness([]);
+
+    await expect(h.service.expirePending(NOW)).resolves.toBe(0);
+
+    expect(h.tx.find).toHaveBeenCalledExactlyOnceWith(Booking, {
+      status: 'pending',
+      expiresAt: { $lte: NOW },
+    });
+  });
+});

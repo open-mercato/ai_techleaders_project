@@ -226,6 +226,35 @@ export class PaymentService {
 
     return outcome;
   }
+
+  /**
+   * Release every hold that has lapsed, and report how many (#22).
+   *
+   * A `pending` booking past its `expiresAt` becomes `expired`, which drops it out of
+   * `bookings_active_slot_unique` and makes its slot bookable again. Clearing `expiresAt`
+   * is part of that: a terminal row carrying a deadline reads like a hold that is still
+   * being honoured.
+   *
+   * This is the **sweep**, and it is deliberately not the only thing that expires a hold —
+   * `BookingService.start` expires the one hold standing in its way, inside its own
+   * transaction, so a mentee looking at a free-looking slot can take it without waiting for
+   * anyone to run this. There is no scheduler in this project; this exists so an abandoned
+   * Checkout does not hold a slot forever when nobody happens to try booking it.
+   */
+  async expirePending(now: Date): Promise<number> {
+    return this.em.transactional(async (tx) => {
+      const lapsed = await tx.find(Booking, {
+        status: 'pending',
+        expiresAt: { $lte: now },
+      });
+      for (const booking of lapsed) {
+        booking.status = 'expired';
+        booking.expiresAt = null;
+      }
+      await tx.flush();
+      return lapsed.length;
+    });
+  }
 }
 
 function constraintName(error: unknown): string | null {

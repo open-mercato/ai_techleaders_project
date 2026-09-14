@@ -32,7 +32,7 @@
 | 3 | 3.3 | Select the Stripe gateway from configuration | inline | done | 716550e |
 | 3 | 3.4 | Open a Checkout session for a pending booking | inline | done | a94bee5 |
 | 3 | 3.5 | Confirm a booking exactly once from the webhook | inline | done | d7d6d33 |
-| 3 | 3.6 | Expire a lapsed booking hold | inline | todo | — |
+| 3 | 3.6 | Expire a lapsed booking hold | inline | done | pending |
 | 3 | 3.7 | Serve the booking checkout route | inline | todo | — |
 | 3 | 3.8 | Serve the payment webhook route | inline | todo | — |
 | 3 | 3.9 | Take the mentee through checkout and back | inline | todo | — |
