@@ -1,4 +1,5 @@
 import { SessionsList } from '../../../components/sessions-list';
+import { UnreadNotifications } from '../../../components/unread-notifications';
 import { requirePageRole } from '../../../lib/session';
 import { BookedBanner } from './booked-banner';
 
@@ -32,6 +33,7 @@ export default async function MenteeHomePage({
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">My sessions</h1>
+      <UnreadNotifications as="mentee" />
       <SessionsList
         as="mentee"
         emptyTitle="No sessions yet"

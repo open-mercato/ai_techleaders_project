@@ -43,7 +43,7 @@
 | 4 | 4.5 | Serve the notifications routes | inline | done | pending |
 | 4 | 4.6 | Show a mentee their sessions | inline | done | pending |
 | 4 | 4.7 | Show a mentor their sessions | inline | done | pending |
-| 4 | 4.8 | Surface unread notifications on each role home | inline | todo | — |
+| 4 | 4.8 | Surface unread notifications on each role home | inline | done | pending |
 | 5 | 5.1 | Add the cancellation columns | inline | todo | — |
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | todo | — |
 | 5 | 5.3 | Settle a refund from the webhook | inline | todo | — |

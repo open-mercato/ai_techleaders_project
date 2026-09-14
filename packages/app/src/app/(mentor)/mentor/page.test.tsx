@@ -24,15 +24,16 @@ describe('mentor home page', () => {
     expect(session.requirePageRole).toHaveBeenCalledWith('mentor', '/mentor');
   });
 
-  it('renders an empty request list that says why it is empty', async () => {
+  it('points a mentor at their booked sessions rather than an empty request list', async () => {
     const tree = await MentorHomePage();
     const empty = elements(tree).find((element) => element.type === EmptyState);
 
     expect(text(tree)).toContain('Mentor workspace');
     expect(elements(tree).some((element) => element.type === MentorOnboardingStatus)).toBe(true);
-    expect((empty?.props as { title: string }).title).toBe('No session requests yet');
-    expect((empty?.props as { description: string }).description).toBe(
-      'Requests from mentees will be listed here when booking launches.',
+    expect((empty?.props as { title: string }).title)
+      .toBe('Your booked sessions are on their own screen');
+    expect((empty?.props as { description: string }).description).toContain(
+      'Open Booked sessions',
     );
   });
 
