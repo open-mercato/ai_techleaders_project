@@ -1,3 +1,5 @@
+> **Lekcja 04 — przed krokiem 5 (backlog).** Ten branch zawiera przygotowany seed: odświeżony brief, źródła, aktualny panel syntetyczny i zgodne skille. Zacznij od [LESSON-04.md](LESSON-04.md).
+
 # DevMentor
 
 A platform connecting developers with experienced mentors. Built as an

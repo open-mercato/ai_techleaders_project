@@ -1,0 +1,6 @@
+# D26 — 1.0 does not handle who owns the code a mentee pastes; it says so plainly and leaves the responsibility with the mentee
+- Date, owner: 2026-09-04, founder A (Oliwia). Answers the third-party-code case raised by the panel (MC7) and by the backend developer interviewed on 2026-09-01 ("co z wklejaniem yamla z produkcji obcemu").
+- Context and the options weighed: employer's or client's code pasted into a session with a stranger; the mentee's approval of a note is not theirs to give for that code. Options: an NDA flow, an employer-approval step, a "paste only what you may share" rule stated in the product, or silence.
+- Decision and why: 1.0 states the rule and nothing more. The session screen and the booking confirmation say: "Paste only what you are allowed to share. DevMentor does not check who owns it." No NDA, no employer step, no filtering. Anything built for this before the first paid sessions is guesswork about a problem nobody has had on DevMentor yet.
+- Consequences, and what would make us revisit it: a rule for the session screen (R19); the note-approval flow stays as in D20. Revisit when a mentor or a mentee reports a dispute about ownership, or when a team plan (later, D05) brings employers into the product.
+- Status: active

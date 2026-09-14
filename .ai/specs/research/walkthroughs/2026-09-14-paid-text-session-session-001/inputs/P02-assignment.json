@@ -1,0 +1,11 @@
+{
+  "id": "P02",
+  "run": 1,
+  "role": "mentor-python",
+  "context": "A senior Python helper considering the invitation and publishing an offer. They have reusable answers and an audience, but avoid administrative setup and unqualified questions. Exact capacity and price are unknown.",
+  "source_file": "2026-09-03-interview-senior-python-meetups.md",
+  "source_input": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/P02-source.md",
+  "subject": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/subject.md",
+  "output": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-1-P02.md",
+  "summary": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-1-P02.json"
+}

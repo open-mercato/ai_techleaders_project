@@ -1,0 +1,9 @@
+# Benchmark — Codementor, checked 2026-09-04 by founder A
+
+- Link: https://www.codementor.io/ and https://www.codementor.io/react-experts
+- What it does for our users' job, in one paragraph: on-demand 1:1 live help for developers ("one-on-one live programming help"): you post a request or pick a mentor, get a live session for debugging or a code review, pay for the time. Closest to DevMentor's 1.0 job. A testimonial on the home page says "Within 15 min, I was online with a seasoned engineer"; the page itself promises no response time.
+- What it does well: the request-to-session path is the whole product; mentors "go through a strict application and vetting process" (their words, no numbers).
+- Where it falls short for our users: transactional, nothing from a session is kept or reusable afterwards (no mention of notes, transcripts or a knowledge layer anywhere on the pages checked); the developer from our 2026-09-01 interview took 40 minutes to find someone and then hit a call he did not want.
+- Pricing or model, as shown on the date checked: the pricing and how-it-works URLs returned 404, but the public listing of React mentors shows rates on the cards: "$15 / 15 mins", "$20 / 15 mins", "$25 / 15 mins", "$30 / 15 mins", "$40 / 15 mins", "$80 / 15 mins" (10 cards, range $15 to $80 per 15 minutes); four of the ten offer "First 15 mins free". No session minimum or response time on the cards. The board's "$8 to $30" was too low at the top end.
+- Ratings: every card carries a 5.0 rating with a review count (2 to 725 reviews). Ten cards, ten times 5.0: the rating carries no information, which is what the developer we interviewed on 2026-09-01 said ("każdy ma pięć gwiazdek") and what N02 assumes. The review count does vary and reads as a proxy for experience.
+- Screens worth keeping as references: none saved.

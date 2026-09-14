@@ -1,0 +1,11 @@
+{
+  "id": "P01",
+  "run": 1,
+  "role": "freelance-react",
+  "context": "A freelance React developer evaluating help with an estimate. Same-day help matters; discussing an estimate and debugging are distinct jobs. The exact new project and deadline are unknown.",
+  "source_file": "2026-09-02-interview-freelancer-react.md",
+  "source_input": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/P01-source.md",
+  "subject": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/subject.md",
+  "output": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-1-P01.md",
+  "summary": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-1-P01.json"
+}

@@ -1,0 +1,105 @@
+{
+  "persona_id": "P01",
+  "run": 1,
+  "source_file": "2026-09-02-interview-freelancer-react.md",
+  "yes_no": [
+    {
+      "question": "Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu?",
+      "answer": "no basis",
+      "support": "P01-source.md, 14:55: React Discord należy do historii rozmówcy, nie persony."
+    },
+    {
+      "question": "Czy zapłaciłeś wtedy konkretnej osobie za pomoc?",
+      "answer": "no basis",
+      "support": "P01-source.md, 15:48: deklaracja hipotetyczna; podsumowanie o braku płatnych prób dotyczy rozmówcy."
+    },
+    {
+      "question": "Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby?",
+      "answer": "no basis",
+      "support": "P01-source.md, 14:55–14:56: rozmówca otrzymał odpowiedź i wysłał wycenę; brak historii persony."
+    },
+    {
+      "question": "Czy zachowałeś wynik lub odpowiedź do późniejszego użycia?",
+      "answer": "no basis",
+      "support": "P01-source.md: brak informacji o zachowaniu odpowiedzi."
+    }
+  ],
+  "topics": [
+    {
+      "key": "estimate_needs_discussion",
+      "description": "Syntetyczna odmowa tekstu do wyceny, oparta na rozróżnieniu rozmowy i tekstu w źródle.",
+      "step": 4,
+      "evidence_excerpt": "W roli oceniającej nową wycenę szukam praktyka, który przejdzie ze mną przez założenia. P01-source.md, 16:07; narrative; no browser."
+    },
+    {
+      "key": "public_work_relevance",
+      "description": "Publiczna praca ma pokazać doświadczenie dotyczące konkretnego problemu.",
+      "step": 2,
+      "evidence_excerpt": "Świeżość nie mówi, czy ktoś zna problem. P01-source.md, 16:40; narrative; no browser."
+    },
+    {
+      "key": "price_before_commitment",
+      "description": "Podana cena umożliwia ocenę; hipotetyczna nieznana cena zatrzymuje ją.",
+      "step": 3,
+      "evidence_excerpt": "Cena ujawniona pozwala mi porównać koszt; cena nieznana zatrzymuje porównanie. Symulacja."
+    },
+    {
+      "key": "same_day_cancellation_exposure",
+      "description": "Sesja rezerwowana tego dnia może od razu znajdować się poza oknem bezpłatnego anulowania.",
+      "step": 3,
+      "evidence_excerpt": "Sesja rezerwowana na dziś może od razu nie mieć bezpłatnego anulowania. subject.md, krok 3; narrative; no browser."
+    },
+    {
+      "key": "no_show_settlement_unknown",
+      "description": "Narracja nie ustala rozliczenia nieobecności; spór jakościowy stanowi osobną sytuację.",
+      "step": 4,
+      "evidence_excerpt": "Nie utożsamiam tego z nieobecnością. S nie podaje rozliczenia. P01-source.md, 17:25; narrative; no browser."
+    },
+    {
+      "key": "note_revision_dependency",
+      "description": "Korekta zapisu zależy od ponownego działania mentora.",
+      "step": 5,
+      "evidence_excerpt": "Poprawka wymaga odesłania całej notatki; brakujący przypadek: mentor nie nanosi korekty. narrative; no browser."
+    }
+  ],
+  "decisions": [
+    {
+      "pressure": "Termin przed najwcześniejszym slotem zamiast wystarczającego czasu tego dnia; kanał tekstowy bez zmian.",
+      "action": "Syntetyczna odmowa pozostaje; wpływ oczekiwania maskuje niedopasowanie kanału.",
+      "flipped": false
+    },
+    {
+      "pressure": "Cena ukryta zamiast ceny jawnej; pozostałe warunki bez zmian.",
+      "action": "Syntetyczne zatrzymanie porównania oferty; nie jest to dowód odmowy faktycznego zakupu.",
+      "flipped": true
+    },
+    {
+      "pressure": "Konieczność założenia konta zamiast dostępnego logowania; pozostałe warunki bez zmian.",
+      "action": "Warunkowe zatrzymanie, jeśli formalność zużywa dostępny czas. Bankowe wdrożenie Connect: rola nie dotyczy.",
+      "flipped": true
+    },
+    {
+      "pressure": "Nieznane zamiast wyjaśnionego rozliczenia nieobecności; rozpatrywanie jakości przez operatora bez automatycznego zwrotu pozostaje stałe.",
+      "action": "Syntetyczne wstrzymanie zobowiązania bez wyjaśnienia; wpływ jego treści nieustalony, narracja jej nie podaje.",
+      "flipped": null
+    },
+    {
+      "pressure": "Brak możliwości samodzielnego sprawdzenia zamiast jej dostępności; pozostałe warunki bez zmian.",
+      "action": "Syntetyczna odmowa tekstu do wyceny pozostaje.",
+      "flipped": false
+    }
+  ],
+  "source_grounding_failures": [],
+  "limitations": [
+    "SYNTHETIC: nie są to rzeczywiste wypowiedzi ani obserwacje użytkownika.",
+    "Źródło to dostarczony redagowany zapis, nie niezależnie zweryfikowany transkrypt.",
+    "Persona nie ma nowej potwierdzonej historii; konkretnego epizodu źródłowego rozmówcy nie użyto jako jej pamięci.",
+    "Wszystkie emocje i działania decyzyjne są symulacją; kwota deklarowana w źródle nie dowodzi wydatku.",
+    "Przejście narracyjne wszystkich pięciu kroków: narrative; no browser.",
+    "Termin, posiadanie konta, prawo do materiałów i dostępność alternatyw w nowym przypadku są nieznane.",
+    "Etapy podaży i wypłat należą do mentora/operatora; P01 ich nie odgrywa.",
+    "Minimum dwie godziny i tekst mogą nakładać bariery; nie wyizolowano faktycznego wpływu czekania na zakup.",
+    "Zmiana po doprecyzowaniu rozliczenia nieobecności nieustalona; wariant nie tworzy obietnicy zwrotu.",
+    "Brak ustaleń między przebiegami i brak decyzji o gotowości produktu."
+  ]
+}

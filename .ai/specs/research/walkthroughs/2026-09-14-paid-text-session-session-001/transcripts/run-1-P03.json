@@ -1,0 +1,113 @@
+{
+  "persona_id": "P03",
+  "run": 1,
+  "source_file": "2026-09-02-interview-platform-dev-solves-alone.md",
+  "yes_no": [
+    {
+      "question": "Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu?",
+      "answer": "no",
+      "support": "Dostarczony zapis I, podsumowanie: no ask, internal or external. Klasyfikacja relacji, nie nowa wypowiedź uczestnika."
+    },
+    {
+      "question": "Czy zapłaciłeś wtedy konkretnej osobie za pomoc?",
+      "answer": "no",
+      "support": "I: samodzielna naprawa; konferencje. książki. osobie nie. Nie przypisano nowego zakupu."
+    },
+    {
+      "question": "Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby?",
+      "answer": "yes",
+      "support": "I: doszedłem; podsumowanie opisuje samodzielne rozwiązanie bez konsultacji."
+    },
+    {
+      "question": "Czy zachowałeś wynik lub odpowiedź do późniejszego użycia?",
+      "answer": "no basis",
+      "support": "I: sam sobie zapiszę opisuje preferencję, nie potwierdza zapisania wyniku ostatniej usterki."
+    }
+  ],
+  "topics": [
+    {
+      "key": "low_urgency_self_resolution",
+      "description": "SYNTHETIC: niepilność utrzymuje wybór samodzielnej pracy.",
+      "step": 3,
+      "evidence_excerpt": "I: nic się nie paliło; doszedłem. A: non-urgent configuration problem."
+    },
+    {
+      "key": "company_payment_responsibility",
+      "description": "SYNTHETIC: prywatny wydatek wykluczony; brak danych o firmowym zatwierdzeniu.",
+      "step": 3,
+      "evidence_excerpt": "I: nie płacę za rzeczy do pracy sam. S3–4: płatność Stripe, brak employer approval flow."
+    },
+    {
+      "key": "find_relevant_public_work_quickly",
+      "description": "SYNTHETIC: publiczne dokonania pasują do deklarowanego sposobu oceny; szybkość znalezienia pozostaje nieznana.",
+      "step": 2,
+      "evidence_excerpt": "I: zobaczyłbym, co zrobił; znajdę w pięć minut. S2: public work and descriptions, ordered by recent published availability."
+    },
+    {
+      "key": "wait_is_separate_from_session_length",
+      "description": "SYNTHETIC: czas trwania sesji nie rozstrzyga szybkości uzyskania pomocy; źródłowe do godziny jest niejednoznaczne.",
+      "step": 3,
+      "evidence_excerpt": "I: to jest do godziny. S3: 25- or 50-minute session; slot starts at least two hours after booking."
+    },
+    {
+      "key": "low_value_of_retained_note",
+      "description": "SYNTHETIC: własny zapis ogranicza wartość archiwum i domknięcia notatki.",
+      "step": 5,
+      "evidence_excerpt": "I: nie. sam sobie zapiszę. S5: developer approves it in full or declines with a comment."
+    },
+    {
+      "key": "no_purchase_on_current_problem",
+      "description": "SYNTHETIC: wyjście po przeglądaniu; deklarowany wyjątek migracji nie zastępuje obecnej niepilnej sytuacji.",
+      "step": 3,
+      "evidence_excerpt": "A: topic salience is barely. I: jakby to było coś, co robię raz i nigdy więcej; deklaracja, nie historia zakupu."
+    }
+  ],
+  "decisions": [
+    {
+      "pressure": "SYNTHETIC; tylko alternatywa: pomoc wewnętrzna zamiast samodzielnej pracy, I: zawsze ktoś jest.",
+      "action": "Pozostaje przy rozwiązaniu wewnątrz firmy; bez rezerwacji.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC; tylko czas: S3 minimum dwie godziny oczekiwania; I deklarowane do godziny nie określa jednoznacznie czasu rozpoczęcia.",
+      "action": "Pracuje sam, odkłada ofertę.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC; tylko płatnik: wydatek prywatny wobec założonego pokrycia przez firmę.",
+      "action": "Pokrycie usuwa osobisty koszt, lecz nie tworzy potrzeby rezerwacji.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC; tylko przygotowanie: logowanie GitHub lub email z S2–3.",
+      "action": "Nie tworzy konta dla niepilnego przeglądania; posiadanie konta nieznane.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC; tylko odwołanie: utrata opłaty później niż 24 godziny przed sesją, S3.",
+      "action": "Nie rezerwuje bez ustalonej potrzeby terminu.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC; tylko obietnica wyniku: brak automatycznego zwrotu za sporny rezultat, S3.",
+      "action": "Nie traktuje płatności jako gwarancji naprawy i nie kupuje.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC; tylko domknięcie: wymóg akceptacji notatki, S5; rozpatrywany warunkowo po sesji.",
+      "action": "Nie akceptuje bez przeczytania; preferuje własny zapis. Sesja nie została podjęta w tej instancji.",
+      "flipped": false
+    }
+  ],
+  "source_grounding_failures": [],
+  "limitations": [
+    "Cały przebieg jest SYNTHETIC; dostarczony redagowany zapis nie jest niezależnie potwierdzonym wywiadem verbatim.",
+    "Evidence wszystkich etapów: narrative; no browser. Nie oglądano ekranów ani działającego produktu.",
+    "Brak danych o cenie granicznej, stosie, krokach naprawy, decydencie, koncie GitHub i rzeczywistym zapisaniu wyniku.",
+    "Emocje, nowe decyzje i kryterium przywrócenia reguł są oznaczonymi wnioskami lub symulacją, nie nową historią.",
+    "Migracja, pomoc wewnętrzna w sytuacji pilnej i zapisywanie informacji są deklaracjami warunkowymi; nie zamieniono ich w przeszłe działania.",
+    "Do godziny pozostaje niejednoznaczne; nie stwierdzono dowiedzionej sprzeczności z dwugodzinnym wyprzedzeniem.",
+    "Etapy mentor/operator i wypłaty nie dotyczą tej roli. Kanał sesji oraz kolejność onboardingu Connect pozostają nierozstrzygnięte.",
+    "Nie oceniano gotowości ani wyników innych przebiegów."
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "persona_id": "P04",
+  "run": 2,
+  "source_file": "2026-09-02-interview-freelancer-react.md",
+  "yes_no": [
+    {
+      "question": "Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu?",
+      "answer": "yes",
+      "support": "Dostarczona relacja, wprowadzenie i 14:55: freelancer solo zapytał na React Discordzie. Dotyczy dawnej wyceny, nie nowego błędu."
+    },
+    {
+      "question": "Czy zapłaciłeś wtedy konkretnej osobie za pomoc?",
+      "answer": "no",
+      "support": "Redagowane podsumowanie źródła: Tried before: nothing paid. Deklaracja poniżej 200 zł nie jest zakupem. Dotyczy dawnej wyceny."
+    },
+    {
+      "question": "Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby?",
+      "answer": "no",
+      "support": "Źródło 14:55–14:56: otrzymał odpowiedź i link, następnie wysłał wycenę. Brak użytecznej odpowiedzi nie jest brakiem jakiejkolwiek odpowiedzi; nie ustalono wcześniejszych kroków."
+    },
+    {
+      "question": "Czy zachowałeś wynik lub odpowiedź do późniejszego użycia?",
+      "answer": "no basis",
+      "support": "Brak opisu zachowania odpowiedzi lub wyniku w źródle."
+    }
+  ],
+  "topics": [
+    {
+      "key": "bug_text_fit",
+      "description": "SYNTHETIC: tekst pasuje do deklarowanej kategorii problemu; skuteczność nowej sesji nieznana.",
+      "step": 4,
+      "evidence_excerpt": "Źródło 16:07: do buga tekst. Narracja 4: sesja tekstowa."
+    },
+    {
+      "key": "public_work_relevance",
+      "description": "SYNTHETIC: rola sprawdza publiczną pracę pod kątem konkretnego problemu.",
+      "step": 2,
+      "evidence_excerpt": "Źródło 16:40: repo, post; narracja 2: dorobek i opis bez ocen."
+    },
+    {
+      "key": "scheduled_help_delay",
+      "description": "SYNTHETIC: pilny błąd może wykluczyć oczekiwanie; aktualny deadline nieznany.",
+      "step": 3,
+      "evidence_excerpt": "Narracja 3: start najwcześniej dwie godziny po rezerwacji, bez natychmiastowej odpowiedzi."
+    },
+    {
+      "key": "personal_payment_limit_transfer",
+      "description": "SYNTHETIC: zastosowanie deklaracji kosztowej z wyceny do błędu jest założeniem.",
+      "step": 3,
+      "evidence_excerpt": "Źródło 15:48: poniżej 200 z własnego. Narracja 3: cena mentora za 25/50 minut."
+    },
+    {
+      "key": "no_show_settlement_gap",
+      "description": "SYNTHETIC: brak rozliczenia nieobecności zatrzymuje płatność do wyjaśnienia.",
+      "step": 4,
+      "evidence_excerpt": "Źródło 17:25: zwrot tego samego dnia przy nieobecności. Narracja 4: brak zasad no-show."
+    },
+    {
+      "key": "permitted_bug_material",
+      "description": "SYNTHETIC: brak podstaw do oceny, jaki materiał nowego błędu można udostępnić.",
+      "step": 4,
+      "evidence_excerpt": "Narracja 4: tylko materiał, który deweloper ma prawo udostępnić; brak sprawdzania własności."
+    },
+    {
+      "key": "note_approval_effort",
+      "description": "SYNTHETIC: zatwierdzenie notatki dodaje krok, którego wartość dla nowego błędu jest nieznana.",
+      "step": 5,
+      "evidence_excerpt": "Narracja 5: akceptacja w całości albo odmowa z komentarzem i możliwość ponownego szkicu."
+    }
+  ],
+  "decisions": [
+    {
+      "pressure": "SYNTHETIC, zmiana wyłącznie czasu: możliwe oczekiwanie kontra potrzeba natychmiastowa.",
+      "action": "Sprawdza slot; przy potrzebie natychmiastowej wraca do własnej pracy lub darmowego kanału.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC, zmiana wyłącznie ceny: poniżej 200 zł kontra poza deklarowanym zakresem; odpowiedzialność własna stała.",
+      "action": "Rozważa zapłatę; poza zakresem zatrzymuje zakup. Przeniesienie deklaracji na błąd jest założeniem.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC, zmiana wyłącznie przygotowania konta: dostępne logowanie kontra przygotowanie przerywające pilną pracę.",
+      "action": "Przechodzi dalej albo odkłada rezerwację. Nieznana rzeczywista tolerancja i posiadanie konta.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC, zmiana wyłącznie dostępności wystarczającej odpowiedzi na Discordzie.",
+      "action": "Bez odpowiedzi porównuje mentorów; po wystarczającej odpowiedzi kończy poszukiwanie.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC, nieokreślone rozliczenie nieobecności; dodana wyłącznie obietnica zachowania tekstu.",
+      "action": "Nadal prosi o zasady przed zapłatą; zachowanie tekstu nie rozwiązuje nieobecności.",
+      "flipped": false
+    }
+  ],
+  "source_grounding_failures": [],
+  "limitations": [
+    "Cały przebieg jest SYNTHETIC; źródło to dostarczona redagowana relacja, nie niezależnie zweryfikowany materiał verbatim.",
+    "Nowy błąd, jego budżet, pilność, materiał i historia są nieustalonym ASSUMPTION; nie odtworzono wyceny jako wspomnienia nowej roli.",
+    "Pytania retrospektywne i yes/no odnoszą się do przypisanej źródłu dawnej wyceny; dla ostatniego błędu brak podstaw.",
+    "Brak zapłaty wynika z redagowanego podsumowania; deklaracje kosztu i preferencji nie dowodzą zakupów ani skuteczności.",
+    "Emocje, działania pod presją i przeniesienie limitu poniżej 200 zł na błąd są założeniami.",
+    "evidence=narrative; no browser. Nie obserwowano ekranów, działania oprogramowania ani rzeczywistej podaży.",
+    "Kanał sesji czeka na potwierdzenie; rozliczenie nieobecności oraz kolejność onboardingu Stripe Connect pozostają nieustalone.",
+    "Brak porównań z innymi personami i ocen gotowości produktu."
+  ]
+}

@@ -23,4 +23,4 @@ Five tables exist on the board: product-model comparison (Codementor, MentorCrui
 | Topmate | monetising one expert's knowledge | single consultation | fixed price per service | usually the expert's own link | medium |
 | Preply | learning with a chosen tutor | single and recurring lessons | per lesson / subscription | large marketplace | high as a benchmark |
 
-The other four tables must be re-exported at readable resolution or transcribed before they can be cited.
+The other four tables (main-experience benchmark, UX scored against DevMentor's needs, benchmark summary, comparison based on opinions) were re-exported readable on 2026-09-04 and are transcribed in `2026-09-04-miro-board-benchmark-tables.md`.

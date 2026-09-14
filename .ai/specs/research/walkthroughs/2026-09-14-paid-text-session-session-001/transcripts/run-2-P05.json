@@ -1,0 +1,43 @@
+{
+  "persona_id": "P05",
+  "run": 2,
+  "source_file": "2026-09-03-interview-senior-python-meetups.md",
+  "yes_no": [
+    {"question": "Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu?", "answer": "no basis", "support": "SYNTHETIC. Zapis opisuje udzielanie pomocy poza pracą, nie ostatnie poszukiwanie pomocy przez respondenta."},
+    {"question": "Czy zapłaciłeś wtedy konkretnej osobie za pomoc?", "answer": "no basis", "support": "SYNTHETIC. Odpowiedź ‘nigdy’ dotyczy pobierania opłat za własną pomoc, nie płacenia innemu pomocnikowi."},
+    {"question": "Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby?", "answer": "no basis", "support": "SYNTHETIC. Dostarczony zapis nie opisuje takiej sytuacji."},
+    {"question": "Czy zachowałeś wynik lub odpowiedź do późniejszego użycia?", "answer": "no basis", "support": "SYNTHETIC. ‘Mam doc z odpowiedziami i z niego wklejam’ potwierdza nawyk, nie zachowanie wyniku ostatniej sytuacji."}
+  ],
+  "topics": [
+    {"key": "known_requester_before_commitment", "description": "SYNTHETIC ASSUMPTION: przekierowanie własnej publiczności nie dowodzi znajomości konkretnego klienta; bez pytania mentor może wstrzymać zobowiązanie.", "step": "2–3", "evidence_excerpt": "S: ‘musiałbym widzieć, kto pyta’; ‘nie chcę odrabiać juniorom zadań domowych’. N nie określa formularza pytania przed rezerwacją."},
+    {"key": "income_reason_to_leave_dm", "description": "SYNTHETIC ASSUMPTION: możliwość zarobku uzasadnia rozważenie linku, lecz nie dowodzi faktycznego przekierowania ani konwersji.", "step": "1–2", "evidence_excerpt": "S: ‘jakbym coś z tego miał, to tak. jak to tylko kalendarz, to zostaję przy dm’."},
+    {"key": "bounded_profile_setup", "description": "SYNTHETIC ASSUMPTION: przekroczenie deklarowanego limitu konfiguracji prowadzi do przerwania przygotowań.", "step": "1", "evidence_excerpt": "S: ‘dwadzieścia minut. max’. N nie określa czasu konfiguracji."},
+    {"key": "bank_details_after_first_booking", "description": "SYNTHETIC ASSUMPTION: wymaganie danych bankowych przed pierwszą rezerwacją wywołuje odmowę; kolejność w produkcie nie jest ustalona.", "step": "1, 5", "evidence_excerpt": "S: ‘jak chcecie mój numer konta, zanim ktokolwiek mnie zabookował, to nie’. N: kolejność onboardingu i pierwszej płatnej rezerwacji jest nierozstrzygnięta."},
+    {"key": "no_show_payment_expectation", "description": "SYNTHETIC ASSUMPTION: potwierdzona przedpłata klienta nie wystarcza do uznania rozliczenia nieobecności za zagwarantowane.", "step": "3–4", "evidence_excerpt": "S: ‘to chcę tę kasę i tak’. N nie określa rozliczenia nieobecności."},
+    {"key": "private_answer_document_value", "description": "SYNTHETIC ASSUMPTION: dokument odpowiedzi jest punktem odniesienia; prywatna notatka sesyjna nie gwarantuje możliwości dalszego wykorzystania.", "step": "4–5", "evidence_excerpt": "S: ‘ten doc, z którego wklejam. to jest całe value’. N: zaakceptowana notatka pozostaje prywatna dla obu stron; brak publikacji i AI w tym wydaniu."},
+    {"key": "unproven_supply_and_rate", "description": "SYNTHETIC: nie ustalono dostępności, stawki, opłacalności po prowizji ani zgody firmy.", "step": "1, 3, 5", "evidence_excerpt": "S: ‘nie mam pojęcia. ile ludzie biorą?’; końcowa uwaga o niezapytaniu o dostępność i zgodę firmy. N: prowizja 20% i termin w ciągu dwóch tygodni."}
+  ],
+  "decisions": [
+    {"pressure": "SYNTHETIC ASSUMPTION: czas konfiguracji do deklarowanych 20 minut versus przekroczenie tego limitu; pozostałe warunki stałe.", "action": "Próba przygotowania profilu zmienia się w przerwanie konfiguracji.", "flipped": true},
+    {"pressure": "SYNTHETIC ASSUMPTION: dane bankowe wymagane przed pierwszą rezerwacją versus wymóg przesunięty później; warianty testowe, nie rozstrzygnięcie produktu.", "action": "Odmowa zmienia się w dalszą ocenę oferty, bez potwierdzenia rozpoczęcia mentoringu.", "flipped": true},
+    {"pressure": "SYNTHETIC ASSUMPTION: ujawnienie prowizji 20% przy nadal nieustalonej stawce i odpowiedzialności formalnej.", "action": "Nadal brak potwierdzenia ceny i uruchomienia oferty; nie wymyślono progu opłacalności.", "flipped": false},
+    {"pressure": "SYNTHETIC ASSUMPTION: sam kalendarz versus możliwość zarobku; istniejące DM pozostają dostępne.", "action": "Pozostanie przy DM zmienia się w rozważenie udostępnienia linku.", "flipped": true},
+    {"pressure": "SYNTHETIC ASSUMPTION: znany odbiorca versus nieznany odbiorca; w obu wariantach brak opisanego wglądu w pytanie.", "action": "Dalsze rozważanie pierwszej sesji zmienia się we wstrzymanie zobowiązania.", "flipped": true},
+    {"pressure": "SYNTHETIC ASSUMPTION: dodana pilność odbiorcy przy niezmienionym minimum dwóch godzin do początku sesji.", "action": "Mentor nadal nie obiecuje natychmiastowej pomocy; możliwe wyjście odbiorcy to założenie.", "flipped": false},
+    {"pressure": "SYNTHETIC ASSUMPTION: potwierdzona przedpłata przy nadal brakującej obietnicy rozliczenia nieobecności klienta.", "action": "Mentor nadal wstrzymuje zobowiązanie; nie uznaje przedpłaty za gwarancję własnej wypłaty.", "flipped": false}
+  ],
+  "source_grounding_failures": [],
+  "limitations": [
+    "Całość stanowi SYNTHETIC role-play; nie jest nowym wywiadem ani obserwacją użytkownika.",
+    "ASSUMPTION persona / repeated source voice: ten sam redagowany zapis źródłowy służy innemu przebiegowi; run 2 nie dodaje niezależnego dowodu.",
+    "Świeży kontekst pierwszej rezerwacji przez udostępniony profil jest założeniem; nie wymyślono wcześniejszego płatnego mentoringu ani przekierowań.",
+    "Źródło jest dostarczonym redagowanym zapisem, nie niezależnie zweryfikowaną transkrypcją.",
+    "Dowód przejścia wszystkich etapów: narrative; no browser. Nie oceniano działających ekranów.",
+    "Wszystkie emocje, siły reakcji i decyzje pod presją są syntetycznymi założeniami, nie wypowiedziami badawczymi.",
+    "Brak konkretnego ostatniego zdarzenia uniemożliwia odpowiedzi tak/nie na cztery stałe pytania; zwyczaj korzystania z dokumentu nie uzupełnia tej luki.",
+    "Nie przyjęto angielskiego skrótu o trzech pytaniach tygodniowo; polski zapis mówi o cotygodniowych prośbach i trzech powracających tematach.",
+    "Brak dostępności, stawki, zgody firmy, rzeczywistego obciążenia konfiguracją i progu opłacalności.",
+    "Kanał sesji i kolejność onboardingu wypłat pozostają nierozstrzygnięte; brak pytania przed rezerwacją i rozliczenia nieobecności.",
+    "Nie dokonano oceny gotowości produktu ani syntezy między personami lub przebiegami."
+  ]
+}

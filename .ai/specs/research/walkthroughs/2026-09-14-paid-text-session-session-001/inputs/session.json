@@ -1,0 +1,18 @@
+{
+  "started_utc": "2026-09-14T10:04:54.170871+00:00",
+  "flow": "paid text session",
+  "stance": "adversary",
+  "runs": 2,
+  "panel": 3,
+  "composition": "Purposive role coverage, not population proportions. One freelancer, one mentor, one indifferent employed developer per run. Community data excludes mentors and has41unknown contexts; not suitable for joint-market panel quotas.",
+  "construction_sources": [
+    "2026-09-02-interview-freelancer-react.md",
+    "2026-09-03-interview-senior-python-meetups.md",
+    "2026-09-02-interview-platform-dev-solves-alone.md"
+  ],
+  "held_out_sources": [
+    "2026-09-01-interview-backend-dev-fintech.md",
+    "2026-09-03-interview-staff-engineer-declined-before.md"
+  ],
+  "source_limits": "Provided edited interview records, not independently verified verbatim transcripts. Every simulation output is SYNTHETIC. A future cross-check is against held-out supplied records, not a fresh real-user validation."
+}

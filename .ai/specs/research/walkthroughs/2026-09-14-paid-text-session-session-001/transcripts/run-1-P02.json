@@ -1,0 +1,125 @@
+{
+  "persona_id": "P02",
+  "run": 1,
+  "source_file": "2026-09-03-interview-senior-python-meetups.md",
+  "yes_no": [
+    {
+      "question": "Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu?",
+      "answer": "no basis",
+      "support": "SYNTHETIC: źródło opisuje udzielanie pomocy w DM; nie opisuje ostatniego własnego szukania odpowiedzi."
+    },
+    {
+      "question": "Czy zapłaciłeś wtedy konkretnej osobie za pomoc?",
+      "answer": "no basis",
+      "support": "SYNTHETIC: „nigdy” odpowiada na pytanie o pobieranie opłat. Brak danych o płaceniu innej osobie."
+    },
+    {
+      "question": "Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby?",
+      "answer": "no basis",
+      "support": "SYNTHETIC: brak opisu takiej własnej sytuacji pracy."
+    },
+    {
+      "question": "Czy zachowałeś wynik lub odpowiedź do późniejszego użycia?",
+      "answer": "no basis",
+      "support": "SYNTHETIC: „mam doc z odpowiedziami i z niego wklejam” potwierdza nawyk, ale nie zapis wyniku ostatniego przypadku."
+    }
+  ],
+  "topics": [
+    {
+      "key": "setup_effort_ceiling",
+      "description": "SYNTHETIC: przygotowanie oferty zależy od obciążenia administracyjnego.",
+      "step": 1,
+      "evidence_excerpt": "S: „dwadzieścia minut. max”; N1 wymaga profilu, cen i dostępności."
+    },
+    {
+      "key": "unconfirmed_mentor_capacity",
+      "description": "SYNTHETIC: wymóg terminu w dwóch tygodniach pozostaje bez potwierdzonej podaży.",
+      "step": 1,
+      "evidence_excerpt": "S: „Nie zapytałem o dostępność”; N1: at least one bookable session within two weeks."
+    },
+    {
+      "key": "known_audience_preference",
+      "description": "SYNTHETIC: publiczna lista może przyprowadzić odbiorców poza znaną społecznością.",
+      "step": 2,
+      "evidence_excerpt": "S: „jak ludzie, których znam, to wchodzę”; N2: mentor list filtered by stack."
+    },
+    {
+      "key": "question_before_commitment",
+      "description": "SYNTHETIC: brak kwalifikacji pytania może zatrzymać przyjęcie sesji.",
+      "step": 3,
+      "evidence_excerpt": "S: „nie chcę odrabiać juniorom zadań domowych”; N4 nie określa formularza pytania przed rezerwacją."
+    },
+    {
+      "key": "no_show_income_unclear",
+      "description": "SYNTHETIC: zasady anulowania nie rozstrzygają wynagrodzenia mentora przy nieobecności.",
+      "step": 3,
+      "evidence_excerpt": "S: „to chcę tę kasę i tak”; N4 nie określa no-show settlement."
+    },
+    {
+      "key": "reuse_of_private_answers",
+      "description": "SYNTHETIC: zapis sesji nie określa obsługi dokumentu gotowych odpowiedzi.",
+      "step": 4,
+      "evidence_excerpt": "S: „ten doc, z którego wklejam. to jest całe value”; N4 zapewnia zachowany tekst."
+    },
+    {
+      "key": "control_over_written_material",
+      "description": "SYNTHETIC: prywatność i brak AI odpowiadają części obaw, ale autorstwo pozostaje nieopisane.",
+      "step": 5,
+      "evidence_excerpt": "S: „jak notatka z moim nazwiskiem i ta osoba się zgodziła”; N5: approved note stays private."
+    },
+    {
+      "key": "payout_setup_sequence",
+      "description": "SYNTHETIC: wymóg danych konta przed rezerwacją wywołuje odmowę w hipotetycznym wariancie.",
+      "step": 5,
+      "evidence_excerpt": "S: „jak chcecie mój numer konta, zanim ktokolwiek mnie zabookował, to nie”; N5 kolejność pozostaje nierozstrzygnięta."
+    }
+  ],
+  "decisions": [
+    {
+      "pressure": "SYNTHETIC: tylko konfiguracja zmienia się z mieszczącej się w deklarowanych 20 minutach na przekraczającą limit.",
+      "action": "Od próby przygotowania opisu do przerwania konfiguracji; rzeczywisty czas nieznany.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC: tylko kolejność danych konta zmienia się z nieznanej na wymagane przed pierwszą rezerwacją.",
+      "action": "Od sprawdzenia procesu do odmowy kroku; nie jest to ustalone zachowanie produktu.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC: do ceny dochodzi ujawnienie 20% prowizji z N5.",
+      "action": "Nadal wstrzymuje ostateczną wycenę; brak progu opłacalności.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC: pomoc w DM zostaje ujęta w rezerwację z co najmniej dwugodzinnym wyprzedzeniem z N3.",
+      "action": "Nie deklaruje pilnej pomocy ani dyżuru; kalendarz nieznany.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC: przy nieznanej dostępności pojawia się wymóg terminu w dwóch tygodniach z N1.",
+      "action": "Wstrzymuje publikację dostępności do sprawdzenia kalendarza.",
+      "flipped": false
+    },
+    {
+      "pressure": "SYNTHETIC: samo narzędzie kalendarza zostaje uzupełnione możliwością przychodu.",
+      "action": "Od pozostania przy DM do sprawdzenia oferty, bez obietnicy migracji.",
+      "flipped": true
+    },
+    {
+      "pressure": "SYNTHETIC: znane pytanie zastępuje brak podglądu pytania przed zobowiązaniem.",
+      "action": "Od rozpatrzenia konkretnej pomocy do wstrzymania przyjęcia; N nie zapewnia kwalifikacji.",
+      "flipped": true
+    }
+  ],
+  "source_grounding_failures": [],
+  "limitations": [
+    "Całość jest SYNTHETIC; źródło to dostarczony redagowany zapis, bez niezależnej weryfikacji.",
+    "Brak wyodrębnionego ostatniego epizodu; ogólne nawyki nie uzasadniają odpowiedzi tak/nie o tym epizodzie.",
+    "Brak stawki, dostępności i zgody firmy; deklaracje hipotetyczne nie są obserwacją zachowania.",
+    "Każdy etap: narrative; no browser. Brak obserwacji ekranów i działania oprogramowania.",
+    "Emocje, priorytety uwagi i decyzje są symulowane; warianty presji nie opisują ukończonych decyzji produktu.",
+    "Zapis dialogu i angielski skrót różnią się precyzją opisu częstotliwości; nie ustalano dokładnej liczby pytań tygodniowo.",
+    "Nie rozstrzygnięto sekwencji Stripe Connect, kwalifikacji pytań ani rozliczenia nieobecności.",
+    "Nie oceniano gotowości ani wyników innych przebiegów."
+  ]
+}

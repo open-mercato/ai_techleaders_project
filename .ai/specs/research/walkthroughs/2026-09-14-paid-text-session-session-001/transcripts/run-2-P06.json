@@ -1,0 +1,111 @@
+{
+  "persona_id": "P06",
+  "run": 2,
+  "source_file": "2026-09-02-interview-platform-dev-solves-alone.md",
+  "yes_no": [
+    {
+      "question": "Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu?",
+      "answer": "no",
+      "support": "Dostarczony redagowany zapis, podsumowanie: no ask, internal or external. Odpowiedź o rozmówcy źródłowym, bez dopisania przeszłości nowej personie SYNTHETIC."
+    },
+    {
+      "question": "Czy zapłaciłeś wtedy konkretnej osobie za pomoc?",
+      "answer": "no",
+      "support": "Źródło: osobie nie; opis samodzielnego rozwiązania. Nie jest to nowa obserwacja."
+    },
+    {
+      "question": "Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby?",
+      "answer": "yes",
+      "support": "Źródło: doszedłem; podsumowanie figured it out alone; no ask. Dotyczy epizodu źródłowego."
+    },
+    {
+      "question": "Czy zachowałeś wynik lub odpowiedź do późniejszego użycia?",
+      "answer": "no_basis",
+      "support": "Sam sobie zapiszę to deklaracja, nie relacja o zachowaniu wyniku ostatniego zdarzenia."
+    }
+  ],
+  "topics": [
+    {
+      "key": "company_payment_condition",
+      "description": "SYNTHETIC: rozważanie pomocy zatrzymuje się przy prywatnym koszcie; proces firmowego rozliczenia nieopisany.",
+      "step": 3,
+      "evidence_excerpt": "Źródło: na firmę; nie płacę za rzeczy do pracy sam. Narracja: Stripe Checkout, bez employer approval flow."
+    },
+    {
+      "key": "brief_search_window",
+      "description": "SYNTHETIC: zadeklarowane szybkie znalezienie eksperta ogranicza czas poszukiwania; brak pomiaru zachowania.",
+      "step": 2,
+      "evidence_excerpt": "Źródło: znajdę w pięć minut. Narracja: stack filter, ordered by recent published availability."
+    },
+    {
+      "key": "wait_duration_ambiguity",
+      "description": "SYNTHETIC: sesja 25/50 minut nie przesądza zgodności z warunkiem do godziny, bo start następuje minimum po dwóch godzinach.",
+      "step": 3,
+      "evidence_excerpt": "Źródło: do godziny, znaczenie niejasne. Narracja: slot starts at least two hours after booking."
+    },
+    {
+      "key": "scope_before_payment",
+      "description": "ASSUMPTION: nieustalony zakres i brak automatycznego zwrotu wstrzymują zakup; nie jest to potwierdzona reakcja źródłowa.",
+      "step": 3,
+      "evidence_excerpt": "Narracja: no question-before-booking form specified; no promised automatic refund for a disputed outcome."
+    },
+    {
+      "key": "archive_review_burden",
+      "description": "SYNTHETIC: akceptacja notatki może być dodatkową pracą przy małej wartości archiwum.",
+      "step": 5,
+      "evidence_excerpt": "Źródło: nie. sam sobie zapiszę. Narracja: developer approves in full or declines with comment."
+    },
+    {
+      "key": "text_speed_uncertain",
+      "description": "SYNTHETIC: wyłączny tekst nie gwarantuje najszybszego wyjaśnienia; ekran kanału czeka na ponowne potwierdzenie.",
+      "step": 4,
+      "evidence_excerpt": "Źródło: co szybsze. Narracja: video excluded; session screen awaits owner reconfirmation."
+    }
+  ],
+  "decisions": [
+    {
+      "pressure": "Czas: minimum dwie godziny do rozpoczęcia zamiast niejasnego źródłowego do godziny.",
+      "action": "SYNTHETIC: sprawdza termin, bez rozstrzygniętej odmowy; brak podstaw do pilności.",
+      "flipped": false
+    },
+    {
+      "pressure": "Koszt miałby zostać poniesiony prywatnie; niezależny wariant.",
+      "action": "SYNTHETIC: rezygnuje z zakupu zgodnie z warunkiem na firmę.",
+      "flipped": true
+    },
+    {
+      "pressure": "Poszukiwanie przekracza deklarowane pięć minut; niezależny wariant.",
+      "action": "SYNTHETIC: kończy poszukiwanie; deklaracja nie jest pomiarem zachowania.",
+      "flipped": true
+    },
+    {
+      "pressure": "Założona dostępność pomocy wewnętrznej; niezależny wariant.",
+      "action": "SYNTHETIC: najpierw sprawdza wewnętrzną możliwość.",
+      "flipped": true
+    },
+    {
+      "pressure": "Brak ustalonego zakresu przy braku automatycznego zwrotu za sporny wynik; niezależny wariant.",
+      "action": "ASSUMPTION: wstrzymuje zakup do ustalenia wykonalnego zakresu.",
+      "flipped": true
+    },
+    {
+      "pressure": "Logowanie przed zakupem; niezależny wariant.",
+      "action": "SYNTHETIC: sprawdza opcje logowania; brak podstaw do preferencji GitHuba lub odmowy z powodu konta.",
+      "flipped": false
+    }
+  ],
+  "source_grounding_failures": [],
+  "limitations": [
+    "Wszystkie wypowiedzi i decyzje persony są SYNTHETIC, nie faktycznym świadectwem.",
+    "P06 to persona założeniowa i powtórzony głos tego samego źródła; przebieg 2 nie wnosi niezależnego respondenta ani dowodu.",
+    "Rzadkie jednorazowe zadanie pochodzi z assignment jako ASSUMPTION; nie ustalono konkretnego zadania, awarii, terminu ani historii nowej instancji.",
+    "Źródło jest dostarczonym redagowanym zapisem; cytaty nie zostały niezależnie potwierdzone jako dosłowne.",
+    "Odpowiedzi yes_no dotyczą wyłącznie epizodu źródłowego. Nie retellowano go jako pamięci persony.",
+    "Brak ceny, limitu budżetu, decydenta zakupowego i procesu rozliczenia firmowego.",
+    "Warunki pięciu minut i godziny oraz kanał wewnętrzny w pilności to deklaracje hipotetyczne; znaczenie godziny pozostaje niejasne.",
+    "Wszystkie etapy mają evidence=narrative; no browser. Brak zaobserwowanych ekranów lub działającego oprogramowania.",
+    "Brak historii zachowania notatki, wcześniejszego jednorazowego zakupu lub rzeczywistego czasu szukania.",
+    "Kanał sesji czeka na potwierdzenie właściciela; kolejność onboardingu i pierwszej płatnej rezerwacji jest nierozstrzygnięta.",
+    "Nie wyciągano wniosków przekrojowych, wskaźników konwersji ani oceny gotowości produktu."
+  ]
+}

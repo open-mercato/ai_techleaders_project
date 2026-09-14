@@ -1,0 +1,6 @@
+# D27 — The text session happens in a session screen inside DevMentor, not in a channel the mentor names
+- Date, owner: 2026-09-04, founder A (Oliwia). Recorded from the agent's recommendation on founder A's instruction to add what is missing; founder A confirms or supersedes it. Answers Q18.
+- Context and the options weighed: a session screen in the product, or the mentor's own channel (Slack, Discord, email) with only the written answer returned to DevMentor. The senior interviewed on 2026-09-03 wants to see the question before accepting; the freelancer wants a refund the same day if nobody shows up; D22 measures booking-to-start; D20 needs the note draft next to the exchange.
+- Decision and why: inside DevMentor. Every rule that protects the mentee's money (prepayment, no-show, refund) and the mentor's time (question up front) needs the exchange where the product can see it. A mentor's own channel makes every dispute a word-against-word case.
+- Consequences, and what would make us revisit it: E04-S01 builds the session screen; the mentor cannot move the session elsewhere in 1.0. Revisit if mentors refuse to type in a browser (the invitation check in D18 will show it).
+- Status: active

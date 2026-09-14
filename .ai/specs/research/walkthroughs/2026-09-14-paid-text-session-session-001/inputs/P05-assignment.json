@@ -1,0 +1,11 @@
+{
+  "id": "P05",
+  "run": 2,
+  "role": "mentor-python",
+  "context": "A fresh simulated senior Python helper instance considering an audience-led first booking through their shared profile, rather than the initial invitation. Same segment evidence; no invented prior paid mentoring.",
+  "source_file": "2026-09-03-interview-senior-python-meetups.md",
+  "source_input": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/P05-source.md",
+  "subject": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/subject.md",
+  "output": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-2-P05.md",
+  "summary": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-2-P05.json"
+}

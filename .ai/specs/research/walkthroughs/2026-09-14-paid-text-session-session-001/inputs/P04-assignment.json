@@ -1,0 +1,11 @@
+{
+  "id": "P04",
+  "run": 2,
+  "role": "freelance-react",
+  "context": "A fresh simulated freelance React developer instance considering help with a bug instead of an estimate. Bug versus estimate preference comes from source; the new bug, budget and immediate deadline are unspecified assumptions.",
+  "source_file": "2026-09-02-interview-freelancer-react.md",
+  "source_input": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/P04-source.md",
+  "subject": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/inputs/subject.md",
+  "output": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-2-P04.md",
+  "summary": ".ai/specs/research/walkthroughs/2026-09-14-paid-text-session-session-001/transcripts/run-2-P04.json"
+}

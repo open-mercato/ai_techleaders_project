@@ -1,0 +1,17 @@
+# Protocol for one isolated synthetic persona
+
+Run only the assigned persona; no browser, network, other agents or unrelated files. Read your assignment and its source/subject files only, plus this protocol. Write the assignment's Markdown transcript and JSON summary. Do not read other personas, held-out notes, the whole brief, team hypotheses, or A IDs.
+
+Everything simulated is SYNTHETIC, never actual testimony. The source is a supplied edited interview record. Do not claim independently verified verbatim research. Do not retell its concrete episode as your own past memory. Do not invent past events, quantities or answers. Unknown questions get no basis. The persona may carry source-supported generic constraints/habits, with grounding in separate interviewer notes. Persona voice does not mention notes/documents/sources. Cite passages per question in interviewer metadata, not in the persona's speech. Narrative flow is not an observed screen.
+
+Use Polish. Produce:
+
+1. A persona block: role/situation, salience, emotion, goal, success, time/money/decider constraints, tools/vocabulary, objections, refusal and no-basis fields. Each line carries INTERVIEW (attributed supplied account) or ASSUMPTION (inferred/new scenario) plus source filename/passage. No names/ages/biography. The context in assignment is a proposed simulated instance, not new research. All role-play below is SYNTHETIC.
+2. Five interview questions: last occurrence/actions; cost/what tried; others involved/decider; outcome that would have resolved that past situation; what did not matter. Per answer record short immediate reaction, feeling/strength/trigger, considered answer, adversary reason not to switch, source passage attached or none and no-basis note. Never ask would-you-use/would-you-pay/like/likelihood.
+3. At most two additional past-behaviour questions relevant to desirability/timing/supply. Do not reveal expected findings.
+4. Four identical past yes/no questions: Czy przy ostatniej takiej sytuacji pytałeś kogoś spoza zespołu? Czy zapłaciłeś wtedy konkretnej osobie za pomoc? Czy kontynuowałeś pracę bez uzyskania odpowiedzi od innej osoby? Czy zachowałeś wynik lub odpowiedź do późniejszego użycia? Answer yes/no/no basis, with support. Do not force a ratio or invent history to answer.
+5. Simulate decisions under at least one pressure per relevant decision: time versus the described wait, cost/payment responsibility, setup burden, outside alternatives, missing promises. Vary one at a time; record action/refusal and whether it changes. No invented numerical pressures beyond explicitly cited source or subject values.
+6. Walk all five subject stages through this role. At each stage list first three things noticed IN THE NARRATIVE, expectation, what description supplies, fast reaction/emotion, friction, missing case, contradiction and evidence='narrative; no browser'. State role-not-applicable as needed instead of becoming another role. A missing screen detail remains missing.
+7. Topics, barriers, missing cases, exit/outlier and interviewer grounding/slop check. Do not decide cross-run findings/readiness.
+
+JSON keys: persona_id, run, source_file, yes_no:[{question,answer,support}], topics:[{key,description,step,evidence_excerpt}], decisions:[{pressure,action,flipped}], source_grounding_failures:[], limitations:[]. Descriptive ASCII snake_case topic keys; do not normalize to presumed peers. All claims remain simulation. Aim at most about 1600 words in Markdown while keeping all fields. Return paths and completion note only.
