@@ -68,6 +68,7 @@
 | 7 | 7.5 | Prove cancellation on both sides of the window | inline | done | c74a227 |
 | 7 | 7.6 | Prove the payout hold and transfer | inline | done | c74a227 |
 | 7 | 7.7 | Record the contract, configuration and run | inline | done | ebbc7c5 |
+| 7 | 7.8-review-fix | Select the payment gateway from a present flag | inline | done | pending |
 
 ## Goal
 

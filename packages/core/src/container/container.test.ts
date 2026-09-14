@@ -640,32 +640,71 @@ describe('selecting the mailer', () => {
     expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
   });
 
-  it('registers Stripe as soon as a secret key is configured, in any environment', async () => {
-    useEnv({ NODE_ENV: 'development', STRIPE_SECRET_KEY: 'sk_test_x' });
-    const container = await getContainer();
-
-    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
-    expect(logger.warn).not.toHaveBeenCalled();
-  });
-
-  it('falls back to the mock gateway without a key, loudly', async () => {
-    // Unlike the identity and mail seams this needs no second signal: a mock gateway takes
-    // no money and confirms nothing without a signed webhook, so the failure mode is a
-    // product that visibly cannot be paid rather than one that is quietly unsafe. It is
-    // still loud, because "payments appear to work and charge nobody" must not have to be
-    // inferred from a bank statement.
-    useEnv({ STRIPE_SECRET_KEY: undefined });
+  it('picks the mock gateway when both signals agree, loudly', async () => {
+    useEnv({ PAYMENT_GATEWAY: 'mock', INTEGRATION_TEST_RUN: true });
     const container = await getContainer();
 
     expect(container.cradle.paymentGateway).toBeInstanceOf(MockPaymentGateway);
     expect(logger.warn).toHaveBeenCalledWith(
       { adapter: 'mock' },
-      expect.stringContaining('no STRIPE_SECRET_KEY is set'),
+      expect.stringContaining('the mock payment gateway is active'),
     );
   });
 
+  it('does not accept PAYMENT_GATEWAY=mock alone — one flag is never enough', async () => {
+    // The composition root re-checks both flags even though the env schema already refuses
+    // this pair, for the reason `selectGithubIdentity` spells out: the schema protects a
+    // real deployment reading a real environment, this protects the container against a
+    // hand-built `AppEnv` from a test, a script or a seeder.
+    useEnv({ PAYMENT_GATEWAY: 'mock', INTEGRATION_TEST_RUN: false });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+  });
+
+  it('gives a production deployment with no Stripe key the real adapter, not the mock', async () => {
+    // The regression this pair of tests exists for. Selecting the mock from a *missing*
+    // credential meant an ordinary first deploy — session secret and mail key set, Stripe
+    // key not yet — booted green and gave every session away: the mock returns the caller's
+    // own `successUrl`, so "Pay" landed on the success page having charged nobody, and
+    // `MOCK_WEBHOOK_SECRET` is a constant in this repository, so anyone could sign the
+    // confirming webhook. The real adapter fails closed at the pay button instead (B6).
+    useEnv({
+      NODE_ENV: 'production',
+      PAYMENT_GATEWAY: undefined,
+      STRIPE_SECRET_KEY: undefined,
+      SESSION_SECRET: 'a'.repeat(32),
+      MAIL_API_KEY: 'key',
+    });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+    expect(container.cradle.paymentGateway).not.toBeInstanceOf(MockPaymentGateway);
+  });
+
+  it('picks the mock gateway in development when PAYMENT_GATEWAY is unset, and warns', async () => {
+    // The same narrow convenience the mailer gets: the Stripe adapter fails closed at the
+    // point of use, so `npm run dev` without a key would render a pay button that always
+    // 503s. Conditioned on the flag being unset, never on the key being absent.
+    useEnv({ NODE_ENV: 'development', PAYMENT_GATEWAY: undefined, STRIPE_SECRET_KEY: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(MockPaymentGateway);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'mock' },
+      expect.stringContaining('no PAYMENT_GATEWAY is set'),
+    );
+  });
+
+  it('gives development the real adapter when PAYMENT_GATEWAY says so', async () => {
+    useEnv({ NODE_ENV: 'development', PAYMENT_GATEWAY: 'stripe', STRIPE_SECRET_KEY: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+  });
+
   it('shares one payment gateway across scopes, so a session outlives its request', async () => {
-    useEnv({ STRIPE_SECRET_KEY: undefined });
+    useEnv({ PAYMENT_GATEWAY: 'mock', INTEGRATION_TEST_RUN: true });
     const container = await getContainer();
 
     const [first, second] = await Promise.all([

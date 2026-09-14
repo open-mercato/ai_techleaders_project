@@ -478,10 +478,13 @@ Variables, as listed in `.env.example` and documented in `README.md`'s Configura
 - Payments: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, **both optional and both
   fail-closed at the point of use** (B6) — a deployment without them builds, boots and
   serves every page, and answers 503 from the Checkout and webhook routes rather than
-  refusing to start. `STRIPE_SECRET_KEY`'s *presence* is also what selects the real gateway
-  in `container.ts`; absent, the mock gateway is registered and warns once at boot, because
-  "payments appear to work and charge nobody" must not have to be inferred from a bank
-  statement. `PLATFORM_FEE_PERCENT` (whole percent, 0–100, default 20) is DevMentor's share
+  refusing to start. Neither key selects the gateway: `PAYMENT_GATEWAY` (`stripe` | `mock`,
+  optional) does, under the same two-signal rule as `AUTH_IDENTITY_ADAPTER` and
+  `MAILER_ADAPTER` — `mock` is refused at parse time without `INTEGRATION_TEST_RUN=1`, and
+  an unset value means the mock in development and Stripe everywhere else. Selection is from
+  a flag that is present, never from a credential that is absent: a production deployment
+  missing `STRIPE_SECRET_KEY` gets the real adapter and a 503 at the pay button, not a mock
+  that gives sessions away. `PLATFORM_FEE_PERCENT` (whole percent, 0–100, default 20) is DevMentor's share
   of a paid session (D11/R10); the fee **in force at confirmation** is snapshotted onto the
   booking, so changing it never rewrites what an earlier session owed.
 - Test doubles: `AUTH_IDENTITY_ADAPTER`, `INTEGRATION_TEST_RUN`.

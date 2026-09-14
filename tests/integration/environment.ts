@@ -68,10 +68,14 @@ export function integrationChildEnvironment(
     // `MAIL_API_KEY` gate. `MAILER_ADAPTER=log` on its own would make the app fail at boot.
     MAILER_ADAPTER: 'log',
     INTEGRATION_TEST_RUN: '1',
-    // **Deliberately no Stripe keys.** Their absence is what selects `MockPaymentGateway`,
-    // which is the whole point: the suite signs its own deliveries and refuses a forged one,
-    // and contacting a real payment provider from a test run is not a thing this harness
-    // should be able to do by accident.
+    // Same rule, same pair, for the third seam. `PAYMENT_GATEWAY=mock` on its own makes the
+    // app fail at boot: a mock gateway takes no money and confirms bookings from a webhook
+    // signed with a secret published in this repository, so one flag must never be enough
+    // to select it.
+    PAYMENT_GATEWAY: 'mock',
+    // **Deliberately no Stripe keys.** They are not what selects the gateway — the flag
+    // above is — but contacting a real payment provider from a test run is not a thing this
+    // harness should be able to do by accident, so there is nothing here to contact it with.
     // Forced, never inherited. An isolated run owns its own data, and the allowlist is
     // data: a developer debugging the real allowlist has their own OPERATOR_EMAILS
     // exported, which would replace the seeded persona and make every operator scenario

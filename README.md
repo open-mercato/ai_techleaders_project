@@ -202,14 +202,18 @@ Stripe is the only payment provider: Checkout for sessions, Connect for mentor p
 Both keys are optional and **fail closed at the point of use** - a deployment without them
 builds, boots and serves every page, and answers 503 from the Checkout and webhook routes.
 
-`STRIPE_SECRET_KEY` being *present* is also what selects the real gateway. Without it the
-app registers a mock gateway that takes no money, and says so loudly once at boot: a
-deployment where payments appear to work and charge nobody must not have to be discovered
-from a bank statement.
+**A missing key never selects the mock gateway.** `PAYMENT_GATEWAY` does that, and only
+with a second signal: `mock` is accepted in an integration run (`INTEGRATION_TEST_RUN=1`)
+and picked up automatically when the variable is unset in development. Anywhere else — a
+production deployment that has not been given its Stripe key yet, say — the real adapter is
+registered and the pay button answers 503. That is a bug report; selecting the mock instead
+would give every session away, because it returns the caller's own success URL and its
+webhook secret is a constant in this repository.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `STRIPE_SECRET_KEY` | *(unset)* | Secret API key from the Stripe dashboard. Its presence selects the real gateway. |
+| `PAYMENT_GATEWAY` | *(unset)* | `stripe` or `mock`. Unset means the mock in development and Stripe everywhere else. `mock` outside development needs `INTEGRATION_TEST_RUN=1` or the app refuses to boot. |
+| `STRIPE_SECRET_KEY` | *(unset)* | Secret API key from the Stripe dashboard. Without it the Checkout route answers 503. |
 | `STRIPE_WEBHOOK_SECRET` | *(unset)* | Signing secret for the endpoint you point at `POST /api/payments/webhook`. Without it that route refuses every delivery. |
 
 `POST /api/payments/webhook` is the one route in the product that does not answer the
