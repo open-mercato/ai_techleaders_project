@@ -7,6 +7,7 @@ import {
 } from "@devmentor/ui";
 import { checkDbConnection, getEnv } from "@devmentor/core";
 import { requirePageRole } from "../../lib/session";
+import { RunPayouts } from "./run-payouts";
 
 // Touches the DB — keep it out of the static prerender.
 export const dynamic = "force-dynamic";
@@ -38,6 +39,17 @@ export default async function AdminDashboard() {
             <CardDescription>Runtime configuration</CardDescription>
           </CardHeader>
           <CardContent className="text-sm">{env.NODE_ENV}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Payouts</CardTitle>
+            <CardDescription>
+              Pay mentors for sessions that have finished. Safe to run twice.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RunPayouts />
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>

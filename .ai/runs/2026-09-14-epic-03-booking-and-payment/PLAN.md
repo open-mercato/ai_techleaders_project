@@ -58,7 +58,7 @@
 | 6 | 6.4 | Add the Connect transfer to the payment gateway | inline | done | pending |
 | 6 | 6.5 | Pay out or hold a completed session | inline | done | pending |
 | 6 | 6.5-review-fix | Tell a mentor their payout is held | inline | done | pending |
-| 6 | 6.6 | Let the operator run payouts | inline | todo | — |
+| 6 | 6.6 | Let the operator run payouts | inline | done | pending |
 | 6 | 6.7 | Show a mentor their payouts | inline | todo | — |
 | 7 | 7.1 | Report paid sessions and booking-to-start | inline | todo | — |
 | 7 | 7.2 | Prove discovery and reservation in the browser | inline | todo | — |
