@@ -60,6 +60,7 @@
 | 6 | 6.5-review-fix | Tell a mentor their payout is held | inline | done | pending |
 | 6 | 6.6 | Let the operator run payouts | inline | done | pending |
 | 6 | 6.7 | Show a mentor their payouts | inline | done | pending |
+| 6 | 6.7-review-fix | Say what a held payout is waiting for | inline | done | pending |
 | 7 | 7.1 | Report paid sessions and booking-to-start | inline | todo | — |
 | 7 | 7.2 | Prove discovery and reservation in the browser | inline | todo | — |
 | 7 | 7.3 | Prove payment confirmation and idempotency | inline | todo | — |
@@ -431,6 +432,12 @@ lines for the files the Step adds or changes.
 - `packages/app/src/app/(mentor)/mentor/payouts/page.tsx`: `PayoutStatus` per session with
   gross, fee and share, plus the held explanation; nav entry.
 - Tests: each status, the empty state, the redirect when signed out.
+
+**6.7-review-fix Say what a held payout is waiting for**
+- The checkpoint-7 screenshot read "Waiting for your payout account to be set up. Nothing
+  else is needed from you here." Setting the account up *is* the thing needed, and it is
+  needed from the mentor; the copy would have left them waiting on DevMentor for money
+  DevMentor cannot send.
 
 ### Phase 7 — Reporting, integration proof and records
 
