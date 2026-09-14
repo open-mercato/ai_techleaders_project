@@ -93,6 +93,13 @@ export {
   toBookingDto,
   type BookingDto,
 } from './services/bookings/booking.service';
+export {
+  PaymentService,
+  HOLD_EXPIRED_MESSAGE,
+  NOT_PAYABLE_MESSAGE,
+  checkoutReturnUrls,
+  type StartedCheckout,
+} from './services/payments/payment.service';
 export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,

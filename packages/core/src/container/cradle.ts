@@ -10,6 +10,7 @@ import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
 import type { SlotService } from '../services/availability/slot.service';
 import type { BookingService } from '../services/bookings/booking.service';
+import type { PaymentService } from '../services/payments/payment.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -79,6 +80,11 @@ export interface Cradle {
    * the request's own fork rather than the first request's.
    */
   bookingService: BookingService;
+  /**
+   * Payments (E03-S03). SCOPED because it holds `em`; the gateway it depends on is a
+   * process singleton reached through this scope.
+   */
+  paymentService: PaymentService;
   platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes

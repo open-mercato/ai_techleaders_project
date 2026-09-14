@@ -30,7 +30,7 @@
 | 3 | 3.1 | Define the payment gateway port and mock | inline | done | pending |
 | 3 | 3.2 | Record payments and processed webhook events | inline | done | pending |
 | 3 | 3.3 | Select the Stripe gateway from configuration | inline | done | pending |
-| 3 | 3.4 | Open a Checkout session for a pending booking | inline | todo | — |
+| 3 | 3.4 | Open a Checkout session for a pending booking | inline | done | pending |
 | 3 | 3.5 | Confirm a booking exactly once from the webhook | inline | todo | — |
 | 3 | 3.6 | Expire a lapsed booking hold | inline | todo | — |
 | 3 | 3.7 | Serve the booking checkout route | inline | todo | — |
