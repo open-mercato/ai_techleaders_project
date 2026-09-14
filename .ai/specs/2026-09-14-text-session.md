@@ -70,7 +70,7 @@ NOTIFY log. It is not stated to the user as a decided fact.
 
 ```
 packages/db/src/entities/sessions/session-message.entity.ts   the exchange
-packages/core/src/services/sessions/session.service.ts        window + party + posting
+packages/core/src/services/sessions/text-session.service.ts   window + party + posting
 packages/core/src/validators/sessions/message-create.schema.ts
 packages/app/src/app/api/sessions/[bookingId]/route.ts        GET  — the session
 packages/app/src/app/api/sessions/[bookingId]/messages/route.ts POST — one message
@@ -117,7 +117,7 @@ in or not, mentee, mentor or operator — is refused. **The operator is refused 
 dispute resolution (#32) is not this screen, and a private exchange that the platform can
 read by holding a role is not the private exchange the brief describes.
 
-The check is one place, `SessionService.getForParty`, and the route and page both go through
+The check is one place, `TextSessionService.getForParty`, and the route and page both go through
 it. The page repeats the role-free `requirePageSession` guard for the reason every guarded
 page in this app repeats it (a layout does not re-render on a client-side navigation), and
 then the service decides the party question.
@@ -196,7 +196,7 @@ screens and integration tests expect.
 | File | What decides |
 | --- | --- |
 | `db/entities/sessions/session-message.entity.ts` | the table, its index and its 4000-char bound |
-| `core/services/sessions/session.service.ts` | window, party check, confirmed-only, posting rules, caps |
+| `core/services/sessions/text-session.service.ts` | window, party check, confirmed-only, posting rules, caps |
 | `core/validators/sessions/message-create.schema.ts` | the body's shape at the HTTP boundary |
 | `app/api/sessions/[bookingId]/route.ts` | nothing — it hands the id to the service |
 | `app/api/sessions/[bookingId]/messages/route.ts` | nothing — schema in, service out |
@@ -204,8 +204,11 @@ screens and integration tests expect.
 | `app/sessions/[bookingId]/session-screen.tsx` | composition, `isOwn`, polling cadence, local send state |
 | `ui/components/sessions/SessionComposer.tsx` | how a composer looks and says why it is closed |
 
-`session.service.ts` is registered on the container and the typed `Cradle`, like every other
-concept service.
+`text-session.service.ts` is registered on the container and the typed `Cradle` as
+`textSessionService`, like every other concept service. **Not `sessionService`** — that key is
+already the auth service that issues the sign-in cookie, and two meanings of "session" on one
+cradle is a bug waiting for whoever autocompletes the wrong one. "Text session" is the
+product's own word for this (R03), so the longer name is not a suffix invented to dodge a clash.
 
 ## Acceptance criteria
 

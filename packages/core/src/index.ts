@@ -112,6 +112,20 @@ export {
   type PayoutDto,
   type PayoutRunSummary,
 } from './services/payments/payout.service';
+export {
+  MAX_SESSION_MESSAGES,
+  SESSION_ENDED_MESSAGE,
+  SESSION_FULL_MESSAGE,
+  SESSION_NOT_A_PARTY_MESSAGE,
+  SESSION_NOT_FOUND_MESSAGE,
+  SESSION_NOT_STARTED_MESSAGE,
+  TextSessionService,
+  sessionWindow,
+  type SessionMessageDto,
+  type SessionViewDto,
+  type SessionWindow,
+  type SessionWindowState,
+} from './services/sessions/text-session.service';
 export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,

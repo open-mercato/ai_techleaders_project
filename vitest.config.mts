@@ -172,6 +172,7 @@ export default defineConfig({
         'packages/core/src/validators/bookings/booking-create.schema.ts',
         'packages/core/src/validators/notifications/notification-read.schema.ts',
         'packages/core/src/validators/sessions/message-create.schema.ts',
+        'packages/core/src/services/sessions/text-session.service.ts',
         'packages/db/src/config.ts',
         'packages/db/src/env.ts',
         'packages/db/src/entities/auth/rate-limit.entity.ts',
