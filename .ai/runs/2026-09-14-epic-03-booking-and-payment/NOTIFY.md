@@ -46,3 +46,22 @@
 - From Step 1.2 on, a Step's own commit writes `pending` and the checkpoint commit
   backfills the real short SHAs. `Status` — the cell `om-auto-continue-pr-loop` actually
   resumes from — is still flipped inside the Step's own commit, unchanged.
+
+## 2026-09-14T07:20:40Z — checkpoint 1
+- Steps 1.1 through 1.4-review-fix (`219290a..edc15ed`): Phase 1, the public mentor list
+  (#20), complete and verified.
+- Typecheck, lint and the 100% per-file unit-coverage gate all pass (155 files, 1769
+  tests). #20's four acceptance criteria proved in a real browser against the production
+  build with ephemeral PostgreSQL.
+- One finding fixed inside the checkpoint (`1.4-review-fix`): the live page read "1 mentors
+  available". Evidence was recaptured after the fix.
+
+## 2026-09-14T07:20:40Z — blocker worked around: no local Chrome
+- `agent-browser`'s bundled Chrome cannot start on this machine — missing system libraries
+  (`libnspr4.so` and the rest of `--with-deps`) and the account has no `sudo`, so
+  `npm run test:browser:install:ci` cannot install them.
+- Worked around by attaching to a containerized headless Chrome over CDP
+  (`chromedp/headless-shell` with host networking, `agent-browser connect 9222`). CI is
+  unaffected; it installs the dependencies as root.
+- Follow-up owned by Step 7.2: make the CDP endpoint a harness option
+  (`AGENT_BROWSER_CDP`) instead of repeating the connect in every scenario.

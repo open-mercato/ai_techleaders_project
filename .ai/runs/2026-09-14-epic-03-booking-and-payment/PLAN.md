@@ -14,11 +14,11 @@
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
 | 1 | 1.1 | Add the mentor listing card component | inline | done | 219290a |
-| 1 | 1.2 | List published bookable mentors by tag | inline | done | pending |
-| 1 | 1.3 | Serve the public mentor list route | inline | done | pending |
-| 1 | 1.1-review-fix | Drop the undefined listing-card class | inline | done | pending |
-| 1 | 1.4 | Render the public mentor list page | inline | done | pending |
-| 1 | 1.4-review-fix | Count one mentor as one mentor | inline | done | pending |
+| 1 | 1.1-review-fix | Drop the undefined listing-card class | inline | done | a2b5552 |
+| 1 | 1.2 | List published bookable mentors by tag | inline | done | 8c259dc |
+| 1 | 1.3 | Serve the public mentor list route | inline | done | 55335d3 |
+| 1 | 1.4 | Render the public mentor list page | inline | done | f5f12eb |
+| 1 | 1.4-review-fix | Count one mentor as one mentor | inline | done | edc15ed |
 | 2 | 2.1 | Add the Booking entity and migration | inline | todo | — |
 | 2 | 2.2 | Validate the booking request body | inline | todo | — |
 | 2 | 2.3 | Reserve a slot under a database lock | inline | todo | — |
