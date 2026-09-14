@@ -156,12 +156,19 @@ existing components rather than inventing screens: `BookingSummary` and
 `SessionCard`, `SessionHeader` and `NotificationItem` (sessions), `AvailabilityPicker` and
 `DurationSelector` (availability), `TechnologyChips` and `MentorProfileCard` (mentors).
 
+The public list already has its shell: `MentorDirectory` (in
+`components/mentors/MentorProfileCard.tsx`) is a stack-filter, result-count and empty-slot
+container whose Storybook story names #20 as its consumer, and it is deliberately not
+`MentorSearch` — that one carries a search box, a price filter and a sort control, all three
+of which R13 forbids.
+
 Two components are added, because the epic needs surfaces the handoff did not draw:
 
-- `MentorDirectory` (`ui/src/components/mentors/`) — the public list. `MentorSearch` exists
-  but carries a search box, a price filter and a sort control, all three of which R13
-  forbids; a story cannot be satisfied by hiding parts of a component, so the list gets its
-  own tag-filter-only component. Both reuse `TechnologyChips`, `Badge` and `EmptyState`.
+- `MentorListingCard` (`ui/src/components/mentors/`) — the card the public list puts inside
+  that shell. `MentorProfileCard` is the mentor's *own* profile card: it carries a
+  draft/published status chip and no price, neither of which belongs in a public list.
+  The new card composes the existing `MentorIdentity` and `TechnologyChips`, shows both
+  prices as separate neutral fact chips, and links to the mentor page.
 - `SessionIsTextNotice` (`ui/src/components/sessions/`) — the one component that says
   sessions are text and promises nothing about response time (R03, R14), rendered on every
   booking and session screen so the copy cannot drift between them.

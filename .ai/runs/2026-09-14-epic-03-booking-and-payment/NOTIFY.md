@@ -30,3 +30,11 @@
 - The `Exec` column is `inline` for every Step: this session is configured not to spawn
   subagents, so the dispatcher pattern does not apply. Cadence, checkpoints and the
   one-commit-per-Step rule are unchanged.
+
+## 2026-09-14T07:12:30Z — plan correction before Step 1.1
+- Triage missed that the design system already ships the list shell: `MentorDirectory`
+  lives in `components/mentors/MentorProfileCard.tsx` and its Storybook story names #20 as
+  its consumer. Step 1.1 was planned to add a component that exists.
+- Corrected: Step 1.1 now adds `MentorListingCard`, the public-list card the shell is
+  missing (`MentorProfileCard` is the mentor's own card — status chip, no price). Spec and
+  PLAN updated together. No Step ids changed; no Step has landed yet.

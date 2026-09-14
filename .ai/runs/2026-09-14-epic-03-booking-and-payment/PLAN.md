@@ -13,7 +13,7 @@
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Add the MentorDirectory list component | inline | todo | — |
+| 1 | 1.1 | Add the mentor listing card component | inline | todo | — |
 | 1 | 1.2 | List published bookable mentors by tag | inline | todo | — |
 | 1 | 1.3 | Serve the public mentor list route | inline | todo | — |
 | 1 | 1.4 | Render the public mentor list page | inline | todo | — |
@@ -110,15 +110,18 @@ lines for the files the Step adds or changes.
 
 ### Phase 1 — Mentor discovery (E03-S01, #20)
 
-**1.1 Add the MentorDirectory list component**
-- `packages/ui/src/components/mentors/MentorDirectory.tsx`: a tag-filtered list of bookable
-  mentors. Props: `mentors`, `activeTag`, `tagHref(tag)`, `profileHref(slug)`, `now`.
-- Renders per mentor: name, headline, `TechnologyChips`, both prices as neutral fact chips,
-  the next available time, and a link to the mentor page. No search input, no sort control,
-  no score, no rating, no featured section (R13, N02).
-- `EmptyState` for the no-results and no-mentors cases, with different copy.
-- Stories covering: populated, single tag applied, empty-with-filter, empty-without-filter.
-- Export from `packages/ui/src/index.ts`. Tests + stories.
+**1.1 Add the mentor listing card component**
+- The design system already ships the list *shell*: `MentorDirectory` in
+  `components/mentors/MentorProfileCard.tsx` (stack filter, result count, empty slot), whose
+  Storybook story names #20 as its consumer. What is missing is the card the public list
+  puts inside it — `MentorProfileCard` is the mentor's own profile card and carries a
+  draft/published status chip and no price.
+- `packages/ui/src/components/mentors/MentorListingCard.tsx`: composes the existing
+  `MentorIdentity` and `TechnologyChips`, shows both session prices as separate neutral
+  `Badge` fact chips (never dot-separated), the next available time as a `<time>`, and a
+  link to the mentor page. No status chip, no rating, no score, no featured treatment.
+- Stories: populated, no upcoming time, long content. Export from `packages/ui/src/index.ts`.
+  Tests at 100%.
 
 **1.2 List published bookable mentors by tag**
 - `MentorProfileService.listPublished({ tag })`: published, both prices set, at least one
