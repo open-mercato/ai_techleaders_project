@@ -137,6 +137,7 @@ export default defineConfig({
         'packages/core/src/services/invitations/invitation.service.ts',
         'packages/core/src/services/mentors/mentor-profile.service.ts',
         'packages/core/src/services/availability/slot.service.ts',
+        'packages/core/src/services/bookings/booking.service.ts',
         'packages/core/src/services/operator/platform-settings.service.ts',
         'packages/core/src/services/mentors/readiness.ts',
         'packages/core/src/time/clock.ts',

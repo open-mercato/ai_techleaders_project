@@ -17,6 +17,7 @@ import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
 import { SlotService } from '../services/availability/slot.service';
+import { BookingService } from '../services/bookings/booking.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -248,6 +249,7 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     invitationService: asClass(InvitationService).scoped(),
     mentorProfileService: asClass(MentorProfileService).scoped(),
     slotService: asClass(SlotService).scoped(),
+    bookingService: asClass(BookingService).scoped(),
     // Configuration-backed and immutable for the process lifetime. E05 may replace
     // the backing store while preserving this service contract.
     platformSettingsService: asClass(PlatformSettingsService).singleton(),

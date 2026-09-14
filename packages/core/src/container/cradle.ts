@@ -9,6 +9,7 @@ import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
 import type { SlotService } from '../services/availability/slot.service';
+import type { BookingService } from '../services/bookings/booking.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -64,6 +65,12 @@ export interface Cradle {
   invitationService: InvitationService;
   mentorProfileService: MentorProfileService;
   slotService: SlotService;
+  /**
+   * Reservations (E03-S02). SCOPED for the same forced reason as every other service
+   * holding `em`: it writes inside a transaction with a slot row locked, so it must use
+   * the request's own fork rather than the first request's.
+   */
+  bookingService: BookingService;
   platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes

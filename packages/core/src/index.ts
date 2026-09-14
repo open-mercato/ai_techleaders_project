@@ -83,6 +83,16 @@ export {
   type SlotOwnerDto,
   type SlotPublicDto,
 } from './services/availability/slot.service';
+export {
+  BookingService,
+  BOOKING_HOLD_MINUTES,
+  LEAD_TIME_MESSAGE,
+  MENTOR_NOT_BOOKABLE_MESSAGE,
+  MIN_LEAD_MINUTES,
+  SLOT_TAKEN_MESSAGE,
+  toBookingDto,
+  type BookingDto,
+} from './services/bookings/booking.service';
 export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,
