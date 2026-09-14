@@ -21,8 +21,8 @@
 | Phase | Step | Title | Exec | Status | Commit |
 | --- | --- | --- | --- | --- | --- |
 | 0 Umbrella | 0.1 | Spec + run folder on the umbrella branch | inline | done | 9b12b88 |
-| 1 Design system | 1.1 | `SessionComposer` component, CSS, unit tests, export | inline | done | — |
-| 1 Design system | 1.2 | Composer + whole-screen Storybook stories for every window state | inline | todo | — |
+| 1 Design system | 1.1 | `SessionComposer` component, CSS, unit tests, export | inline | done | e1fe077 |
+| 1 Design system | 1.2 | Composer + whole-screen Storybook stories for every window state | inline | done | — |
 | 2 Data & API | 2.1 | `SessionMessage` entity + `sessions` migration | inline | todo | — |
 | 2 Data & API | 2.2 | `message-create.schema.ts` validator | inline | todo | — |
 | 2 Data & API | 2.3 | `session.service.ts` — window, party check, posting | inline | todo | — |
