@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { SessionViewDto } from '@devmentor/core';
 import { SESSION_IS_TEXT_MESSAGE } from '@devmentor/ui';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface ResourceOptions {
@@ -9,11 +9,12 @@ interface ResourceOptions {
   pollWhile?: (data: SessionViewDto | undefined) => boolean;
 }
 
-const state = vi.hoisted(() => ({ resource: vi.fn() }));
+const state = vi.hoisted(() => ({ resource: vi.fn(), apiCall: vi.fn() }));
 
 vi.mock('@devmentor/ui/backend', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@devmentor/ui/backend')>()),
   useApiResource: (path: string, options?: ResourceOptions) => state.resource(path, options),
+  apiCall: state.apiCall,
 }));
 
 /** The options the screen handed the shared hook on its most recent render. */
@@ -23,13 +24,14 @@ function pollOptions(): ResourceOptions {
 }
 
 const {
-  READ_ONLY_REASON,
   SESSION_POLL_MS,
   SessionScreen,
   closedReason,
   emptyTranscriptMessage,
   headerState,
+  mergeAccepted,
   scheduleLabel,
+  sendFailureMessage,
   transcriptMessages,
 } = await import('./session-screen');
 
@@ -80,11 +82,40 @@ function loaded(data: SessionViewDto = view()): void {
 
 beforeEach(() => {
   state.resource.mockReset();
+  state.apiCall.mockReset();
   loaded();
 });
 afterEach(cleanup);
 
 describe('pure helpers', () => {
+  it('adds an accepted message once and lets the poll that catches up change nothing', () => {
+    const stored = view().messages;
+    const accepted = {
+      id: 'm3',
+      authorId: VIEWER,
+      authorName: 'Jamie Chen',
+      body: 'Just sent',
+      createdAt: '2026-09-14T16:03:00.000Z',
+    };
+
+    expect(mergeAccepted(stored, [accepted]).map((message) => message.id))
+      .toEqual(['m1', 'm2', 'm3']);
+    // Once the poll returns it, the local copy drops out rather than doubling.
+    expect(mergeAccepted([...stored, accepted], [accepted]).map((message) => message.id))
+      .toEqual(['m1', 'm2', 'm3']);
+    expect(mergeAccepted(stored, [])).toEqual(stored);
+  });
+
+  it('prefers the field error to the envelope summary, which says nothing useful', () => {
+    expect(sendFailureMessage({
+      message: 'Validation failed',
+      fieldErrors: { body: ['Write a message before sending it.'] },
+    })).toBe('Write a message before sending it.');
+    expect(sendFailureMessage({ message: 'This session has ended.' }))
+      .toBe('This session has ended.');
+    expect(sendFailureMessage({ message: 'Nope', fieldErrors: { other: ['x'] } })).toBe('Nope');
+  });
+
   it('maps each window state to the design system chip', () => {
     expect(headerState('not_started')).toBe('upcoming');
     expect(headerState('open')).toBe('open');
@@ -210,10 +241,11 @@ describe('SessionScreen', () => {
     }))).toBe(false);
   });
 
-  it('states plainly that writing is not enabled while the session is open', () => {
+  it('opens the composer while the session is open, and nothing else', () => {
     render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
 
-    expect(screen.getByRole('note').textContent).toBe(READ_ONLY_REASON);
+    expect(screen.getByLabelText('Your message')).toBeTruthy();
+    expect(screen.queryByRole('note')).toBeNull();
   });
 
   it('says it is opening the session while the first read is in flight', () => {
@@ -249,5 +281,103 @@ describe('SessionScreen', () => {
     render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
 
     expect(screen.getByRole('alert').textContent).toContain('We could not open this text session.');
+  });
+});
+
+describe('sending a message', () => {
+  it('posts the draft, shows it at once, and empties the box', async () => {
+    state.apiCall.mockResolvedValue({
+      ok: true,
+      data: {
+        id: 'm3',
+        authorId: VIEWER,
+        authorName: 'Jamie Chen',
+        body: 'That helps, thank you.',
+        createdAt: '2026-09-14T16:03:00.000Z',
+      },
+    });
+    render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
+
+    const field = screen.getByLabelText('Your message');
+    fireEvent.change(field, { target: { value: 'That helps, thank you.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => expect(screen.getByText('That helps, thank you.')).toBeTruthy());
+    expect(state.apiCall).toHaveBeenCalledExactlyOnceWith(
+      `/api/sessions/${BOOKING_ID}/messages`,
+      { body: { body: 'That helps, thank you.' } },
+    );
+    // The message is on screen from the server's own answer, not from an optimistic guess,
+    // and the box is empty again.
+    expect((screen.getByLabelText('Your message') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('shows a refusal where it was typed and keeps the text', async () => {
+    state.apiCall.mockResolvedValue({
+      ok: false,
+      error: { code: 'conflict', message: 'This session has ended. The mentor\u2019s written answer comes next.' },
+    });
+    render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
+
+    fireEvent.change(screen.getByLabelText('Your message'), { target: { value: 'Too late?' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    expect(screen.getByRole('alert').textContent).toContain('This session has ended.');
+    // Nobody should have to retype what they wrote.
+    expect((screen.getByLabelText('Your message') as HTMLTextAreaElement).value).toBe('Too late?');
+  });
+
+  it('surfaces a field error rather than the envelope summary', async () => {
+    state.apiCall.mockResolvedValue({
+      ok: false,
+      error: {
+        code: 'validation_failed',
+        message: 'Validation failed',
+        fieldErrors: { body: ['Write a message before sending it.'] },
+      },
+    });
+    render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
+
+    fireEvent.change(screen.getByLabelText('Your message'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => expect(screen.getByRole('alert').textContent)
+      .toBe('Write a message before sending it.'));
+  });
+
+  it('locks the controls while the send is in flight', async () => {
+    let finish!: (value: { ok: true; data: unknown }) => void;
+    state.apiCall.mockReturnValue(new Promise((resolve) => { finish = resolve as never; }));
+    render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
+
+    fireEvent.change(screen.getByLabelText('Your message'), { target: { value: 'Hold on' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sending\u2026' })).toBeTruthy());
+    expect(screen.getByLabelText('Your message').hasAttribute('disabled')).toBe(true);
+
+    finish({
+      ok: true,
+      data: { id: 'm4', authorId: VIEWER, authorName: 'Jamie Chen', body: 'Hold on', createdAt: '2026-09-14T16:04:00.000Z' },
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy());
+  });
+
+  it('clears a previous refusal when the next send is attempted', async () => {
+    state.apiCall
+      .mockResolvedValueOnce({ ok: false, error: { code: 'conflict', message: 'Not yet.' } })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: { id: 'm5', authorId: VIEWER, authorName: 'Jamie Chen', body: 'Again', createdAt: '2026-09-14T16:05:00.000Z' },
+      });
+    render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
+
+    fireEvent.change(screen.getByLabelText('Your message'), { target: { value: 'Again' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('Not yet.'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 });
