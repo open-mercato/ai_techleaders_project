@@ -71,6 +71,10 @@ describe('CancelSessionAction', () => {
     expect(dialog.textContent).toContain('the full amount is refunded');
     expect(dialog.textContent).toContain('PLN 120.00');
     expect(dialog.textContent).toContain('25-minute text session with Mock Mentor');
+    // The rule explains the amounts; the description says what happens to this booking.
+    // The same sentence twice on one screen is one sentence too many.
+    expect(dialog.textContent).toContain('Cancelling more than 24 hours before a session');
+    expect(dialog.textContent!.match(/You are cancelling/g)).toHaveLength(1);
     // Nothing has been asked of the server yet.
     expect(api.apiCall).not.toHaveBeenCalled();
   });

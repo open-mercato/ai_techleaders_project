@@ -39,6 +39,17 @@ export function cancellationConsequence(session: SessionListItemDto): string {
 }
 
 /**
+ * The rule itself, for the slot beside the amounts.
+ *
+ * The dialog's description already states what happens to *this* booking; repeating that
+ * sentence inside the summary put the same words on the screen twice. This says the rule
+ * the outcome came from instead, which is the thing the amounts need explaining by.
+ */
+const CANCELLATION_RULE =
+  'Cancelling more than 24 hours before a session refunds the fee in full. Later than that, '
+  + 'the fee is not refunded.';
+
+/**
  * Cancel a paid session, with the rule stated before the mentee commits to it (#24).
  *
  * The dialog is not a courtesy: R09 requires the screen to say what happens to the money
@@ -82,7 +93,7 @@ export function CancelSessionAction({ session, onCancelled }: CancelSessionActio
         sessionLabel={`${session.lengthMinutes}-minute text session with ${session.counterpartName}`}
         paid={paid}
         refund={session.refundOnCancel ? paid : priceLabel(0, session.currency)}
-        consequence={cancellationConsequence(session)}
+        consequence={CANCELLATION_RULE}
         actions={null}
       />
       {failure === null ? null : <ErrorMessage message={failure} />}

@@ -51,6 +51,7 @@
 | 5 | 5.3 | Settle a refund from the webhook | inline | done | pending |
 | 5 | 5.4 | Serve the booking cancellation route | inline | done | pending |
 | 5 | 5.5 | Confirm a cancellation and its refund outcome | inline | done | pending |
+| 5 | 5.5-review-fix | Say the consequence once, not twice | inline | done | pending |
 | 6 | 6.1 | Make the platform fee configurable | inline | todo | — |
 | 6 | 6.2 | Add the fee snapshot, payout and Connect columns | inline | todo | — |
 | 6 | 6.3 | Snapshot the fee split at confirmation | inline | todo | — |
@@ -372,6 +373,11 @@ lines for the files the Step adds or changes.
   rule and the outcome before the mentee confirms (R09); the mentor screen shows
   `cancelled` with its refund state.
 - Tests: both copy variants, confirm and dismiss, mentor-side rendering.
+
+**5.5-review-fix Say the consequence once, not twice**
+- The checkpoint-6 screenshot showed the same sentence as the dialog's description and again
+  inside `CancellationSummary`'s callout. The summary now carries the *rule* the amounts came
+  from; the description keeps what happens to this booking.
 
 ### Phase 6 — Fee split and payouts (E03-S06, #25)
 
