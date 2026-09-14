@@ -9,6 +9,8 @@ import type {
   PaymentGateway,
   Refund,
   RefundRequest,
+  Transfer,
+  TransferRequest,
 } from '../payment-gateway.port';
 
 export const STRIPE_UNAVAILABLE_MESSAGE =
@@ -102,6 +104,25 @@ export class StripePaymentGateway implements PaymentGateway {
       return { id: refund.id, status: refundStatus(refund.status) };
     } catch (error) {
       this.unavailable('refunds.create', error);
+    }
+  }
+
+  async transfer(request: TransferRequest): Promise<Transfer> {
+    const stripe = this.stripe();
+    try {
+      const transfer = await stripe.transfers.create(
+        {
+          amount: request.amountCents,
+          currency: request.currency.toLowerCase(),
+          destination: request.destinationAccountId,
+          transfer_group: request.transferGroup,
+        },
+        // The payout id, so a re-run of the payout job is the same transfer.
+        { idempotencyKey: `transfer-${request.idempotencyKey}` },
+      );
+      return { id: transfer.id };
+    } catch (error) {
+      this.unavailable('transfers.create', error);
     }
   }
 

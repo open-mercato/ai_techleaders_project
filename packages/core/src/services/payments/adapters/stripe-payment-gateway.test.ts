@@ -11,6 +11,7 @@ import type { Logger } from '../../../logger';
 const stripe = vi.hoisted(() => ({
   create: vi.fn(),
   refundsCreate: vi.fn(),
+  transfersCreate: vi.fn(),
   constructEvent: vi.fn(),
   constructed: [] as unknown[],
 }));
@@ -23,6 +24,7 @@ vi.mock('stripe', () => ({
 
     checkout = { sessions: { create: stripe.create } };
     refunds = { create: stripe.refundsCreate };
+    transfers = { create: stripe.transfersCreate };
     webhooks = { constructEvent: stripe.constructEvent };
   },
 }));
@@ -59,6 +61,7 @@ beforeEach(() => {
   stripe.constructed.length = 0;
   stripe.create.mockResolvedValue({ id: 'cs_live_1', url: 'https://checkout.stripe.test/cs_live_1' });
   stripe.refundsCreate.mockResolvedValue({ id: 're_live_1', status: 'succeeded' });
+  stripe.transfersCreate.mockResolvedValue({ id: 'tr_live_1' });
 });
 
 describe('StripePaymentGateway checkout', () => {
@@ -163,6 +166,48 @@ describe('StripePaymentGateway refunds', () => {
       expect.objectContaining({ operation: 'refunds.create' }),
       'stripe request failed',
     );
+  });
+});
+
+describe('StripePaymentGateway transfers', () => {
+  const request = {
+    amountCents: 7_200,
+    currency: 'PLN',
+    destinationAccountId: 'acct_1',
+    idempotencyKey: 'payout-1',
+    transferGroup: 'booking-1',
+  };
+
+  it('sends the share to the mentor account, keyed so a re-run is the same transfer', async () => {
+    await expect(gateway().transfer(request)).resolves.toEqual({ id: 'tr_live_1' });
+
+    expect(stripe.transfersCreate).toHaveBeenCalledExactlyOnceWith(
+      {
+        amount: 7_200,
+        currency: 'pln',
+        destination: 'acct_1',
+        transfer_group: 'booking-1',
+      },
+      { idempotencyKey: 'transfer-payout-1' },
+    );
+  });
+
+  it('turns a transfer failure into a typed refusal', async () => {
+    stripe.transfersCreate.mockRejectedValue(new Error('insufficient_funds'));
+
+    await expect(gateway().transfer(request)).rejects.toMatchObject({
+      code: 'service_unavailable',
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ operation: 'transfers.create' }),
+      'stripe request failed',
+    );
+  });
+
+  it('refuses without a secret key rather than crashing', async () => {
+    await expect(gateway({ STRIPE_SECRET_KEY: undefined }).transfer(request)).rejects
+      .toMatchObject({ code: 'service_unavailable' });
+    expect(stripe.transfersCreate).not.toHaveBeenCalled();
   });
 });
 

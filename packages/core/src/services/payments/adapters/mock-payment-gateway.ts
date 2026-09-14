@@ -7,6 +7,8 @@ import type {
   PaymentGateway,
   Refund,
   RefundRequest,
+  Transfer,
+  TransferRequest,
 } from '../payment-gateway.port';
 
 /** The secret the mock signs with. Not a credential: it protects nothing real. */
@@ -38,6 +40,10 @@ export class MockPaymentGateway implements PaymentGateway {
   private readonly sessions = new Map<string, CheckoutSessionRequest>();
   /** Every refund asked for, keyed by idempotency key, so a retry returns the first one. */
   private readonly refunds = new Map<string, Refund>();
+  /** Every transfer asked for, on the same terms. */
+  private readonly transfers = new Map<string, Transfer>();
+  /** Every transfer this gateway was asked for, for a scenario that needs to assert one. */
+  readonly transferRequests: TransferRequest[] = [];
   /** Set to fail the next call, so a test can exercise a provider outage. */
   private failure: Error | null = null;
 
@@ -74,6 +80,16 @@ export class MockPaymentGateway implements PaymentGateway {
     if (existing !== undefined) return existing;
     const created: Refund = { id: this.nextId('re'), status: 'succeeded' };
     this.refunds.set(request.idempotencyKey, created);
+    return created;
+  }
+
+  async transfer(request: TransferRequest): Promise<Transfer> {
+    this.takeFailure();
+    const existing = this.transfers.get(request.idempotencyKey);
+    if (existing !== undefined) return existing;
+    const created: Transfer = { id: this.nextId('tr') };
+    this.transfers.set(request.idempotencyKey, created);
+    this.transferRequests.push(request);
     return created;
   }
 

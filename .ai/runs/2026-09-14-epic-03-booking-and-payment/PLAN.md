@@ -55,7 +55,7 @@
 | 6 | 6.1 | Make the platform fee configurable | inline | done | pending |
 | 6 | 6.2 | Add the fee snapshot, payout and Connect columns | inline | done | pending |
 | 6 | 6.3 | Snapshot the fee split at confirmation | inline | done | pending |
-| 6 | 6.4 | Add the Connect transfer to the payment gateway | inline | todo | — |
+| 6 | 6.4 | Add the Connect transfer to the payment gateway | inline | done | pending |
 | 6 | 6.5 | Pay out or hold a completed session | inline | todo | — |
 | 6 | 6.6 | Let the operator run payouts | inline | todo | — |
 | 6 | 6.7 | Show a mentor their payouts | inline | todo | — |

@@ -5,9 +5,6 @@
  * it does for the GitHub identity and mail seams. Services depend on this interface, so
  * every unit test and the integration harness run against `MockPaymentGateway` and never
  * contact a payment provider.
- *
- * `transfer` — the Connect payout — is deliberately absent until E03-S06 adds it (6.4).
- * An interface that declares a method nothing implements yet is a compile-time lie.
  */
 
 export interface CheckoutSessionRequest {
@@ -40,6 +37,21 @@ export interface RefundRequest {
 export interface Refund {
   id: string;
   status: 'pending' | 'succeeded' | 'failed';
+}
+
+export interface TransferRequest {
+  amountCents: number;
+  currency: string;
+  /** The mentor's Connect account. A payout with nowhere to go is held, never attempted. */
+  destinationAccountId: string;
+  /** The payout id, so a re-run of the payout job is the same transfer, not a second one. */
+  idempotencyKey: string;
+  /** Ties the transfer to the charge it came out of, for reconciliation. */
+  transferGroup: string;
+}
+
+export interface Transfer {
+  id: string;
 }
 
 /**
@@ -80,4 +92,11 @@ export interface PaymentGateway {
    */
   parseWebhookEvent(rawBody: string, signatureHeader: string | null): GatewayEvent;
   refund(request: RefundRequest): Promise<Refund>;
+  /**
+   * Send a mentor their share through Connect (E03-S06, R05).
+   *
+   * Rejects rather than reporting a failure state: unlike a refund, a transfer either was
+   * accepted or was not, and the caller records `failed` and retries on the next run.
+   */
+  transfer(request: TransferRequest): Promise<Transfer>;
 }

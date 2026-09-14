@@ -162,3 +162,43 @@ describe('MockPaymentGateway webhook verification', () => {
     expect(() => gateway.parseWebhookEvent(raised, delivery.signature)).toThrow(BadRequestError);
   });
 });
+
+describe('MockPaymentGateway transfers', () => {
+  const transfer = {
+    amountCents: 7_200,
+    currency: 'PLN',
+    destinationAccountId: 'acct_1',
+    idempotencyKey: 'payout-1',
+    transferGroup: 'booking-1',
+  };
+
+  it('answers a re-run with the first transfer rather than a second one', async () => {
+    const gateway = new MockPaymentGateway();
+
+    const first = await gateway.transfer(transfer);
+    const rerun = await gateway.transfer(transfer);
+
+    expect(first).toEqual({ id: 'tr_mock_000001' });
+    expect(rerun).toEqual(first);
+    // One transfer asked for, not two.
+    expect(gateway.transferRequests).toEqual([transfer]);
+  });
+
+  it('treats a different payout as a different transfer', async () => {
+    const gateway = new MockPaymentGateway();
+
+    const one = await gateway.transfer(transfer);
+    const two = await gateway.transfer({ ...transfer, idempotencyKey: 'payout-2' });
+
+    expect(one.id).not.toBe(two.id);
+    expect(gateway.transferRequests).toHaveLength(2);
+  });
+
+  it('rejects on demand, because a transfer either was accepted or was not', async () => {
+    const gateway = new MockPaymentGateway();
+    gateway.failNextCall(new Error('connect account restricted'));
+
+    await expect(gateway.transfer(transfer)).rejects.toThrow('connect account restricted');
+    expect(gateway.transferRequests).toEqual([]);
+  });
+});
