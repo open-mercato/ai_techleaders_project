@@ -36,7 +36,7 @@
 | 3 Session screen | 3.5 | Draw a live session as in progress, not as ended under Past | inline | done | 61d9912 |
 | 4 Composer | 4.1 | Wire the composer to `POST`; refusals shown where typed | inline | done | e9d28ea |
 | 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | done | e9d28ea |
-| 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | done | — |
+| 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | done | da2d10e |
 
 Legend: `todo` · `in-progress` · `done`. One Step = one commit. `Exec` is `inline` for
 every Step: the stack's branches must be created and pushed in order, and a dispatched
@@ -50,12 +50,12 @@ previous one, so each PR's diff is only its own work. Merge in order, top to bot
 | # | PR | Branch | Base | Steps | How a human verifies it |
 | --- | --- | --- | --- | --- | --- |
 | U | [#54](https://github.com/open-mercato/ai_techleaders_project/pull/54) (umbrella) | `feat/e04-s01-text-session` | `feat/epic-03-booking-and-payment` | 0.1 | Read the spec; this table is the status board |
-| 1 | _pending_ | `feat/e04-s01-session-ds` | `feat/e04-s01-text-session` | 1.1–1.2 | `npm run storybook` → Product/Session screen: every window state, no database |
-| 2 | _pending_ | `feat/e04-s01-session-data` | `feat/e04-s01-session-ds` | 2.1–2.5 | `npm run db:migrate && npm run db:seed && npm run db:seed:sessions`, then the two routes |
-| 3 | _pending_ | `feat/e04-s01-session-screen` | `feat/e04-s01-session-data` | 3.1–3.4 | Sign in as the seeded mentee/mentor → `/home` → "Open session" → the three states |
-| 4 | _pending_ | `feat/e04-s01-session-composer` | `feat/e04-s01-session-screen` | 4.1–4.3 | Two browsers, both parties, post and watch it arrive; then the ended session |
+| 1 | [#55](https://github.com/open-mercato/ai_techleaders_project/pull/55) | `feat/e04-s01-session-ds` | `feat/e04-s01-text-session` | 1.1–1.2 | `npm run storybook` → Product/Session screen: every window state, no database |
+| 2 | [#56](https://github.com/open-mercato/ai_techleaders_project/pull/56) | `feat/e04-s01-session-data` | `feat/e04-s01-session-ds` | 2.1–2.5 | `npm run db:migrate && npm run db:seed && npm run db:seed:sessions`, then the two routes |
+| 3 | [#57](https://github.com/open-mercato/ai_techleaders_project/pull/57) | `feat/e04-s01-session-screen` | `feat/e04-s01-session-data` | 3.1–3.4 | Sign in as the seeded mentee/mentor → `/home` → "Open session" → the three states |
+| 4 | [#58](https://github.com/open-mercato/ai_techleaders_project/pull/58) | `feat/e04-s01-session-composer` | `feat/e04-s01-session-screen` | 4.1–4.3 | Two browsers, both parties, post and watch it arrive; then the ended session |
 
-PR numbers are filled in as each PR opens.
+All five PRs are open. Merge in order, top to bottom.
 
 ## Goal
 

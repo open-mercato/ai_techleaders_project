@@ -1,0 +1,10 @@
+
+> devmentor@0.1.0 lint
+> eslint
+
+
+/home/pkarw/Projects/ai_techleaders_project/.ai/cezar/worktrees/680f1847-6cd9-4e2b-8533-22e337857fef/prototypes/devmentor-journey/LandingScreen.tsx
+  35:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+✖ 1 problem (0 errors, 1 warning)
+

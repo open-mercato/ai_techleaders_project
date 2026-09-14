@@ -108,3 +108,14 @@
   is `isOwn` coming from the viewer's id rather than a display name.
 - The borrowed `dm-chrome` CDP container disappeared mid-checkpoint (another run removed it).
   This run started its own, `dm-e04-chrome` on port 9333, and owns removing it at cleanup.
+
+## 2026-09-14T10:07Z — final gate passed; every Step done
+- Full gate green: `typecheck`, `typecheck:storybook`, `lint` (0 errors), `test:unit` (2282
+  tests / 205 files) and `test:unit:coverage` at **100%** on all four metrics, plus `build`.
+- Integration: **TC-SESSION-001 passed** with the repository's own harness — both parties
+  exchange text inside the window, a third user holding `operator` is refused 403 with no
+  message text in the response, signed out is 401, a post after the end is 409 and stores
+  nothing. TC-SESSION-002 could not run: the harness launches its own `agent-browser` Chrome,
+  which fails with `libnspr4.so` before any assertion. CI runs it.
+- Browser evidence for the posting path in `final-gate-artifacts/`, including the mentor's
+  reply arriving in the mentee's open page with no navigation — the poll, doing its job.

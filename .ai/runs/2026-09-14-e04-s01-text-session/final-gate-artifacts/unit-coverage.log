@@ -1,0 +1,26 @@
+
+> devmentor@0.1.0 test:unit:coverage
+> vitest run --config vitest.config.mts --coverage
+
+
+ RUN  v4.1.11 /home/pkarw/Projects/ai_techleaders_project/.ai/cezar/worktrees/680f1847-6cd9-4e2b-8533-22e337857fef
+      Coverage enabled with v8
+
+
+ Test Files  205 passed (205)
+      Tests  2282 passed (2282)
+   Start at  10:01:45
+   Duration  18.30s (transform 9.74s, setup 0ms, import 68.80s, tests 27.27s, environment 18.72s)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 100% ( 3595/3595 )
+Branches     : 100% ( 1997/1997 )
+Functions    : 100% ( 1015/1015 )
+Lines        : 100% ( 3362/3362 )
+================================================================================
