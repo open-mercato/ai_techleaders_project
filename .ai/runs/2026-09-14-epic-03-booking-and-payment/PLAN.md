@@ -4,7 +4,7 @@
 **Skill:** `om-auto-create-pr-loop`
 **Branch:** `feat/epic-03-booking-and-payment`
 **Base:** `master`
-**Source spec:** `.ai/specs/2026-09-14-booking-and-payment.md`
+**Source spec:** `.ai/specs/implemented/2026-09-14-booking-and-payment.md`
 **Subject issues:** #9 (epic) — #20, #21, #22, #23, #24, #25, #34
 
 ## Tasks
@@ -67,7 +67,7 @@
 | 7 | 7.4 | Prove session-list scoping and notification | inline | done | pending |
 | 7 | 7.5 | Prove cancellation on both sides of the window | inline | done | pending |
 | 7 | 7.6 | Prove the payout hold and transfer | inline | done | pending |
-| 7 | 7.7 | Record the contract, configuration and run | inline | todo | — |
+| 7 | 7.7 | Record the contract, configuration and run | inline | done | pending |
 
 ## Goal
 

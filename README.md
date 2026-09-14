@@ -130,6 +130,7 @@ MikroORM CLI. Nothing under `packages/` reads `process.env` directly.
 | `MENTOR_PUBLISH_WINDOW_DAYS` | `14` | Days an accepted mentor has to publish a bookable session. Snapshotted at acceptance. |
 | `PLATFORM_CURRENCY` | `PLN` | Fixed platform currency for mentor prices. The first release rejects every other currency. |
 | `PLATFORM_PRICE_BOUNDS` | `{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}` | Integer-cent inclusive bounds for 25- and 50-minute sessions. Must be valid JSON in the exact documented shape and no longer than 256 characters. |
+| `PLATFORM_FEE_PERCENT` | `20` | DevMentor's share of a paid session, in whole percent (0-100). The fee **in force when a payment is confirmed** is snapshotted onto that booking, so changing this affects later sessions only. |
 
 ### Database
 
@@ -195,6 +196,27 @@ at container creation rather than serving a registration form that always 503s.
 | `MAIL_API_KEY` | *(unset)* | Resend API key. |
 | `MAIL_FROM` | *(unset)* | Envelope sender, e.g. `DevMentor <hello@devmentor.example.com>`. |
 
+### Payments
+
+Stripe is the only payment provider: Checkout for sessions, Connect for mentor payouts.
+Both keys are optional and **fail closed at the point of use** - a deployment without them
+builds, boots and serves every page, and answers 503 from the Checkout and webhook routes.
+
+`STRIPE_SECRET_KEY` being *present* is also what selects the real gateway. Without it the
+app registers a mock gateway that takes no money, and says so loudly once at boot: a
+deployment where payments appear to work and charge nobody must not have to be discovered
+from a bank statement.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `STRIPE_SECRET_KEY` | *(unset)* | Secret API key from the Stripe dashboard. Its presence selects the real gateway. |
+| `STRIPE_WEBHOOK_SECRET` | *(unset)* | Signing secret for the endpoint you point at `POST /api/payments/webhook`. Without it that route refuses every delivery. |
+
+`POST /api/payments/webhook` is the one route in the product that does not answer the
+`{ ok, data }` envelope and the only one that skips the CSRF header: the caller is Stripe,
+not a browser, and it authenticates by signing the raw request body. A booking becomes
+`confirmed` only from a verified delivery - returning from Checkout proves nothing.
+
 ### Integration-test doubles
 
 Set by `tests/integration/environment.ts`, never on a real deployment.
@@ -258,7 +280,8 @@ signals (`tests/integration/environment.ts`); you do not need any of them in a l
 | `npm run test:unit` | Run TypeScript unit tests with Vitest |
 | `npm run test:unit:coverage` | Run unit tests with per-file 100% coverage gates |
 | `npm run test:browser:install` | Install agent-browser's Chrome runtime locally |
-| `npm run test:integration` | Test an ephemeral PostgreSQL + production app with agent-browser |
+| `npm run test:integration` | Test an ephemeral PostgreSQL + production app with agent-browser. Set `AGENT_BROWSER_CDP=<port or ws:// url>` to attach to a Chrome you started yourself, for a machine that cannot launch the bundled one. |
+| `npm run payouts:run` | Pay every mentor whose session has finished. Safe to run twice - one payout per session is enforced by a unique index - and the same action the operator dashboard offers. |
 | `npm run invite -- create <email> --operator <label> --tags TypeScript,React [--batch <label>]` | Create a single-use mentor invitation. The audit line is token-free; the link is printed separately once. |
 | `npm run invite -- revoke <id> --operator <label>` | Revoke a pending mentor invitation. |
 | `npm run invite -- resend <id> --operator <label>` | Rotate a pending invitation token and expiry, then print the new link separately. |

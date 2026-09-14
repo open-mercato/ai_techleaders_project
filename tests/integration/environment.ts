@@ -37,6 +37,10 @@ export function integrationChildEnvironment(
     MENTOR_PUBLISH_WINDOW_DAYS: '14',
     PLATFORM_CURRENCY: 'PLN',
     PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}',
+    // Forced rather than inherited, like the price bounds above: the payout scenarios assert
+    // exact amounts, and a developer with a different fee exported would see them fail as a
+    // product bug.
+    PLATFORM_FEE_PERCENT: '20',
     // A throwaway database must never author a repository file. `migration:up` rewrites
     // the migration snapshot from introspection whenever the migrated schema differs from
     // the committed one, so a local run of this suite could leave `migrations/devmentor.json`
@@ -64,6 +68,10 @@ export function integrationChildEnvironment(
     // `MAIL_API_KEY` gate. `MAILER_ADAPTER=log` on its own would make the app fail at boot.
     MAILER_ADAPTER: 'log',
     INTEGRATION_TEST_RUN: '1',
+    // **Deliberately no Stripe keys.** Their absence is what selects `MockPaymentGateway`,
+    // which is the whole point: the suite signs its own deliveries and refuses a forged one,
+    // and contacting a real payment provider from a test run is not a thing this harness
+    // should be able to do by accident.
     // Forced, never inherited. An isolated run owns its own data, and the allowlist is
     // data: a developer debugging the real allowlist has their own OPERATOR_EMAILS
     // exported, which would replace the seeded persona and make every operator scenario
