@@ -167,3 +167,15 @@
 - Two findings fixed inside the checkpoint: the run told nobody about a held payout
   (`6.5-review-fix`), and the held copy said nothing was needed from the mentor while
   waiting on the one thing only they can do (`6.7-review-fix`).
+
+## 2026-09-14T09:30:00Z — final gate
+- All 55 rows of the Tasks table are `done`. Steps 7.1 through 7.7 landed
+  (`c5a71f8..ebbc7c5`): the D16/D22 reporting queries, five permanent integration scenarios
+  replacing the temporary checkpoint ones, and the contract, configuration and run records.
+- Full validation gate green in order: typecheck, lint (0 errors), unit tests (194 files,
+  2176 tests), build. Per-file coverage 100% on all four metrics.
+- Full integration suite green: 17 files, 82 tests, against the production build with
+  ephemeral PostgreSQL and real Chrome.
+- Design-system pass: no DS lint exists in this repo, so `typecheck:storybook`,
+  `build-storybook` and the dot-separator rule were run over the diff. All clean; no
+  auto-fixable violations, so no `X.Y-ds-fix` Steps were appended.
