@@ -48,7 +48,7 @@
 | 4 | 4.6-review-fix | Draw an unpaid hold as waiting, not ended | inline | done | 2a8f1a0 |
 | 5 | 5.1 | Add the cancellation columns | inline | done | pending |
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | done | pending |
-| 5 | 5.3 | Settle a refund from the webhook | inline | todo | — |
+| 5 | 5.3 | Settle a refund from the webhook | inline | done | pending |
 | 5 | 5.4 | Serve the booking cancellation route | inline | todo | — |
 | 5 | 5.5 | Confirm a cancellation and its refund outcome | inline | todo | — |
 | 6 | 6.1 | Make the platform fee configurable | inline | todo | — |

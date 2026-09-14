@@ -31,6 +31,7 @@ export type WebhookOutcome =
   | 'unknown_booking'
   | 'amount_mismatch'
   | 'not_pending'
+  | 'refund_settled'
   | 'ignored';
 
 export interface StartedCheckout {
@@ -179,6 +180,7 @@ export class PaymentService {
         }));
         await tx.flush();
 
+        if (event.type === 'charge.refunded') return settleRefund(tx, event);
         if (event.type !== 'checkout.session.completed') return 'ignored';
 
         const booking = await tx.findOne(
@@ -261,6 +263,32 @@ export class PaymentService {
       return lapsed.length;
     });
   }
+}
+
+/**
+ * Record that a refund actually settled (#24).
+ *
+ * `cancelByMentee` marks a refund `refunded` when the gateway's own call succeeds, which is
+ * the optimistic half; this is the provider confirming it out of band. It is written
+ * unconditionally rather than only over `pending`, because a provider-initiated refund — one
+ * an operator issued by hand in the Stripe dashboard (R18) — reaches the product through
+ * this path and nowhere else, and refusing it would leave the product claiming money is
+ * still owed that has already gone back.
+ */
+async function settleRefund(
+  tx: EntityManager,
+  event: Extract<GatewayEvent, { type: 'charge.refunded' }>,
+): Promise<WebhookOutcome> {
+  const booking = await tx.findOne(Booking, {
+    stripePaymentIntentId: event.paymentIntentId,
+  });
+  if (booking === null) return 'unknown_booking';
+
+  booking.refundStatus = 'refunded';
+  booking.stripeRefundId = event.refundId;
+  booking.refundedAmountCents = event.amountRefundedCents;
+  await tx.flush();
+  return 'refund_settled';
 }
 
 function constraintName(error: unknown): string | null {

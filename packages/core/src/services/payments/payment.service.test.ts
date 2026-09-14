@@ -386,6 +386,77 @@ describe('PaymentService.handleWebhookEvent', () => {
     },
   );
 
+  it('records a refund the provider settled, whatever the product thought', async () => {
+    const stored = booking({
+      status: 'cancelled',
+      refundStatus: 'pending',
+      stripePaymentIntentId: 'pi_1',
+    });
+    const h = webhookHarness({ stored });
+
+    await expect(h.service.handleWebhookEvent({
+      id: 'evt_r',
+      type: 'charge.refunded',
+      paymentIntentId: 'pi_1',
+      refundId: 're_1',
+      amountRefundedCents: 12_000,
+    })).resolves.toBe('refund_settled');
+
+    expect(stored).toMatchObject({
+      refundStatus: 'refunded',
+      stripeRefundId: 're_1',
+      refundedAmountCents: 12_000,
+    });
+    // No booking event: the cancellation already announced itself, and settling the money
+    // is not a second cancellation.
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it('accepts a refund an operator issued by hand, which reaches the product only here', async () => {
+    // R18: a refund made in the provider's dashboard has no in-product cancellation behind
+    // it. Refusing it would leave the product claiming money is owed that has gone back.
+    const stored = booking({ status: 'confirmed', refundStatus: 'none' });
+    const h = webhookHarness({ stored });
+
+    await h.service.handleWebhookEvent({
+      id: 'evt_r2',
+      type: 'charge.refunded',
+      paymentIntentId: 'pi_1',
+      refundId: 're_2',
+      amountRefundedCents: 12_000,
+    });
+
+    expect(stored.refundStatus).toBe('refunded');
+  });
+
+  it('answers a refund for a payment no booking claims without changing anything', async () => {
+    const h = webhookHarness({ stored: null });
+
+    await expect(h.service.handleWebhookEvent({
+      id: 'evt_r3',
+      type: 'charge.refunded',
+      paymentIntentId: 'pi_missing',
+      refundId: 're_3',
+      amountRefundedCents: 1,
+    })).resolves.toBe('unknown_booking');
+  });
+
+  it('treats a redelivered refund as a no-op', async () => {
+    const h = webhookHarness({
+      onFlush: () => {
+        throw uniqueViolation('processed_webhook_events_event_id_unique');
+      },
+    });
+
+    await expect(h.service.handleWebhookEvent({
+      id: 'evt_r',
+      type: 'charge.refunded',
+      paymentIntentId: 'pi_1',
+      refundId: 're_1',
+      amountRefundedCents: 12_000,
+    })).resolves.toBe('duplicate');
+  });
+
   it('acknowledges an event type the product does not act on, keeping the record', async () => {
     const h = webhookHarness();
 
