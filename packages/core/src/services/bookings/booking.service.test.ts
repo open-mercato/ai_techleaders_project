@@ -389,3 +389,98 @@ describe('BookingService.start slot arbitration', () => {
     expect(h.tx.persist).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('BookingService session lists', () => {
+  const MENTOR_SESSION: Session = { userId: 'mentor-user', roles: ['mentor'] };
+
+  function listed(overrides: Partial<IBooking> = {}): IBooking {
+    return {
+      id: BOOKING_ID,
+      mentee: { id: MENTEE_ID, displayName: 'Ada Lovelace' },
+      mentorProfile: profile(),
+      lengthMinutes: 25,
+      priceCents: 12_000,
+      currency: 'PLN',
+      status: 'confirmed',
+      startsAt: FAR_ENOUGH,
+      ...overrides,
+    } as unknown as IBooking;
+  }
+
+  function listHarness(session: Session | null, bookings: IBooking[]) {
+    const em = { find: vi.fn(async () => bookings) };
+    const service = new BookingService({
+      em: em as unknown as EntityManager,
+      clock: { now: () => NOW },
+      session: Promise.resolve(session),
+      platformSettingsService: { get: (): PlatformSettings => SETTINGS },
+    });
+    return { service, em };
+  }
+
+  it('shows a mentee the other person, soonest first, with the server view of time', async () => {
+    const h = listHarness({ userId: MENTEE_ID, roles: ['mentee'] }, [listed()]);
+
+    await expect(h.service.listForMentee()).resolves.toEqual([{
+      id: BOOKING_ID,
+      counterpartName: 'Mock Mentor',
+      lengthMinutes: 25,
+      priceCents: 12_000,
+      currency: 'PLN',
+      status: 'confirmed',
+      startsAt: FAR_ENOUGH.toISOString(),
+      isPast: false,
+    }]);
+    expect(h.em.find).toHaveBeenCalledExactlyOnceWith(
+      Booking,
+      // The caller is the session, never a parameter.
+      { mentee: MENTEE_ID },
+      { populate: ['mentorProfile', 'mentorProfile.user'], orderBy: { startsAt: 'asc' } },
+    );
+  });
+
+  it('counts a session that has already started as past, at the instant it starts', async () => {
+    const h = listHarness({ userId: MENTEE_ID, roles: ['mentee'] }, [
+      listed({ startsAt: NOW }),
+      listed({ id: 'later', startsAt: new Date(NOW.getTime() + 1) }),
+    ]);
+
+    const sessions = await h.service.listForMentee();
+
+    expect(sessions.map((session) => session.isPast)).toEqual([true, false]);
+  });
+
+  it('keeps a mentee own unpaid hold visible to them', async () => {
+    const h = listHarness({ userId: MENTEE_ID, roles: ['mentee'] }, [listed({ status: 'pending' })]);
+
+    // A mentee who abandoned a checkout should see the hold, not wonder where it went.
+    await expect(h.service.listForMentee()).resolves.toMatchObject([{ status: 'pending' }]);
+  });
+
+  it('shows a mentor the other person, scoped to bookings made with them', async () => {
+    const h = listHarness(MENTOR_SESSION, [listed()]);
+
+    await expect(h.service.listForMentor()).resolves.toMatchObject([
+      { counterpartName: 'Ada Lovelace' },
+    ]);
+    expect(h.em.find).toHaveBeenCalledExactlyOnceWith(
+      Booking,
+      {
+        mentorProfile: { user: 'mentor-user' },
+        // A stranger's abandoned hold is not a session anyone booked with this mentor.
+        status: { $in: ['confirmed', 'cancelled'] },
+      },
+      { populate: ['mentee'], orderBy: { startsAt: 'asc' } },
+    );
+  });
+
+  it('refuses each list to a caller without that role, and to no session at all', async () => {
+    await expect(listHarness(MENTOR_SESSION, []).service.listForMentee()).rejects
+      .toThrow(ForbiddenError);
+    await expect(
+      listHarness({ userId: MENTEE_ID, roles: ['mentee'] }, []).service.listForMentor(),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(listHarness(null, []).service.listForMentee()).rejects.toThrow(UnauthorizedError);
+    await expect(listHarness(null, []).service.listForMentor()).rejects.toThrow(UnauthorizedError);
+  });
+});

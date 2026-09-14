@@ -92,6 +92,7 @@ export {
   SLOT_TAKEN_MESSAGE,
   toBookingDto,
   type BookingDto,
+  type SessionListItemDto,
 } from './services/bookings/booking.service';
 export {
   PaymentService,

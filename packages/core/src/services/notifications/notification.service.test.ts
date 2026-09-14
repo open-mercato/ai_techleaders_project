@@ -10,6 +10,7 @@ import type { AppEnv } from '../../config/env';
 import type { Logger } from '../../logger';
 import type { Session } from '../../http/auth';
 import { ForbiddenError, NotFoundError, UnauthorizedError } from '../../http/errors';
+import type { MailMessage } from './mailer.port';
 import { NotificationService, toNotificationDto } from './notification.service';
 
 const NOW = new Date('2026-09-14T12:00:00.000Z');
@@ -68,7 +69,7 @@ function makeHarness({
     flush: vi.fn(async () => undefined),
   };
   const mailer = {
-    send: vi.fn(async () => {
+    send: vi.fn(async (_message: MailMessage) => {
       if (sendFails) throw new Error('provider rejected the message');
     }),
   };

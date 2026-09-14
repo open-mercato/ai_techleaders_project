@@ -65,6 +65,28 @@ export interface BookingDto {
   expiresAt: string | null;
 }
 
+/**
+ * One session in a caller's own list (#23).
+ *
+ * `counterpartName` rather than a mentor field and a mentee field: the two lists are the
+ * same screen from opposite sides, and naming the *other* person is what both of them
+ * actually show.
+ *
+ * `isPast` is computed against the **server's** clock. A browser's clock is a setting, and
+ * a session that has started is exactly what decides whether cancelling is still allowed
+ * (E03-S05), so the answer cannot come from the caller.
+ */
+export interface SessionListItemDto {
+  id: string;
+  counterpartName: string;
+  lengthMinutes: number;
+  priceCents: number;
+  currency: string;
+  status: string;
+  startsAt: string;
+  isPast: boolean;
+}
+
 export function toBookingDto(booking: IBooking): BookingDto {
   return {
     id: booking.id,
@@ -77,6 +99,19 @@ export function toBookingDto(booking: IBooking): BookingDto {
     status: booking.status,
     startsAt: booking.startsAt.toISOString(),
     expiresAt: booking.expiresAt?.toISOString() ?? null,
+  };
+}
+
+function toSessionListItem(booking: IBooking, counterpartName: string, now: Date): SessionListItemDto {
+  return {
+    id: booking.id,
+    counterpartName,
+    lengthMinutes: booking.lengthMinutes,
+    priceCents: booking.priceCents,
+    currency: booking.currency,
+    status: booking.status,
+    startsAt: booking.startsAt.toISOString(),
+    isPast: booking.startsAt.getTime() <= now.getTime(),
   };
 }
 
@@ -121,6 +156,13 @@ export class BookingService {
     const session = await this.session;
     if (session === null) throw new UnauthorizedError();
     requireRole(session, 'mentee');
+    return session;
+  }
+
+  private async mentorSession(): Promise<Session> {
+    const session = await this.session;
+    if (session === null) throw new UnauthorizedError();
+    requireRole(session, 'mentor');
     return session;
   }
 
@@ -237,5 +279,48 @@ export class BookingService {
     held.status = 'expired';
     held.expiresAt = null;
     await tx.flush();
+  }
+
+  /**
+   * The signed-in mentee's own sessions, soonest first (#23).
+   *
+   * The caller is the session, never a parameter: there is no user id in the request for
+   * anyone to tamper with. A `pending` reservation is included on purpose — a mentee who
+   * abandoned a checkout should be able to see the hold rather than wonder where their
+   * money went.
+   */
+  async listForMentee(): Promise<SessionListItemDto[]> {
+    const session = await this.menteeSession();
+    const now = this.clock.now();
+    const bookings = await this.em.find(
+      Booking,
+      { mentee: session.userId },
+      { populate: ['mentorProfile', 'mentorProfile.user'], orderBy: { startsAt: 'asc' } },
+    );
+    return bookings.map((booking) =>
+      toSessionListItem(booking, booking.mentorProfile.user.displayName, now),
+    );
+  }
+
+  /**
+   * The signed-in mentor's own sessions, soonest first (#23).
+   *
+   * Scoped through `mentorProfile.user`, so a mentor sees the bookings made with *them* and
+   * nothing else. **Only confirmed and cancelled bookings appear**: a mentee's abandoned
+   * hold on a slot is not a session anyone booked with this mentor, and showing it would
+   * put a stranger's half-finished purchase on a mentor's screen.
+   */
+  async listForMentor(): Promise<SessionListItemDto[]> {
+    const session = await this.mentorSession();
+    const now = this.clock.now();
+    const bookings = await this.em.find(
+      Booking,
+      {
+        mentorProfile: { user: session.userId },
+        status: { $in: ['confirmed', 'cancelled'] },
+      },
+      { populate: ['mentee'], orderBy: { startsAt: 'asc' } },
+    );
+    return bookings.map((booking) => toSessionListItem(booking, booking.mentee.displayName, now));
   }
 }
