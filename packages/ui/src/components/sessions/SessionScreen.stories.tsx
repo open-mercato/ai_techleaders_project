@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { ErrorMessage } from '../../backend/feedback/ErrorMessage';
 import { SessionHeader } from './SessionCard';
 import { SessionComposer } from './SessionComposer';
-import { SessionIsTextNotice, SESSION_IS_TEXT_MESSAGE } from './SessionIsTextNotice';
+import { SESSION_IS_TEXT_MESSAGE } from './SessionIsTextNotice';
 import { SessionTranscript, type SessionMessage } from './WrittenAnswer';
 
 /**
@@ -17,6 +17,12 @@ import { SessionTranscript, type SessionMessage } from './WrittenAnswer';
  * and the clock, and none of those belong in the design system. What this file is for is the
  * other half of that arrangement — proving that the composition reads correctly at every
  * state, and giving manual QA something to open before a database exists.
+ *
+ * **R03's sentence is rendered once, in the header's notice slot**, from the same exported
+ * constant `SessionIsTextNotice` renders. The first draft of this composition also placed the
+ * standalone notice under the header, which put the identical sentence on screen twice, one
+ * line apart. Where a screen has no header slot — the two sessions lists — the component is
+ * still the way to carry it.
  */
 const MAX = 4000;
 
@@ -47,7 +53,6 @@ function SessionScreenExample({
       schedule={schedule}
       notice={SESSION_IS_TEXT_MESSAGE}
     />
-    <SessionIsTextNotice tone="inline" />
     <SessionTranscript messages={messages} emptyMessage={emptyMessage} composer={composer} />
   </div>;
 }
@@ -98,7 +103,7 @@ export const BeforeTheStart: Story = {
       maxLength={MAX}
       onChange={() => undefined}
       onSend={() => undefined}
-      closedReason="This session has not started yet. You can write here from 16:00 Europe/Warsaw."
+      closedReason="You can write here once the session starts."
     />}
   />,
 };
@@ -107,7 +112,7 @@ export const Open: Story = {
   render: () => <OpenSessionExample />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByText(SESSION_IS_TEXT_MESSAGE).length).toBeGreaterThan(0);
+    await expect(canvas.getByText(SESSION_IS_TEXT_MESSAGE)).toBeVisible();
     await userEvent.type(canvas.getByLabelText('Your message'), 'That helps, thank you.');
     await userEvent.click(canvas.getByRole('button', { name: 'Send' }));
     await expect(canvas.getByText('That helps, thank you.')).toBeVisible();

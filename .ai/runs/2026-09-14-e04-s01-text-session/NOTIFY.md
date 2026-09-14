@@ -48,3 +48,15 @@
   Per the run's rules UI verification must not block development, so each checkpoint records
   the skip with this reason and carries explicit manual-QA steps instead. The integration
   scenario of Step 4.3 is still written; CI runs it on the PR.
+
+## 2026-09-14T09:20Z — correction: a browser IS available (CDP), and it caught a defect
+- Supersedes the 09:13Z blocker entry for screenshots only. `agent-browser`'s bundled Chrome
+  still cannot start (`libnspr4.so`), but a `chromedp/headless-shell` container (`dm-chrome`)
+  is running on this host with CDP on 9222, and `agent-browser connect 9222` drives it. All of
+  checkpoint 1's screenshots were captured that way.
+- The screenshots immediately caught a defect no unit test could: R03's sentence rendered
+  **twice**, one line apart, in the composed screen. Fixed by removing the standalone notice
+  from the composition and keeping the header's notice slot as the single rendering. The same
+  class of defect was already corrected once in E03 (`say the cancellation consequence once`).
+- Still open: `npm run test:integration` launches its own browser and is expected to fail
+  locally; Step 4.3's scenario will be written here and executed by CI.

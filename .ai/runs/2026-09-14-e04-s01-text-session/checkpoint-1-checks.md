@@ -4,6 +4,7 @@
 **Steps covered:** 1.1, 1.2 (after 0.1)
 **Branch:** `feat/e04-s01-session-ds`
 **Head:** `de4bc9f` — docs(sessions): show the whole session screen in Storybook
+**Amended by:** the screenshot + copy-fix commit that follows this file
 
 ## Commands
 
@@ -30,23 +31,40 @@ stories; it changes no route, service or entity. The integration scenario for #2
 
 ## UI verification
 
-**Browser screenshots: SKIPPED — the environment cannot run one.** `agent-browser`'s bundled
-Chrome (all four installed versions) fails to start:
+**Screenshots: captured.** `agent-browser`'s own bundled Chrome cannot start here — all four
+installed versions fail with `error while loading shared libraries: libnspr4.so`, and the
+documented fix (`agent-browser install --with-deps`) needs root, which is refused. A
+`chromedp/headless-shell` container (`dm-chrome`) is already running on this host with CDP on
+port 9222, so `agent-browser connect 9222` was used instead, against the static Storybook
+build served locally. The same route is available to the later checkpoints of this run.
 
-```
-chrome: error while loading shared libraries: libnspr4.so: cannot open shared object file
-```
+`checkpoint-1-artifacts/`:
 
-The fix is `npm run test:browser:install:ci` (`agent-browser install --with-deps`), which
-installs system packages and needs root; `sudo` is refused in this environment. This is an
-environment limitation, not a result about the UI, and per the run's rules it does not block
-development.
+| File | What it shows |
+| --- | --- |
+| `session-screen-before-the-start.png` | Upcoming chip, the R03 line once, a composer that states why it is closed |
+| `session-screen-open.png` | In-progress chip, both parties' messages with `isOwn` on the right, an open composer |
+| `session-screen-ended.png` | Ended chip, the transcript still readable, the composer pointing at the written answer |
+| `session-screen-refused-to-anyone-else.png` | What a user who is not a party gets |
+| `composer-open.png` | Empty box with Send disabled and the character count |
+| `composer-sending.png` | Controls locked, the button reading "Sending…" |
+| `composer-over-the-limit.png` | Count in red, Send disabled |
+| `composer-after-the-session-ended.png` | The closed state replacing the controls |
 
-**What was verified instead:**
+**Defect the screenshots caught, and the fix:** the first draft of the screen composition
+rendered R03's sentence **twice**, one line apart — once in `SessionHeader`'s `notice` slot
+and again as a standalone `SessionIsTextNotice` right below it. Unit tests could not see it
+(both assertions passed) and it is exactly the class of thing this project has corrected
+before (`f5f0795 fix(bookings): say the cancellation consequence once, not twice`). The
+standalone notice was removed from the composition: the header slot carries the sentence from
+the same exported constant, and the component stays the way to carry it on screens with no
+header slot — the two sessions lists. The before-start composer copy also stopped repeating a
+time the schedule line already gives.
+
+**Also verified:**
 
 - `npm run build-storybook` succeeded, so every story compiles.
-- The dev server's story index (`/index.json`) lists all of them, which is the id a human
-  clicks:
+- The story index (`/index.json`) lists all of them, which is the id a human clicks:
   - `product-session-screen--before-the-start`
   - `product-session-screen--open`
   - `product-session-screen--ended`
@@ -74,4 +92,10 @@ development.
 
 ## Decisions and deviations
 
-- None. Phase 1 landed as planned.
+- **Browser route changed.** UI verification was first recorded as skipped (no runnable
+  Chrome). It is not skipped: the host's `dm-chrome` CDP endpoint on port 9222 works with
+  `agent-browser connect 9222`, and this file and the run's NOTIFY log were corrected. The
+  local `npm run test:integration` harness is a separate question — it launches its own
+  browser and is still expected to fail here; Step 4.3's scenario will be run by CI.
+- **One copy fix inside Phase 1**, folded into the same PR rather than deferred: R03's
+  sentence was on screen twice (above).
