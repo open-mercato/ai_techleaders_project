@@ -3,6 +3,7 @@ import { AuthRateLimit } from './auth/rate-limit.entity';
 import { Slot } from './availability/slot.entity';
 import { Booking } from './bookings/booking.entity';
 import { ProcessedWebhookEvent } from './payments/processed-webhook-event.entity';
+import { Notification } from './notifications/notification.entity';
 import { Invitation } from './invitations/invitation.entity';
 import { MentorProfile } from './mentors/mentor-profile.entity';
 
@@ -22,6 +23,11 @@ export {
   ProcessedWebhookEvent,
   type IProcessedWebhookEvent,
 } from './payments/processed-webhook-event.entity';
+export { Notification, type INotification } from './notifications/notification.entity';
+export {
+  NOTIFICATION_KINDS,
+  type NotificationKind,
+} from './notifications/notification-kind';
 export { ROLES, type Role } from './auth/roles';
 export { Invitation, type IInvitation } from './invitations/invitation.entity';
 export { MentorProfile, type IMentorProfile } from './mentors/mentor-profile.entity';
@@ -36,4 +42,5 @@ export const entities = [
   Slot,
   Booking,
   ProcessedWebhookEvent,
+  Notification,
 ];
