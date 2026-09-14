@@ -146,6 +146,7 @@ export default defineConfig({
         'packages/core/src/validators/mentors/mentor-profile-update.schema.ts',
         'packages/core/src/validators/mentors/mentor-prices-update.schema.ts',
         'packages/core/src/validators/availability/slot-create.schema.ts',
+        'packages/core/src/validators/bookings/booking-create.schema.ts',
         'packages/db/src/config.ts',
         'packages/db/src/env.ts',
         'packages/db/src/entities/auth/rate-limit.entity.ts',

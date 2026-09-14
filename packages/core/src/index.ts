@@ -98,6 +98,10 @@ export {
   type SlotCreateInput,
 } from './validators/availability/slot-create.schema';
 export {
+  bookingCreateSchema,
+  type BookingCreateInput,
+} from './validators/bookings/booking-create.schema';
+export {
   MAX_SLUG_LENGTH,
   RESERVED_SLUGS,
   slugify,
