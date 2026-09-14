@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 const api = vi.hoisted(() => ({ apiCall: vi.fn() }));
+const navigate = vi.fn();
 
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 vi.mock('@devmentor/ui/backend', async (importOriginal) => ({
@@ -11,13 +12,26 @@ vi.mock('@devmentor/ui/backend', async (importOriginal) => ({
   apiCall: api.apiCall,
 }));
 
-const { BookSessionPanel, bookingReturnTo } = await import('./book-session-panel');
+const { BookSessionPanel, bookingReturnTo, leaveForCheckout } = await import(
+  './book-session-panel'
+);
 
 afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
-  api.apiCall.mockResolvedValue({ ok: true, data: { id: 'booking-1', expiresAt: null } });
+  api.apiCall.mockImplementation(async (path: string) =>
+    path === '/api/bookings'
+      ? { ok: true, data: { id: 'booking-1' } }
+      : { ok: true, data: { url: 'https://checkout.test/cs_1' } },
+  );
 });
+
+/** Choose the seeded time and a length, then press the action. */
+function chooseAndSubmit(length: RegExp = /25 minutes/) {
+  fireEvent.click(screen.getByRole('button', { name: '09:00' }));
+  fireEvent.click(screen.getByRole('button', { name: length }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to payment' }));
+}
 
 const slots = [
   { id: 'ok', startsAt: '2026-09-20T09:00:00.000Z', meetsLeadTime: true },
@@ -32,9 +46,25 @@ function panel(overrides: Partial<Parameters<typeof BookSessionPanel>[0]> = {}) 
     slots={slots}
     prices={prices}
     signedInAsMentee
+    navigate={navigate}
     {...overrides}
   />;
 }
+
+describe('leaveForCheckout', () => {
+  it('leaves the app entirely, because the destination is not a route in it', () => {
+    const assign = vi.fn();
+    const original = Object.getOwnPropertyDescriptor(window, 'location')!;
+    Object.defineProperty(window, 'location', { configurable: true, value: { assign } });
+
+    try {
+      leaveForCheckout('https://checkout.test/cs_1');
+      expect(assign).toHaveBeenCalledExactlyOnceWith('https://checkout.test/cs_1');
+    } finally {
+      Object.defineProperty(window, 'location', original);
+    }
+  });
+});
 
 describe('bookingReturnTo', () => {
   it('names the mentor page, carrying the chosen time when there is one', () => {
@@ -77,19 +107,71 @@ describe('BookSessionPanel', () => {
     expect(screen.getByRole('note').textContent).toMatch(/no promise/);
   });
 
-  it('reserves the chosen time and length for a signed-in mentee', async () => {
+  it('reserves the chosen time, then leaves for the hosted payment', async () => {
     render(panel());
 
-    fireEvent.click(screen.getByRole('button', { name: '09:00' }));
-    fireEvent.click(screen.getByRole('button', { name: /25 minutes/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to payment' }));
+    chooseAndSubmit();
 
-    await waitFor(() => expect(api.apiCall).toHaveBeenCalledWith('/api/bookings', {
+    await waitFor(() => expect(navigate).toHaveBeenCalledExactlyOnceWith(
+      'https://checkout.test/cs_1',
+    ));
+    expect(api.apiCall).toHaveBeenNthCalledWith(1, '/api/bookings', {
       body: { slotId: 'ok', lengthMinutes: 25 },
-    }));
+    });
+    expect(api.apiCall).toHaveBeenNthCalledWith(2, '/api/bookings/booking-1/checkout', {
+      method: 'POST',
+    });
     await waitFor(() =>
       expect(screen.getByText('This time is held for you while you pay.')).toBeTruthy());
+    // The page is leaving; re-enabling the action would invite a second reservation.
     expect(screen.queryByRole('button', { name: 'Continue to payment' })).toBeNull();
+  });
+
+  it('says the time has just been taken rather than something went wrong', async () => {
+    api.apiCall.mockResolvedValue({
+      ok: false,
+      error: { code: 'conflict', message: 'This time has just been taken. Choose another one.' },
+    });
+    render(panel());
+
+    chooseAndSubmit();
+
+    await waitFor(() =>
+      expect(screen.getByText('This time is no longer available')).toBeTruthy());
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('says the reservation expired when the hold lapsed before checkout opened', async () => {
+    api.apiCall.mockImplementation(async (path: string) =>
+      path === '/api/bookings'
+        ? { ok: true, data: { id: 'booking-1' } }
+        : { ok: false, error: { code: 'conflict', message: 'This reservation has expired.' } },
+    );
+    render(panel());
+
+    chooseAndSubmit();
+
+    await waitFor(() => expect(screen.getByText('The reservation has expired')).toBeTruthy());
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['reservation', '/api/bookings'],
+    ['checkout', '/api/bookings/booking-1/checkout'],
+  ])('reports an unexpected %s failure without guessing a recovery', async (_label, failing) => {
+    api.apiCall.mockImplementation(async (path: string) =>
+      path === failing
+        ? { ok: false, error: { code: 'service_unavailable', message: 'Payments are down.' } }
+        : { ok: true, data: { id: 'booking-1', url: 'https://checkout.test/cs_1' } },
+    );
+    render(panel());
+
+    chooseAndSubmit();
+
+    await waitFor(() =>
+      expect(screen.getByText('Payment could not be confirmed')).toBeTruthy());
+    expect(screen.getByText('Payments are down.')).toBeTruthy();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('sends a signed-out visitor to sign in and back to the same time', () => {
@@ -122,9 +204,7 @@ describe('BookSessionPanel', () => {
     });
     render(panel());
 
-    fireEvent.click(screen.getByRole('button', { name: '09:00' }));
-    fireEvent.click(screen.getByRole('button', { name: /25 minutes/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to payment' }));
+    chooseAndSubmit();
 
     await waitFor(() =>
       expect(screen.getByText('This time has just been taken. Choose another one.')).toBeTruthy());

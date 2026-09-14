@@ -7,6 +7,7 @@ import {
   BookingSummary,
   Button,
   DurationSelector,
+  PaymentStatus,
   SessionIsTextNotice,
   priceLabel,
 } from '@devmentor/ui';
@@ -27,11 +28,37 @@ export interface BookSessionPanelProps {
   signedInAsMentee: boolean;
   /** From `?slot=`, so returning from sign-in lands on the time the mentee chose. */
   initialSlotId?: string | null;
+  /**
+   * How to leave for the hosted payment. Injected because the destination is outside this
+   * app, so `next/navigation` is the wrong tool and a full-page assignment is the right
+   * one — and because a test cannot let jsdom navigate.
+   */
+  navigate?: (url: string) => void;
 }
 
 interface HeldBooking {
   id: string;
-  expiresAt: string | null;
+}
+
+/**
+ * What the mentee is told while the payment is being arranged.
+ *
+ * `null` means nothing has been attempted. The rest map onto `PaymentStatus`, whose copy is
+ * already the product's: in particular `slot-taken` and `expired` are different failures
+ * with different recoveries, so they are not flattened into one "something went wrong".
+ */
+type Progress = null | 'redirecting' | 'slot-taken' | 'expired' | 'failed';
+
+/**
+ * Leave this app for the hosted payment.
+ *
+ * A full-page assignment rather than `next/navigation`: the destination is the payment
+ * provider, not a route in this app, and the router would try to resolve it as one. Named
+ * and exported so the panel's default is a thing a test can exercise rather than a closure
+ * only a real browser ever runs.
+ */
+export function leaveForCheckout(url: string): void {
+  window.location.assign(url);
 }
 
 /** Where sign-in should send a signed-out visitor back to, carrying their chosen time. */
@@ -60,6 +87,7 @@ export function BookSessionPanel({
   prices,
   signedInAsMentee,
   initialSlotId = null,
+  navigate = leaveForCheckout,
 }: BookSessionPanelProps) {
   const router = useRouter();
   // UTC first, then the viewer's zone after mount — the same two-phase approach `LocalTime`
@@ -71,6 +99,7 @@ export function BookSessionPanel({
   const [minutes, setMinutes] = useState<25 | 50 | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Progress>(null);
   const [held, setHeld] = useState<HeldBooking | null>(null);
 
   useEffect(() => {
@@ -106,12 +135,36 @@ export function BookSessionPanel({
     }
     setSubmitting(true);
     setFailure(null);
-    const result = await apiCall<HeldBooking>('/api/bookings', {
+    setProgress(null);
+
+    const reserved = await apiCall<HeldBooking>('/api/bookings', {
       body: { slotId: slot.id, lengthMinutes },
     });
-    setSubmitting(false);
-    if (result.ok) setHeld(result.data);
-    else setFailure(result.error.message);
+    if (!reserved.ok) {
+      setSubmitting(false);
+      setFailure(reserved.error.message);
+      // A conflict on the reservation itself means somebody else took the time.
+      setProgress(reserved.error.code === 'conflict' ? 'slot-taken' : 'failed');
+      return;
+    }
+
+    setHeld(reserved.data);
+    setProgress('redirecting');
+    const checkout = await apiCall<{ url: string }>(
+      `/api/bookings/${encodeURIComponent(reserved.data.id)}/checkout`,
+      { method: 'POST' },
+    );
+    if (!checkout.ok) {
+      setSubmitting(false);
+      setFailure(checkout.error.message);
+      // A conflict on the checkout means the hold lapsed between the two calls.
+      setProgress(checkout.error.code === 'conflict' ? 'expired' : 'failed');
+      return;
+    }
+
+    // Deliberately no `setSubmitting(false)`: the page is leaving, and re-enabling the
+    // action would invite a second reservation on the way out.
+    navigate(checkout.data.url);
   }
 
   return <section className="dm-product-stack" aria-labelledby="book-session-heading">
@@ -159,6 +212,7 @@ export function BookSessionPanel({
         : undefined}
     /> : null}
 
+    {progress === null ? null : <PaymentStatus state={progress} />}
     <SessionIsTextNotice />
     {failure === null ? null : <ErrorMessage message={failure} />}
   </section>;

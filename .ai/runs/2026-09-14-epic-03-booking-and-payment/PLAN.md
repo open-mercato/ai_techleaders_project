@@ -35,7 +35,7 @@
 | 3 | 3.6 | Expire a lapsed booking hold | inline | done | pending |
 | 3 | 3.7 | Serve the booking checkout route | inline | done | pending |
 | 3 | 3.8 | Serve the payment webhook route | inline | done | pending |
-| 3 | 3.9 | Take the mentee through checkout and back | inline | todo | — |
+| 3 | 3.9 | Take the mentee through checkout and back | inline | done | pending |
 | 4 | 4.1 | Add the Notification entity and migration | inline | todo | — |
 | 4 | 4.2 | Tell both parties about a confirmed booking | inline | todo | — |
 | 4 | 4.3 | List a caller's own bookings | inline | todo | — |
