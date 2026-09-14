@@ -19,6 +19,7 @@ import { UserService } from '../services/auth/user.service';
 import { SlotService } from '../services/availability/slot.service';
 import { BookingService } from '../services/bookings/booking.service';
 import { PaymentService } from '../services/payments/payment.service';
+import { NotificationService } from '../services/notifications/notification.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -290,6 +291,7 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     slotService: asClass(SlotService).scoped(),
     bookingService: asClass(BookingService).scoped(),
     paymentService: asClass(PaymentService).scoped(),
+    notificationService: asClass(NotificationService).scoped(),
     // Configuration-backed and immutable for the process lifetime. E05 may replace
     // the backing store while preserving this service contract.
     platformSettingsService: asClass(PlatformSettingsService).singleton(),
@@ -347,6 +349,12 @@ async function build(): Promise<AwilixContainer<Cradle>> {
         'bookings.booking.confirmed',
       );
     },
+  );
+  // Telling both parties (E03-S04). It opens **its own scope**: the request that emitted
+  // this has committed and may already be disposed, so closing over its EntityManager
+  // would write through a unit of work nobody owns.
+  container.cradle.eventBus.on('bookings.booking.confirmed', ({ bookingId }) =>
+    withScope(({ notificationService }) => notificationService.onBookingConfirmed(bookingId)),
   );
   container.cradle.eventBus.on(
     'availability.slot.published',

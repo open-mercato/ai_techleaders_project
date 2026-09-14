@@ -139,6 +139,7 @@ export default defineConfig({
         'packages/core/src/services/notifications/adapters/log-mailer.ts',
         'packages/core/src/services/notifications/adapters/resend-mailer.ts',
         'packages/core/src/services/notifications/mailer.port.ts',
+        'packages/core/src/services/notifications/notification.service.ts',
         'packages/core/src/services/invitations/invitation.service.ts',
         'packages/core/src/services/mentors/mentor-profile.service.ts',
         'packages/core/src/services/availability/slot.service.ts',

@@ -157,6 +157,11 @@ export {
 // captured log lines on it, and a hand-copied string there would drift into a scenario that
 // waits ten seconds for mail that was sent.
 export { MAIL_SENT_MESSAGE } from './services/notifications/adapters/log-mailer';
+export {
+  NotificationService,
+  toNotificationDto,
+  type NotificationDto,
+} from './services/notifications/notification.service';
 // The payment seam, on the same terms as the other two: the **port** is exported and
 // neither adapter is, so `container.ts` is the only thing that can choose between them.
 export type {

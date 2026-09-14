@@ -11,6 +11,7 @@ import type { UserService } from '../services/auth/user.service';
 import type { SlotService } from '../services/availability/slot.service';
 import type { BookingService } from '../services/bookings/booking.service';
 import type { PaymentService } from '../services/payments/payment.service';
+import type { NotificationService } from '../services/notifications/notification.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -85,6 +86,12 @@ export interface Cradle {
    * process singleton reached through this scope.
    */
   paymentService: PaymentService;
+  /**
+   * In-product notifications and their best-effort email (E03-S04). SCOPED because it holds
+   * `em`; the `bookings.booking.confirmed` subscriber therefore opens its own scope rather
+   * than closing over the emitting request's.
+   */
+  notificationService: NotificationService;
   platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes
