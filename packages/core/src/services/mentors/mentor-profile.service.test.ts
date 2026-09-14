@@ -34,6 +34,7 @@ const SETTINGS: PlatformSettings = {
     p25: { minCents: 9_000, maxCents: 60_000 },
     p50: { minCents: 18_000, maxCents: 120_000 },
   },
+  feePercent: 20,
 };
 
 function user(overrides: Partial<IUser> = {}): IUser {

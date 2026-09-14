@@ -97,6 +97,7 @@ const BASE_ENV = {
     p25: { minCents: 9_000, maxCents: 60_000 },
     p50: { minCents: 18_000, maxCents: 120_000 },
   },
+  PLATFORM_FEE_PERCENT: 20,
   INTEGRATION_TEST_RUN: false,
   // Present in the baseline so the *production* cases below are about the secret each of
   // them names. `assertProductionSecrets` requires this one too, and a baseline without it
@@ -177,6 +178,7 @@ describe('getContainer', () => {
         p25: { minCents: 9_000, maxCents: 60_000 },
         p50: { minCents: 18_000, maxCents: 120_000 },
       },
+      feePercent: 20,
     });
   });
 

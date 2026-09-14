@@ -138,6 +138,11 @@ const appEnvSchema = z
     PLATFORM_CURRENCY: z.literal('PLN').default('PLN'),
     PLATFORM_PRICE_BOUNDS: z.string().max(256).default(DEFAULT_PLATFORM_PRICE_BOUNDS)
       .transform(parsePlatformPriceBounds),
+    // DevMentor's share of a paid session (D11, R10). 20 by default, and configurable
+    // because R10 says the operator sets it — E05-S02 will move that control into a screen
+    // without changing this service contract. Whole percent: the product has never needed a
+    // fraction, and an integer is what makes the split exact.
+    PLATFORM_FEE_PERCENT: z.coerce.number().int().min(0).max(100).default(20),
 
     // --- Test-double selection (guarded by the superRefine below) ---
     AUTH_IDENTITY_ADAPTER: z.enum(['github', 'mock']).optional(),

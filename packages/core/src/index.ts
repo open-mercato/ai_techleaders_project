@@ -201,6 +201,7 @@ export {
 export {
   PlatformSettingsService,
   PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE,
+  type FeeSplit,
   type PlatformSettings,
 } from './services/operator/platform-settings.service';
 
