@@ -31,6 +31,7 @@ export * from './components/notes/NoteReview';
 export * from './components/operators/MetricSummary';
 export * from './components/payments/PaymentStatus';
 export * from './components/sessions/SessionCard';
+export * from './components/sessions/SessionComposer';
 export * from './components/sessions/SessionIsTextNotice';
 export * from './components/sessions/WrittenAnswer';
 export * from './components/ui/accordion';
