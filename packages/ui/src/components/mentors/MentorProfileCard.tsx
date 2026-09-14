@@ -62,7 +62,7 @@ export function MentorDirectory({ stacks, selectedStack, onStackChange, resultCo
       <Button appearance={selectedStack === null ? 'filled' : 'stroke'} intent={selectedStack === null ? 'primary' : 'neutral'} aria-pressed={selectedStack === null} onClick={() => onStackChange(null)}>All stacks</Button>
       {stacks.map(stack => <Button key={stack} appearance="stroke" intent={selectedStack === stack ? 'primary' : 'neutral'} aria-pressed={selectedStack === stack} onClick={() => onStackChange(stack)}>{stack}</Button>)}
     </div>
-    <p className="dm-product-muted" role="status">{resultCount} mentors available</p>
+    <p className="dm-product-muted" role="status">{resultCount} {resultCount === 1 ? 'mentor' : 'mentors'} available</p>
     {resultCount === 0 ? empty : <div className="dm-product-grid">{children}</div>}
   </section>;
 }

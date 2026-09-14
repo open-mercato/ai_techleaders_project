@@ -1,0 +1,164 @@
+import type { EntityProperty } from '@mikro-orm/core';
+import { describe, expect, it } from 'vitest';
+import { entities } from '../index';
+import { Booking } from './booking.entity';
+import {
+  ACTIVE_BOOKING_STATUSES,
+  BOOKING_STATUSES,
+  PAYMENT_ISSUES,
+  REFUND_STATUSES,
+} from './booking-status';
+
+function typeName(property: EntityProperty): string {
+  const { type } = property as unknown as { type: string | { name: string } };
+  return typeof type === 'string' ? type : type.name;
+}
+
+const meta = Booking.init().meta;
+const properties = meta.properties;
+
+describe('booking statuses', () => {
+  it('names four states, of which exactly two hold a slot', () => {
+    expect(BOOKING_STATUSES).toEqual(['pending', 'confirmed', 'cancelled', 'expired']);
+    expect(ACTIVE_BOOKING_STATUSES).toEqual(['pending', 'confirmed']);
+    expect(BOOKING_STATUSES).toEqual(expect.arrayContaining([...ACTIVE_BOOKING_STATUSES]));
+  });
+});
+
+describe('Booking entity', () => {
+  it('maps the reservation, its price snapshot and its lifecycle timestamps', () => {
+    expect(meta.className).toBe('Booking');
+    expect(meta.tableName).toBe('bookings');
+    expect(Object.keys(properties).sort()).toEqual([
+      'amountPaidCents',
+      'bookedAt',
+      'cancelledAt',
+      'createdAt',
+      'currency',
+      'expiresAt',
+      'feePercentApplied',
+      'id',
+      'lengthMinutes',
+      'mentee',
+      'mentorProfile',
+      'mentorShareCents',
+      'paidAt',
+      'paymentIssue',
+      'payout',
+      'platformFeeCents',
+      'priceCents',
+      'refundStatus',
+      'refundedAmountCents',
+      'slot',
+      'startsAt',
+      'status',
+      'stripeCheckoutSessionId',
+      'stripePaymentIntentId',
+      'stripeRefundId',
+      'updatedAt',
+    ]);
+  });
+
+  it('is registered for ORM discovery', () => {
+    expect(entities).toContain(Booking);
+  });
+
+  it.each(['slot', 'mentee', 'mentorProfile'] as const)(
+    'holds %s by reference and refuses to be deleted with it',
+    (relation) => {
+      expect(properties[relation]!.kind).toBe('m:1');
+      expect(properties[relation]!.nullable).toBeFalsy();
+      // A booking is a money record. Deleting the slot, the mentor or the mentee must not
+      // take it with them — see the note on the entity.
+      expect(properties[relation]!.deleteRule).toBe('restrict');
+    },
+  );
+
+  it('starts pending and constrains the status to the four known states', () => {
+    expect(properties.status!.default).toBe('pending');
+    expect(properties.status!.items).toEqual([...BOOKING_STATUSES]);
+    expect(properties.status!.nullable).toBeFalsy();
+  });
+
+  it('copies the slot start and leaves the confirmation and hold instants open', () => {
+    expect(typeName(properties.startsAt!)).toBe('DateTimeType');
+    expect(properties.startsAt!.nullable).toBeFalsy();
+    expect(properties.bookedAt!.nullable).toBe(true);
+    expect(properties.expiresAt!.nullable).toBe(true);
+  });
+
+  it('snapshots one price in minor units with its currency', () => {
+    expect(properties.priceCents!.nullable).toBeFalsy();
+    expect(properties.currency!.length).toBe(3);
+    expect(properties.lengthMinutes!.nullable).toBeFalsy();
+  });
+
+  it('lets only one pending or confirmed booking hold a slot', () => {
+    expect(meta.uniques).toEqual([
+      {
+        name: 'bookings_active_slot_unique',
+        properties: ['slot'],
+        where: { status: { $in: ['pending', 'confirmed'] } },
+      },
+    ]);
+  });
+
+  it('indexes each party by start time and the expiry sweep by its own pair', () => {
+    expect(meta.indexes).toEqual([
+      { name: 'bookings_mentee_starts_at_index', properties: ['mentee', 'startsAt'] },
+      {
+        name: 'bookings_mentor_profile_starts_at_index',
+        properties: ['mentorProfile', 'startsAt'],
+      },
+      { name: 'bookings_status_expires_at_index', properties: ['status', 'expiresAt'] },
+    ]);
+  });
+
+  it('lets one payment belong to one booking, and leaves every payment field open', () => {
+    expect(properties.stripeCheckoutSessionId!.unique).toBe(true);
+    expect(properties.stripeCheckoutSessionId!.nullable).toBe(true);
+    for (const field of [
+      'stripePaymentIntentId',
+      'paidAt',
+      'amountPaidCents',
+      'paymentIssue',
+    ] as const) {
+      expect(properties[field]!.nullable).toBe(true);
+    }
+    expect(properties.paymentIssue!.items).toEqual([...PAYMENT_ISSUES]);
+  });
+
+  it('starts with no refund, which is also a cancellation inside the window (D10)', () => {
+    expect(properties.refundStatus!.default).toBe('none');
+    expect(properties.refundStatus!.items).toEqual([...REFUND_STATUSES]);
+    expect(properties.cancelledAt!.nullable).toBe(true);
+    expect(properties.stripeRefundId!.nullable).toBe(true);
+    expect(properties.refundedAmountCents!.nullable).toBe(true);
+  });
+
+  it('knows its payout by reference, without carrying a column for it', () => {
+    // The inverse side: the payout run asks for "confirmed sessions with no payout yet" in
+    // one query instead of reading every payout to subtract them.
+    expect(properties.payout!.kind).toBe('1:1');
+    expect(properties.payout!.mappedBy).toBe('booking');
+    expect(properties.payout!.nullable).toBe(true);
+  });
+
+  it('leaves the fee split open until a payment is confirmed (R10)', () => {
+    // Nullable because an unpaid booking has no split, and because the fee *in force at
+    // confirmation* is what a session owed — a later change must not rewrite it.
+    for (const field of ['feePercentApplied', 'platformFeeCents', 'mentorShareCents'] as const) {
+      expect(properties[field]!.nullable).toBe(true);
+    }
+  });
+
+  it('refuses an unoffered length and a non-positive price in the database', () => {
+    expect(meta.checks).toEqual([
+      {
+        name: 'bookings_length_minutes_offered',
+        expression: '"length_minutes" in (25, 50)',
+      },
+      { name: 'bookings_price_cents_positive', expression: '"price_cents" > 0' },
+    ]);
+  });
+});

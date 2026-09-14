@@ -37,6 +37,10 @@ export function integrationChildEnvironment(
     MENTOR_PUBLISH_WINDOW_DAYS: '14',
     PLATFORM_CURRENCY: 'PLN',
     PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}',
+    // Forced rather than inherited, like the price bounds above: the payout scenarios assert
+    // exact amounts, and a developer with a different fee exported would see them fail as a
+    // product bug.
+    PLATFORM_FEE_PERCENT: '20',
     // A throwaway database must never author a repository file. `migration:up` rewrites
     // the migration snapshot from introspection whenever the migrated schema differs from
     // the committed one, so a local run of this suite could leave `migrations/devmentor.json`
@@ -64,6 +68,14 @@ export function integrationChildEnvironment(
     // `MAIL_API_KEY` gate. `MAILER_ADAPTER=log` on its own would make the app fail at boot.
     MAILER_ADAPTER: 'log',
     INTEGRATION_TEST_RUN: '1',
+    // Same rule, same pair, for the third seam. `PAYMENT_GATEWAY=mock` on its own makes the
+    // app fail at boot: a mock gateway takes no money and confirms bookings from a webhook
+    // signed with a secret published in this repository, so one flag must never be enough
+    // to select it.
+    PAYMENT_GATEWAY: 'mock',
+    // **Deliberately no Stripe keys.** They are not what selects the gateway — the flag
+    // above is — but contacting a real payment provider from a test run is not a thing this
+    // harness should be able to do by accident, so there is nothing here to contact it with.
     // Forced, never inherited. An isolated run owns its own data, and the allowlist is
     // data: a developer debugging the real allowlist has their own OPERATOR_EMAILS
     // exported, which would replace the seeded persona and make every operator scenario

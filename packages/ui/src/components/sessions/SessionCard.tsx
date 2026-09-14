@@ -4,7 +4,12 @@ import { type ReactNode } from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 
-const sessionStates = { upcoming: ['Upcoming', 'information'], open: ['In progress', 'success'], ended: ['Ended', 'neutral'], cancelled: ['Cancelled', 'warning'] } as const;
+/**
+ * `pending` is the booking that has been reserved but not paid for. It is not `upcoming` —
+ * a hold is not a session anybody has — and it is not `ended` either, which is what it was
+ * drawn as before this state existed: a future time labelled "Ended" contradicts itself.
+ */
+const sessionStates = { upcoming: ['Upcoming', 'information'], pending: ['Waiting for payment', 'warning'], open: ['In progress', 'success'], ended: ['Ended', 'neutral'], cancelled: ['Cancelled', 'warning'] } as const;
 export interface SessionCardProps {
   title: string;
   participant: string;

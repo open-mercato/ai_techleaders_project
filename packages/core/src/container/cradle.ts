@@ -9,11 +9,16 @@ import type { SessionService } from '../services/auth/session.service';
 import type { TokenService } from '../services/auth/token.service';
 import type { UserService } from '../services/auth/user.service';
 import type { SlotService } from '../services/availability/slot.service';
+import type { BookingService } from '../services/bookings/booking.service';
+import type { PaymentService } from '../services/payments/payment.service';
+import type { NotificationService } from '../services/notifications/notification.service';
+import type { PayoutService } from '../services/payments/payout.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
 import type { Mailer } from '../services/notifications/mailer.port';
+import type { PaymentGateway } from '../services/payments/payment-gateway.port';
 import type { Session } from '../http/auth';
 import type { RateLimiter } from '../http/rate-limit';
 
@@ -59,11 +64,40 @@ export interface Cradle {
    * adapter answers is `container.ts`'s decision — see `selectMailer`.
    */
   mailer: Mailer;
+  /**
+   * The payment seam (D04). Which adapter answers is `container.ts`'s decision — see
+   * `selectPaymentGateway`. SINGLETON: the mock's in-memory sessions must outlive a
+   * request, because a scenario creates a Checkout in one and simulates its webhook in the
+   * next.
+   */
+  paymentGateway: PaymentGateway;
   em: EntityManager;
   userService: UserService;
   invitationService: InvitationService;
   mentorProfileService: MentorProfileService;
   slotService: SlotService;
+  /**
+   * Reservations (E03-S02). SCOPED for the same forced reason as every other service
+   * holding `em`: it writes inside a transaction with a slot row locked, so it must use
+   * the request's own fork rather than the first request's.
+   */
+  bookingService: BookingService;
+  /**
+   * Payments (E03-S03). SCOPED because it holds `em`; the gateway it depends on is a
+   * process singleton reached through this scope.
+   */
+  paymentService: PaymentService;
+  /**
+   * In-product notifications and their best-effort email (E03-S04). SCOPED because it holds
+   * `em`; the `bookings.booking.confirmed` subscriber therefore opens its own scope rather
+   * than closing over the emitting request's.
+   */
+  notificationService: NotificationService;
+  /**
+   * Mentor payouts (E03-S06). SCOPED because it holds `em`; the run is triggered by an
+   * operator request or by the `payouts:run` script, both of which open their own scope.
+   */
+  payoutService: PayoutService;
   platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes

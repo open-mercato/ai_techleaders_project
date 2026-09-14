@@ -69,9 +69,11 @@ export {
 } from './services/invitations/invitation.service';
 export {
   MentorProfileService,
+  MAX_LISTED_MENTORS,
   MAX_SLUG_ATTEMPTS,
   toOwnerDto,
   toPublicDto,
+  type MentorListingDto,
   type MentorProfileOwnerDto,
   type MentorProfilePublicDto,
   type MentorPricesDto,
@@ -81,6 +83,39 @@ export {
   type SlotOwnerDto,
   type SlotPublicDto,
 } from './services/availability/slot.service';
+export {
+  BookingService,
+  BOOKING_HOLD_MINUTES,
+  FREE_CANCELLATION_HOURS,
+  LEAD_TIME_MESSAGE,
+  NOT_CANCELLABLE_MESSAGE,
+  SESSION_STARTED_MESSAGE,
+  MENTOR_NOT_BOOKABLE_MESSAGE,
+  MIN_LEAD_MINUTES,
+  SLOT_TAKEN_MESSAGE,
+  medianOf,
+  toBookingDto,
+  weekStartOf,
+  type BookingDto,
+  type BookingMetrics,
+  type CancelledBookingDto,
+  type PaidSessionWeek,
+  type SessionListItemDto,
+} from './services/bookings/booking.service';
+export {
+  PaymentService,
+  HOLD_EXPIRED_MESSAGE,
+  NOT_PAYABLE_MESSAGE,
+  checkoutReturnUrls,
+  type StartedCheckout,
+  type WebhookOutcome,
+} from './services/payments/payment.service';
+export {
+  PayoutService,
+  toPayoutDto,
+  type PayoutDto,
+  type PayoutRunSummary,
+} from './services/payments/payout.service';
 export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,
@@ -95,6 +130,14 @@ export {
   slotCreateSchema,
   type SlotCreateInput,
 } from './validators/availability/slot-create.schema';
+export {
+  bookingCreateSchema,
+  type BookingCreateInput,
+} from './validators/bookings/booking-create.schema';
+export {
+  notificationReadSchema,
+  type NotificationReadInput,
+} from './validators/notifications/notification-read.schema';
 export {
   MAX_SLUG_LENGTH,
   RESERVED_SLUGS,
@@ -133,6 +176,21 @@ export {
 // captured log lines on it, and a hand-copied string there would drift into a scenario that
 // waits ten seconds for mail that was sent.
 export { MAIL_SENT_MESSAGE } from './services/notifications/adapters/log-mailer';
+export {
+  NotificationService,
+  toNotificationDto,
+  type NotificationDto,
+} from './services/notifications/notification.service';
+// The payment seam, on the same terms as the other two: the **port** is exported and
+// neither adapter is, so `container.ts` is the only thing that can choose between them.
+export type {
+  CheckoutSession,
+  CheckoutSessionRequest,
+  GatewayEvent,
+  PaymentGateway,
+  Refund,
+  RefundRequest,
+} from './services/payments/payment-gateway.port';
 export type { Mailer, MailMessage } from './services/notifications/mailer.port';
 export { EventBus, type EventHandler, type EventId, type EventMap } from './events/index';
 export { systemClock, type Clock } from './time/clock';
@@ -153,6 +211,7 @@ export {
 export {
   PlatformSettingsService,
   PLATFORM_SETTINGS_UNAVAILABLE_MESSAGE,
+  type FeeSplit,
   type PlatformSettings,
 } from './services/operator/platform-settings.service';
 

@@ -11,6 +11,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Upcoming: Story = {};
 export const InProgress: Story = { args: { state: 'open', actions: <Button>Open text session</Button> } };
+export const WaitingForPayment: Story = { args: { state: 'pending', title: 'Text session' }, parameters: { docs: { description: { story: 'A reserved time that has not been paid for. It is not `upcoming` — a hold is not a session anybody has — and not `ended` either, which would contradict a future time sitting in an upcoming list.' } } } };
 export const Past: Story = { args: { state: 'ended', actions: <Button intent="neutral" appearance="stroke">Read written answer</Button> } };
 export const Cancelled: Story = { args: { state: 'cancelled', actions: <Button intent="neutral" appearance="stroke">View cancellation</Button> } };
 export const Header: Story = { render: () => <SessionHeader title="A clearer boundary for your TypeScript API" state="open" participants="Alex Laurent and Jamie Chen" schedule="14:00–14:25 Europe/Warsaw" notice="This is a text session. Keep your question and relevant context in the agreed session channel." actions={<Button intent="neutral" appearance="stroke">Session details</Button>} /> };

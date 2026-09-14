@@ -17,12 +17,19 @@ import { SessionService } from '../services/auth/session.service';
 import { TokenService } from '../services/auth/token.service';
 import { UserService } from '../services/auth/user.service';
 import { SlotService } from '../services/availability/slot.service';
+import { BookingService } from '../services/bookings/booking.service';
+import { PaymentService } from '../services/payments/payment.service';
+import { NotificationService } from '../services/notifications/notification.service';
+import { PayoutService } from '../services/payments/payout.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
 import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
+import { MockPaymentGateway } from '../services/payments/adapters/mock-payment-gateway';
+import { StripePaymentGateway } from '../services/payments/adapters/stripe-payment-gateway';
+import type { PaymentGateway } from '../services/payments/payment-gateway.port';
 import { LogMailerAdapter } from '../services/notifications/adapters/log-mailer';
 import { ResendMailerAdapter } from '../services/notifications/adapters/resend-mailer';
 import type { Mailer } from '../services/notifications/mailer.port';
@@ -170,6 +177,65 @@ function selectMailer({ env, logger }: Cradle): Mailer {
   return new ResendMailerAdapter({ env, logger });
 }
 
+/**
+ * Choose the payment gateway (D04, R05). **The same two-signal rule as `selectMailer`,
+ * plus the same single development convenience.**
+ *
+ * Three branches, in priority order:
+ *
+ * 1. `PAYMENT_GATEWAY=mock` **and** `INTEGRATION_TEST_RUN=1` — the harness.
+ * 2. `development` with `PAYMENT_GATEWAY` unset — the mock, with a boot warning.
+ * 3. Anything else — Stripe, which fails closed at the point of use (B6).
+ *
+ * **This seam needs the second signal at least as badly as identity and mail do.** An
+ * earlier revision selected the mock from `STRIPE_SECRET_KEY` being *absent*, which is the
+ * one thing the comment on `selectGithubIdentity` says never to do, and the consequences
+ * were worse here than at either other seam. A production deployment that had
+ * `SESSION_SECRET` and `MAIL_API_KEY` but had not yet been given its Stripe key — the
+ * ordinary shape of a first deploy, since the key is the newest variable in `.env.example`
+ * — would boot green and silently install the mock. `MockPaymentGateway.createCheckoutSession`
+ * returns the caller's own `successUrl`, so every mentee who pressed "Pay" would land on
+ * the success page having paid nothing; and `MOCK_WEBHOOK_SECRET` is a constant in this
+ * repository, so anyone at all could sign a `checkout.session.completed` and confirm their
+ * own booking. "Takes no money" is not a safe failure when the product's entire purpose at
+ * that route is to take money.
+ *
+ * So the rule is the one the other two seams already state: selection is from flags that
+ * are **present**, never from credentials that are **absent**. A deployment missing
+ * `STRIPE_SECRET_KEY` now gets the real adapter and a visible 503 at the pay button, which
+ * is a bug report; the old behaviour was free sessions, which is a bank statement.
+ */
+function selectPaymentGateway({ env, logger, clock }: Cradle): PaymentGateway {
+  if (env.PAYMENT_GATEWAY === 'mock' && env.INTEGRATION_TEST_RUN) {
+    // Loud, once, on first resolution — the same reason the mock identity adapter and the
+    // log mailer are loud.
+    logger.warn(
+      { adapter: 'mock' },
+      'the mock payment gateway is active: no money is taken, and a booking is confirmed ' +
+        'by a webhook signed with a secret published in this repository',
+    );
+    return new MockPaymentGateway();
+  }
+
+  if (env.PAYMENT_GATEWAY === undefined && env.NODE_ENV === 'development') {
+    // The same narrow development convenience the mailer gets, for the same reason: the
+    // Stripe adapter fails closed at the point of use (B6), so `npm run dev` without a key
+    // would render a booking panel whose pay button always 503s. The condition is on
+    // `PAYMENT_GATEWAY` being **unset**, never on `STRIPE_SECRET_KEY` being absent, so a
+    // developer who sets `PAYMENT_GATEWAY=stripe` gets Stripe and finds out about a missing
+    // key at the route rather than by silently paying nobody.
+    logger.warn(
+      { adapter: 'mock' },
+      'no PAYMENT_GATEWAY is set, so the mock payment gateway is active: sessions are ' +
+        'booked without taking any money; set PAYMENT_GATEWAY=stripe with ' +
+        'STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET to take real payments',
+    );
+    return new MockPaymentGateway();
+  }
+
+  return new StripePaymentGateway({ env, logger, clock });
+}
+
 async function build(): Promise<AwilixContainer<Cradle>> {
   // Checked before anything is opened, so a misconfigured deployment fails on the
   // configuration rather than on a half-built container.
@@ -226,6 +292,12 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // boot warning riding on that decision is emitted once per process because of this
     // lifetime; a scoped registration would print it on every request.
     mailer: asFunction(selectMailer).singleton(),
+    // SINGLETON for the same reasons as the other two seams — stateless apart from a lazily
+    // built SDK client, and `env`/`logger` only — and `asFunction` because which class this
+    // is *is* the decision (`selectPaymentGateway`). The mock's in-memory sessions also
+    // need to outlive a request: a scenario creates a session in one and simulates its
+    // webhook in the next.
+    paymentGateway: asFunction(selectPaymentGateway).singleton(),
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),
@@ -248,6 +320,10 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     invitationService: asClass(InvitationService).scoped(),
     mentorProfileService: asClass(MentorProfileService).scoped(),
     slotService: asClass(SlotService).scoped(),
+    bookingService: asClass(BookingService).scoped(),
+    paymentService: asClass(PaymentService).scoped(),
+    notificationService: asClass(NotificationService).scoped(),
+    payoutService: asClass(PayoutService).scoped(),
     // Configuration-backed and immutable for the process lifetime. E05 may replace
     // the backing store while preserving this service contract.
     platformSettingsService: asClass(PlatformSettingsService).singleton(),
@@ -295,6 +371,33 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     'mentors.profile.published',
     ({ mentorProfileId, slug }) => {
       container.cradle.logger.info({ mentorProfileId, slug }, 'mentors.profile.published');
+    },
+  );
+  container.cradle.eventBus.on(
+    'bookings.booking.confirmed',
+    ({ bookingId, menteeId, mentorProfileId, startsAt, lengthMinutes }) => {
+      container.cradle.logger.info(
+        { bookingId, menteeId, mentorProfileId, startsAt, lengthMinutes },
+        'bookings.booking.confirmed',
+      );
+    },
+  );
+  // Telling both parties (E03-S04). It opens **its own scope**: the request that emitted
+  // this has committed and may already be disposed, so closing over its EntityManager
+  // would write through a unit of work nobody owns.
+  container.cradle.eventBus.on('bookings.booking.confirmed', ({ bookingId }) =>
+    withScope(({ notificationService }) => notificationService.onBookingConfirmed(bookingId)),
+  );
+  container.cradle.eventBus.on(
+    'bookings.booking.cancelled',
+    ({ bookingId, menteeId, mentorProfileId, startsAt, refunded }) => {
+      container.cradle.logger.info(
+        { bookingId, menteeId, mentorProfileId, startsAt, refunded },
+        'bookings.booking.cancelled',
+      );
+      return withScope(({ notificationService }) =>
+        notificationService.onBookingCancelled(bookingId, refunded),
+      );
     },
   );
   container.cradle.eventBus.on(

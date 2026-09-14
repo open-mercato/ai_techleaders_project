@@ -68,6 +68,12 @@ const { LogMailerAdapter } = await import('../services/notifications/adapters/lo
 const { ResendMailerAdapter } = await import(
   '../services/notifications/adapters/resend-mailer'
 );
+const { MockPaymentGateway } = await import(
+  '../services/payments/adapters/mock-payment-gateway'
+);
+const { StripePaymentGateway } = await import(
+  '../services/payments/adapters/stripe-payment-gateway'
+);
 
 /** The container is cached on `globalThis` to survive HMR; tests must clear that cache. */
 const globalForContainer = globalThis as unknown as { __devmentorContainer?: unknown };
@@ -91,6 +97,7 @@ const BASE_ENV = {
     p25: { minCents: 9_000, maxCents: 60_000 },
     p50: { minCents: 18_000, maxCents: 120_000 },
   },
+  PLATFORM_FEE_PERCENT: 20,
   INTEGRATION_TEST_RUN: false,
   // Present in the baseline so the *production* cases below are about the secret each of
   // them names. `assertProductionSecrets` requires this one too, and a baseline without it
@@ -171,6 +178,7 @@ describe('getContainer', () => {
         p25: { minCents: 9_000, maxCents: 60_000 },
         p50: { minCents: 18_000, maxCents: 120_000 },
       },
+      feePercent: 20,
     });
   });
 
@@ -309,6 +317,36 @@ describe('getContainer', () => {
       },
       'availability.slot.published',
     );
+  });
+
+  it('logs the default bookings.booking.cancelled subscriber', async () => {
+    const container = await getContainer();
+    const payload = {
+      bookingId: 'booking-1',
+      menteeId: 'user-1',
+      mentorProfileId: 'profile-1',
+      startsAt: '2026-09-14T15:00:00.000Z',
+      refunded: true,
+    };
+
+    await container.cradle.eventBus.emit('bookings.booking.cancelled', payload);
+
+    expect(logger.info).toHaveBeenCalledWith(payload, 'bookings.booking.cancelled');
+  });
+
+  it('logs the default bookings.booking.confirmed subscriber', async () => {
+    const container = await getContainer();
+    const payload = {
+      bookingId: 'booking-1',
+      menteeId: 'user-1',
+      mentorProfileId: 'profile-1',
+      startsAt: '2026-09-14T15:00:00.000Z',
+      lengthMinutes: 25,
+    };
+
+    await container.cradle.eventBus.emit('bookings.booking.confirmed', payload);
+
+    expect(logger.info).toHaveBeenCalledWith(payload, 'bookings.booking.confirmed');
   });
 });
 
@@ -600,6 +638,81 @@ describe('selecting the mailer', () => {
     const container = await getContainer();
 
     expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+  });
+
+  it('picks the mock gateway when both signals agree, loudly', async () => {
+    useEnv({ PAYMENT_GATEWAY: 'mock', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(MockPaymentGateway);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'mock' },
+      expect.stringContaining('the mock payment gateway is active'),
+    );
+  });
+
+  it('does not accept PAYMENT_GATEWAY=mock alone — one flag is never enough', async () => {
+    // The composition root re-checks both flags even though the env schema already refuses
+    // this pair, for the reason `selectGithubIdentity` spells out: the schema protects a
+    // real deployment reading a real environment, this protects the container against a
+    // hand-built `AppEnv` from a test, a script or a seeder.
+    useEnv({ PAYMENT_GATEWAY: 'mock', INTEGRATION_TEST_RUN: false });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+  });
+
+  it('gives a production deployment with no Stripe key the real adapter, not the mock', async () => {
+    // The regression this pair of tests exists for. Selecting the mock from a *missing*
+    // credential meant an ordinary first deploy — session secret and mail key set, Stripe
+    // key not yet — booted green and gave every session away: the mock returns the caller's
+    // own `successUrl`, so "Pay" landed on the success page having charged nobody, and
+    // `MOCK_WEBHOOK_SECRET` is a constant in this repository, so anyone could sign the
+    // confirming webhook. The real adapter fails closed at the pay button instead (B6).
+    useEnv({
+      NODE_ENV: 'production',
+      PAYMENT_GATEWAY: undefined,
+      STRIPE_SECRET_KEY: undefined,
+      SESSION_SECRET: 'a'.repeat(32),
+      MAIL_API_KEY: 'key',
+    });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+    expect(container.cradle.paymentGateway).not.toBeInstanceOf(MockPaymentGateway);
+  });
+
+  it('picks the mock gateway in development when PAYMENT_GATEWAY is unset, and warns', async () => {
+    // The same narrow convenience the mailer gets: the Stripe adapter fails closed at the
+    // point of use, so `npm run dev` without a key would render a pay button that always
+    // 503s. Conditioned on the flag being unset, never on the key being absent.
+    useEnv({ NODE_ENV: 'development', PAYMENT_GATEWAY: undefined, STRIPE_SECRET_KEY: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(MockPaymentGateway);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'mock' },
+      expect.stringContaining('no PAYMENT_GATEWAY is set'),
+    );
+  });
+
+  it('gives development the real adapter when PAYMENT_GATEWAY says so', async () => {
+    useEnv({ NODE_ENV: 'development', PAYMENT_GATEWAY: 'stripe', STRIPE_SECRET_KEY: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+  });
+
+  it('shares one payment gateway across scopes, so a session outlives its request', async () => {
+    useEnv({ PAYMENT_GATEWAY: 'mock', INTEGRATION_TEST_RUN: true });
+    const container = await getContainer();
+
+    const [first, second] = await Promise.all([
+      withScope((cradle) => cradle.paymentGateway),
+      withScope((cradle) => cradle.paymentGateway),
+    ]);
+    expect(first).toBe(second);
+    expect(first).toBe(container.cradle.paymentGateway);
   });
 
   it('picks the log mailer in development when MAILER_ADAPTER is unset, and warns', async () => {

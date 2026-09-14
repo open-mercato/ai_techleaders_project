@@ -40,6 +40,36 @@ export interface EventMap {
     slotId: string;
     startsAt: string;
   };
+  /**
+   * A payment was verified and its booking became real.
+   *
+   * **Emitted only from the payment webhook**, after the confirming transaction commits —
+   * never from the browser's return to `success_url`, which proves nothing. E03-S04's
+   * notification service is its subscriber, and nothing subscribes to a pending or expired
+   * booking, so an unconfirmed reservation notifies nobody.
+   */
+  'bookings.booking.confirmed': {
+    bookingId: string;
+    menteeId: string;
+    mentorProfileId: string;
+    startsAt: string;
+    lengthMinutes: number;
+  };
+  /**
+   * A mentee cancelled a confirmed booking (D10).
+   *
+   * Emitted **after** the cancelling transaction commits, and before the refund settles:
+   * the slot is free either way, and the mentor needs to know that now rather than when a
+   * payment provider gets round to answering. `refunded` says whether one was owed at all
+   * — inside 24 hours the fee is forfeit (R09), which is a decision and not a failure.
+   */
+  'bookings.booking.cancelled': {
+    bookingId: string;
+    menteeId: string;
+    mentorProfileId: string;
+    startsAt: string;
+    refunded: boolean;
+  };
 }
 
 export type EventId = keyof EventMap;

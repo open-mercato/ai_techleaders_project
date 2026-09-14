@@ -1,6 +1,7 @@
 import { EmptyState } from '@devmentor/ui/backend';
 import { requirePageRole } from '../../../lib/session';
 import { MentorOnboardingStatus } from './mentor-onboarding-status';
+import { UnreadNotifications } from '../../../components/unread-notifications';
 
 /**
  * `/mentor` — where `homeFor` sends a mentor, and the route #15 and #17 already build on
@@ -18,9 +19,10 @@ export default async function MentorHomePage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">Mentor workspace</h1>
       <MentorOnboardingStatus />
+      <UnreadNotifications as="mentor" />
       <EmptyState
-        title="No session requests yet"
-        description="Requests from mentees will be listed here when booking launches."
+        title="Your booked sessions are on their own screen"
+        description="Open Booked sessions to see the times mentees have booked and paid for."
       />
     </div>
   );

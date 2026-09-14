@@ -39,6 +39,16 @@ export const MentorProfile = defineSingletonEntity('MentorProfile', () =>
       lastPublishedAvailabilityAt: p.datetime().nullable(),
       price25Cents: p.integer().fieldName('price_25_cents').nullable(),
       price50Cents: p.integer().fieldName('price_50_cents').nullable(),
+      /**
+       * The Connect surface a payout decision reads (R05).
+       *
+       * **These two columns are all of Connect this epic adds.** Onboarding — creating the
+       * account, the account link, and reacting to Stripe's requirements — is E02-S05
+       * (#19). E03-S06 needs only to know whether a transfer may be attempted, and where to
+       * send it; without them it holds the payout and says why.
+       */
+      stripeConnectAccountId: p.string().length(120).nullable(),
+      payoutsEnabled: p.boolean().default(false),
     },
     checks: [
       {
