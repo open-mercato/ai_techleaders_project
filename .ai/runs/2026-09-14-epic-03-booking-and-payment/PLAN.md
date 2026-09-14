@@ -19,7 +19,7 @@
 | 1 | 1.3 | Serve the public mentor list route | inline | done | 55335d3 |
 | 1 | 1.4 | Render the public mentor list page | inline | done | f5f12eb |
 | 1 | 1.4-review-fix | Count one mentor as one mentor | inline | done | edc15ed |
-| 2 | 2.1 | Add the Booking entity and migration | inline | todo | — |
+| 2 | 2.1 | Add the Booking entity and migration | inline | done | pending |
 | 2 | 2.2 | Validate the booking request body | inline | todo | — |
 | 2 | 2.3 | Reserve a slot under a database lock | inline | todo | — |
 | 2 | 2.4 | Serve the booking creation route | inline | todo | — |
