@@ -154,3 +154,16 @@
   before the mentee confirmed (R09) in both cases.
 - One finding fixed inside the checkpoint (`5.5-review-fix`): the consequence sentence
   appeared twice on the confirmation dialog.
+
+## 2026-09-14T08:59:30Z — checkpoint 7
+- Steps 6.1 through 6.7-review-fix (`f05752d..92102b0`): Phase 6, the fee split and payouts
+  (#25), complete. Five of six stories in the epic are now done.
+- Typecheck, lint and the 100% per-file coverage gate pass; both migrations proved up/down/up
+  with entity-schema parity.
+- The payout run was proved in a real browser against a real paid session: held without
+  Connect onboarding with the reason recorded, visible to the mentor with the price, the fee
+  and the share side by side, transferred once onboarding completed, and "Nothing was due"
+  on a third run.
+- Two findings fixed inside the checkpoint: the run told nobody about a held payout
+  (`6.5-review-fix`), and the held copy said nothing was needed from the mentor while
+  waiting on the one thing only they can do (`6.7-review-fix`).

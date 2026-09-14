@@ -1,24 +1,24 @@
 # Handoff — 2026-09-14-epic-03-booking-and-payment
 
-**Last updated:** 2026-09-14T08:38:00Z
+**Last updated:** 2026-09-14T08:59:30Z
 **Branch:** `feat/epic-03-booking-and-payment`
 **PR:** https://github.com/open-mercato/ai_techleaders_project/pull/53 (draft)
-**Current phase/step:** Phase 6 Step 6.1
-**Last commit:** `f5f0795` — fix(bookings): say the cancellation consequence once, not twice
+**Current phase/step:** Phase 7 Step 7.1
+**Last commit:** `92102b0` — fix(payments): say what a held payout is waiting for
 
 ## What just happened
-- Phase 5 (E03-S05 / #24) is complete and verified at checkpoint 6. Both sides of the
-  24-hour rule were proved in a real browser against two real paid bookings, with the
-  outcome stated before the mentee confirmed in each case.
-- Phases 1–4 shipped and were verified at checkpoints 1–5.
-- Five of the epic's six stories are done. What is left is the fee split and payouts
-  (Phase 6, #25), then the permanent integration suite and the records (Phase 7).
+- Phase 6 (E03-S06 / #25) is complete and verified at checkpoint 7. The payout run was
+  proved in a real browser: held without Connect onboarding, visible to the mentor with the
+  20% checkable, transferred once enabled, and nothing due on a re-run.
+- Phases 1–5 shipped and were verified at checkpoints 1–6.
+- **All six stories of the epic are implemented.** What is left is Phase 7: the reporting
+  queries, the permanent integration suite that replaces the temporary checkpoint scenarios,
+  and the records (BACKWARD_COMPATIBILITY, README, CI, the run log, the spec move).
 
 ## Next concrete action
-- Step 6.1 — add `PLATFORM_FEE_PERCENT` to the zod env schema (default 20, integer 0–100),
-  expose it as `PlatformSettingsService.get().feePercent`, and add a `splitFor(priceCents)`
-  helper returning `{ platformFeeCents, mentorShareCents }` that always sums back to the
-  price.
+- Step 7.1 — `booking.service.ts#paidSessionsPerWeek(since)` and
+  `#medianBookingToStart(since)`, operator only, surfaced on the admin dashboard with
+  `MetricSummary`. D16's counting week is undecided; group by `bookedAt` and say so.
 
 ## Blockers / open questions
 - None blocking.
