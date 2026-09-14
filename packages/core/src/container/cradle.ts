@@ -15,6 +15,7 @@ import type { MentorProfileService } from '../services/mentors/mentor-profile.se
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
 import type { Mailer } from '../services/notifications/mailer.port';
+import type { PaymentGateway } from '../services/payments/payment-gateway.port';
 import type { Session } from '../http/auth';
 import type { RateLimiter } from '../http/rate-limit';
 
@@ -60,6 +61,13 @@ export interface Cradle {
    * adapter answers is `container.ts`'s decision — see `selectMailer`.
    */
   mailer: Mailer;
+  /**
+   * The payment seam (D04). Which adapter answers is `container.ts`'s decision — see
+   * `selectPaymentGateway`. SINGLETON: the mock's in-memory sessions must outlive a
+   * request, because a scenario creates a Checkout in one and simulates its webhook in the
+   * next.
+   */
+  paymentGateway: PaymentGateway;
   em: EntityManager;
   userService: UserService;
   invitationService: InvitationService;

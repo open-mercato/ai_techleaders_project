@@ -154,6 +154,14 @@ const appEnvSchema = z
     // --- Mail (declared here, consumed by the notifications slice) ---
     MAIL_API_KEY: z.string().optional(),
     MAIL_FROM: z.string().optional(),
+
+    // --- Payments (D04, R05) ---
+    // Optional for the same reason as the GitHub pair (B6): a deployment without them
+    // must still build, boot and serve every page. The Checkout and webhook routes fail
+    // closed at the point of use instead. Their *presence* is also what selects the real
+    // gateway in `container.ts` — selection is never made from a credential being absent.
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
   })
   .superRefine((env, ctx) => {
     // A test double selected without the integration-run signal is refused at parse

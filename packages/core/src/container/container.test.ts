@@ -68,6 +68,12 @@ const { LogMailerAdapter } = await import('../services/notifications/adapters/lo
 const { ResendMailerAdapter } = await import(
   '../services/notifications/adapters/resend-mailer'
 );
+const { MockPaymentGateway } = await import(
+  '../services/payments/adapters/mock-payment-gateway'
+);
+const { StripePaymentGateway } = await import(
+  '../services/payments/adapters/stripe-payment-gateway'
+);
 
 /** The container is cached on `globalThis` to survive HMR; tests must clear that cache. */
 const globalForContainer = globalThis as unknown as { __devmentorContainer?: unknown };
@@ -600,6 +606,42 @@ describe('selecting the mailer', () => {
     const container = await getContainer();
 
     expect(container.cradle.mailer).toBeInstanceOf(ResendMailerAdapter);
+  });
+
+  it('registers Stripe as soon as a secret key is configured, in any environment', async () => {
+    useEnv({ NODE_ENV: 'development', STRIPE_SECRET_KEY: 'sk_test_x' });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(StripePaymentGateway);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the mock gateway without a key, loudly', async () => {
+    // Unlike the identity and mail seams this needs no second signal: a mock gateway takes
+    // no money and confirms nothing without a signed webhook, so the failure mode is a
+    // product that visibly cannot be paid rather than one that is quietly unsafe. It is
+    // still loud, because "payments appear to work and charge nobody" must not have to be
+    // inferred from a bank statement.
+    useEnv({ STRIPE_SECRET_KEY: undefined });
+    const container = await getContainer();
+
+    expect(container.cradle.paymentGateway).toBeInstanceOf(MockPaymentGateway);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { adapter: 'mock' },
+      expect.stringContaining('no STRIPE_SECRET_KEY is set'),
+    );
+  });
+
+  it('shares one payment gateway across scopes, so a session outlives its request', async () => {
+    useEnv({ STRIPE_SECRET_KEY: undefined });
+    const container = await getContainer();
+
+    const [first, second] = await Promise.all([
+      withScope((cradle) => cradle.paymentGateway),
+      withScope((cradle) => cradle.paymentGateway),
+    ]);
+    expect(first).toBe(second);
+    expect(first).toBe(container.cradle.paymentGateway);
   });
 
   it('picks the log mailer in development when MAILER_ADAPTER is unset, and warns', async () => {

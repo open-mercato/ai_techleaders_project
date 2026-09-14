@@ -24,6 +24,9 @@ import { PlatformSettingsService } from '../services/operator/platform-settings.
 import { GithubIdentityAdapter } from '../services/auth/adapters/github-identity';
 import { MockGithubIdentityAdapter } from '../services/auth/adapters/mock-github-identity';
 import type { GithubIdentityPort } from '../services/auth/github-identity.port';
+import { MockPaymentGateway } from '../services/payments/adapters/mock-payment-gateway';
+import { StripePaymentGateway } from '../services/payments/adapters/stripe-payment-gateway';
+import type { PaymentGateway } from '../services/payments/payment-gateway.port';
 import { LogMailerAdapter } from '../services/notifications/adapters/log-mailer';
 import { ResendMailerAdapter } from '../services/notifications/adapters/resend-mailer';
 import type { Mailer } from '../services/notifications/mailer.port';
@@ -171,6 +174,35 @@ function selectMailer({ env, logger }: Cradle): Mailer {
   return new ResendMailerAdapter({ env, logger });
 }
 
+/**
+ * Choose the payment gateway (D04, R05). **Stripe when it is configured, the mock
+ * otherwise, and the decision is made from a flag that is present — never from a
+ * credential that is absent.**
+ *
+ * That rule is why this reads `STRIPE_SECRET_KEY` rather than, say, `NODE_ENV`: a
+ * deployment that has the key gets Stripe even in development, and a deployment that does
+ * not gets a gateway that cannot take money by construction. The mock is loud, once,
+ * because "payments appear to work and charge nobody" is exactly the state an operator
+ * must not have to infer from a bank statement.
+ *
+ * Unlike the identity and mail seams this needs no second signal. A mock mailer or a mock
+ * identity in a real deployment is a security hole — sign in as anyone, verification links
+ * that never arrive. A mock payment gateway takes no money and confirms no booking without
+ * a signed webhook nobody else can produce, so the failure mode is a product that visibly
+ * cannot be paid, not one that is quietly unsafe.
+ */
+function selectPaymentGateway({ env, logger }: Cradle): PaymentGateway {
+  if (env.STRIPE_SECRET_KEY !== undefined) {
+    return new StripePaymentGateway({ env, logger });
+  }
+  logger.warn(
+    { adapter: 'mock' },
+    'no STRIPE_SECRET_KEY is set, so the mock payment gateway is active: no money can be '
+      + 'taken and no booking can be confirmed without a signed webhook from this process',
+  );
+  return new MockPaymentGateway();
+}
+
 async function build(): Promise<AwilixContainer<Cradle>> {
   // Checked before anything is opened, so a misconfigured deployment fails on the
   // configuration rather than on a half-built container.
@@ -227,6 +259,12 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     // boot warning riding on that decision is emitted once per process because of this
     // lifetime; a scoped registration would print it on every request.
     mailer: asFunction(selectMailer).singleton(),
+    // SINGLETON for the same reasons as the other two seams — stateless apart from a lazily
+    // built SDK client, and `env`/`logger` only — and `asFunction` because which class this
+    // is *is* the decision (`selectPaymentGateway`). The mock's in-memory sessions also
+    // need to outlive a request: a scenario creates a session in one and simulates its
+    // webhook in the next.
+    paymentGateway: asFunction(selectPaymentGateway).singleton(),
     // A forked EntityManager per scope gives each request its own identity map / UoW.
     em: asFunction(({ orm }: Cradle) => orm.em.fork()).scoped(),
     userService: asClass(UserService).scoped(),
