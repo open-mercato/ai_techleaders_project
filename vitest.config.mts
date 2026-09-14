@@ -94,6 +94,8 @@ export default defineConfig({
         'packages/app/src/app/m/\\[slug\\]/book-session-panel.tsx',
         'packages/app/src/app/m/\\[slug\\]/booking-slots.ts',
         'packages/app/src/app/mentors/page.tsx',
+        'packages/app/src/app/sessions/\\[bookingId\\]/layout.tsx',
+        'packages/app/src/app/sessions/\\[bookingId\\]/page.tsx',
         'packages/app/src/app/sessions/\\[bookingId\\]/session-screen.tsx',
         'packages/app/src/app/mentors/mentors-directory.tsx',
         'packages/app/src/app/admin/layout.tsx',
