@@ -61,7 +61,7 @@
 | 6 | 6.6 | Let the operator run payouts | inline | done | e80f3dc |
 | 6 | 6.7 | Show a mentor their payouts | inline | done | 33e4043 |
 | 6 | 6.7-review-fix | Say what a held payout is waiting for | inline | done | 92102b0 |
-| 7 | 7.1 | Report paid sessions and booking-to-start | inline | todo | — |
+| 7 | 7.1 | Report paid sessions and booking-to-start | inline | done | pending |
 | 7 | 7.2 | Prove discovery and reservation in the browser | inline | todo | — |
 | 7 | 7.3 | Prove payment confirmation and idempotency | inline | todo | — |
 | 7 | 7.4 | Prove session-list scoping and notification | inline | todo | — |

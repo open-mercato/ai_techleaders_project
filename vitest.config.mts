@@ -95,6 +95,7 @@ export default defineConfig({
         'packages/app/src/app/admin/layout.tsx',
         'packages/app/src/app/admin/page.tsx',
         'packages/app/src/app/admin/run-payouts.tsx',
+        'packages/app/src/app/admin/session-metrics.tsx',
         'packages/app/src/app/admin/users/page.tsx',
         'packages/app/src/app/admin/users/users-list.tsx',
         // The email half of the two `(auth)` screens: a Client Component, so it is rendered

@@ -69,6 +69,23 @@ export const SESSION_STARTED_MESSAGE =
 export const NOT_CANCELLABLE_MESSAGE =
   'Only a paid session can be cancelled. An unpaid reservation releases its time on its own.';
 
+/** One ISO week's paid sessions, for D16. */
+export interface PaidSessionWeek {
+  /** The Monday the week starts on, as an ISO date. */
+  weekStart: string;
+  count: number;
+}
+
+export interface BookingMetrics {
+  weeks: PaidSessionWeek[];
+  /**
+   * D22's median booking-to-start, in whole minutes, or `null` when nothing has been booked
+   * in the window. **Null, never zero** — "no data" and "booked at the last moment" are
+   * different answers and only one of them is a problem.
+   */
+  medianBookingToStartMinutes: number | null;
+}
+
 export interface CancelledBookingDto {
   id: string;
   status: string;
@@ -138,6 +155,34 @@ export function toBookingDto(booking: IBooking): BookingDto {
     startsAt: booking.startsAt.toISOString(),
     expiresAt: booking.expiresAt?.toISOString() ?? null,
   };
+}
+
+/** The Monday of the ISO week an instant falls in, at midnight UTC. */
+export function weekStartOf(instant: Date): Date {
+  const monday = new Date(Date.UTC(
+    instant.getUTCFullYear(),
+    instant.getUTCMonth(),
+    instant.getUTCDate(),
+  ));
+  // `getUTCDay()` is 0 on Sunday, which belongs to the week that started six days earlier.
+  const offset = (monday.getUTCDay() + 6) % 7;
+  monday.setUTCDate(monday.getUTCDate() - offset);
+  return monday;
+}
+
+/**
+ * The middle value, averaging the two middles on an even count.
+ *
+ * A mean would be pulled by one mentee who booked three months ahead; D22 asks for a
+ * median precisely because the distribution has a long tail.
+ */
+export function medianOf(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[middle]!
+    : Math.round((sorted[middle - 1]! + sorted[middle]!) / 2);
 }
 
 function toSessionListItem(booking: IBooking, counterpartName: string, now: Date): SessionListItemDto {
@@ -379,6 +424,52 @@ export class BookingService {
       { populate: ['mentee'], orderBy: { startsAt: 'asc' } },
     );
     return bookings.map((booking) => toSessionListItem(booking, booking.mentee.displayName, now));
+  }
+
+  /**
+   * What the founders check D16 and D22 against, for operators only.
+   *
+   * **Counted by `bookedAt`, and that choice is open.** #22 records that whether a paid
+   * session falls in the week it was booked or the week it happens is undecided; booking
+   * week is the one this reads, and switching it is one line here rather than a rewrite.
+   *
+   * A session is "paid" when it is `confirmed` — a cancelled one was paid and then refunded
+   * or forfeited, which is a different question and not this metric.
+   *
+   * The window is `days` back from the server's own clock. The caller names a length, never
+   * an instant: a metric an operator could move by sending a different date is not a metric.
+   */
+  async metricsForLastDays(days: number): Promise<BookingMetrics> {
+    const session = await this.session;
+    if (session === null) throw new UnauthorizedError();
+    requireRole(session, 'operator');
+
+    // The window is measured from the **server's** clock, not from an instant a caller
+    // passed in: a page computing one would be reading a clock during render, and a metric
+    // an operator can move by sending a different date is not a metric.
+    const since = new Date(this.clock.now().getTime() - days * 24 * 60 * 60 * 1000);
+    const paid = await this.em.find(
+      Booking,
+      { status: 'confirmed', bookedAt: { $gte: since } },
+      { orderBy: { bookedAt: 'asc' } },
+    );
+
+    const byWeek = new Map<string, number>();
+    const leadMinutes: number[] = [];
+    for (const booking of paid) {
+      const bookedAt = booking.bookedAt;
+      if (bookedAt == null) continue;
+      const week = weekStartOf(bookedAt).toISOString().slice(0, 10);
+      byWeek.set(week, (byWeek.get(week) ?? 0) + 1);
+      leadMinutes.push(
+        Math.round((booking.startsAt.getTime() - bookedAt.getTime()) / 60_000),
+      );
+    }
+
+    return {
+      weeks: [...byWeek].map(([weekStart, count]) => ({ weekStart, count })),
+      medianBookingToStartMinutes: medianOf(leadMinutes),
+    };
   }
 
   /**
