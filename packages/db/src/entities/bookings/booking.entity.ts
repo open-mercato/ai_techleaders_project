@@ -70,6 +70,16 @@ export const Booking = defineSingletonEntity('Booking', () =>
       amountPaidCents: p.integer().nullable(),
       /** Set instead of confirming when the payment cannot be accepted as it stands. */
       paymentIssue: p.enum(PAYMENT_ISSUES).nullable(),
+      /**
+       * The fee split, snapshotted at confirmation (R10).
+       *
+       * Nullable because a booking that was never paid for has no split, and because the
+       * fee **in force at that moment** is what this session owed — a later change to
+       * `PLATFORM_FEE_PERCENT` must not rewrite it.
+       */
+      feePercentApplied: p.integer().nullable(),
+      platformFeeCents: p.integer().nullable(),
+      mentorShareCents: p.integer().nullable(),
       /** When the mentee cancelled, and where the money got to (D10, R09). */
       cancelledAt: p.datetime().nullable(),
       refundStatus: p.enum(REFUND_STATUSES).default('none'),

@@ -193,6 +193,23 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "fee_percent_applied": {
+          "name": "fee_percent_applied",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "id": {
           "name": "id",
           "type": "uuid",
@@ -261,6 +278,23 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
+        "mentor_share_cents": {
+          "name": "mentor_share_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "paid_at": {
           "name": "paid_at",
           "type": "timestamptz(6)",
@@ -296,6 +330,23 @@
             "amount_mismatch"
           ],
           "mappedType": "enum"
+        },
+        "platform_fee_cents": {
+          "name": "platform_fee_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
         },
         "price_cents": {
           "name": "price_cents",
@@ -998,6 +1049,23 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "payouts_enabled": {
+          "name": "payouts_enabled",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "false",
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
         "price_25_cents": {
           "name": "price_25_cents",
           "type": "int",
@@ -1104,6 +1172,23 @@
             "AI agents"
           ],
           "mappedType": "array"
+        },
+        "stripe_connect_account_id": {
+          "name": "stripe_connect_account_id",
+          "type": "varchar(120)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 120,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
         },
         "updated_at": {
           "name": "updated_at",
@@ -1412,6 +1497,250 @@
           ],
           "referencedTableName": "public.users",
           "deleteRule": "cascade"
+        }
+      },
+      "comment": null
+    },
+    {
+      "name": "payouts",
+      "schema": "public",
+      "columns": {
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": true,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "held_reason": {
+          "name": "held_reason",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [
+            "connect_onboarding_incomplete"
+          ],
+          "mappedType": "enum"
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "mentor_profile_id": {
+          "name": "mentor_profile_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'held'",
+          "comment": null,
+          "collation": null,
+          "enumItems": [
+            "held",
+            "transferred",
+            "failed"
+          ],
+          "mappedType": "enum"
+        },
+        "stripe_transfer_id": {
+          "name": "stripe_transfer_id",
+          "type": "varchar(120)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 120,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "booking_id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "payouts_booking_id_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "payouts_pkey",
+          "primary": true,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "status"
+          ],
+          "composite": false,
+          "constraint": false,
+          "keyName": "payouts_status_index",
+          "primary": false,
+          "unique": false
+        }
+      ],
+      "checks": [
+        {
+          "name": "payouts_amount_cents_non_negative",
+          "expression": "\"amount_cents\" >= 0",
+          "definition": "check (\"amount_cents\" >= 0)"
+        },
+        {
+          "name": "payouts_held_reason_check",
+          "expression": "\"held_reason\" in ('connect_onboarding_incomplete')",
+          "definition": "check (\"held_reason\" in ('connect_onboarding_incomplete'))",
+          "columnName": "held_reason"
+        },
+        {
+          "name": "payouts_status_check",
+          "expression": "\"status\" in ('held', 'transferred', 'failed')",
+          "definition": "check (\"status\" in ('held', 'transferred', 'failed'))",
+          "columnName": "status"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "payouts_booking_id_foreign": {
+          "columnNames": [
+            "booking_id"
+          ],
+          "constraintName": "payouts_booking_id_foreign",
+          "localTableName": "public.payouts",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.bookings",
+          "deleteRule": "restrict"
+        },
+        "payouts_mentor_profile_id_foreign": {
+          "columnNames": [
+            "mentor_profile_id"
+          ],
+          "constraintName": "payouts_mentor_profile_id_foreign",
+          "localTableName": "public.payouts",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.mentor_profiles",
+          "deleteRule": "restrict"
         }
       },
       "comment": null

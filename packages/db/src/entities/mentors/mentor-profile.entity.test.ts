@@ -11,6 +11,17 @@ function typeName(property: EntityProperty): string {
 const meta = MentorProfile.init().meta;
 const properties = meta.properties;
 
+describe('MentorProfile Connect surface', () => {
+  const connectProperties = MentorProfile.init().meta.properties;
+
+  it('knows only whether a transfer may be attempted, and where to send it', () => {
+    // All of Connect this epic adds. Onboarding is E02-S05 (#19).
+    expect(connectProperties.stripeConnectAccountId!.nullable).toBe(true);
+    expect(connectProperties.payoutsEnabled!.default).toBe(false);
+    expect(connectProperties.payoutsEnabled!.nullable).toBeFalsy();
+  });
+});
+
 describe('MentorProfile entity', () => {
   it('keeps the existing profile fields and their defaults', () => {
     expect(meta.tableName).toBe('mentor_profiles');

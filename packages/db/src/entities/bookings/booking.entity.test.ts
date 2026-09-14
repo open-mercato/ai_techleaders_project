@@ -36,12 +36,15 @@ describe('Booking entity', () => {
       'createdAt',
       'currency',
       'expiresAt',
+      'feePercentApplied',
       'id',
       'lengthMinutes',
       'mentee',
       'mentorProfile',
+      'mentorShareCents',
       'paidAt',
       'paymentIssue',
+      'platformFeeCents',
       'priceCents',
       'refundStatus',
       'refundedAmountCents',
@@ -130,6 +133,14 @@ describe('Booking entity', () => {
     expect(properties.cancelledAt!.nullable).toBe(true);
     expect(properties.stripeRefundId!.nullable).toBe(true);
     expect(properties.refundedAmountCents!.nullable).toBe(true);
+  });
+
+  it('leaves the fee split open until a payment is confirmed (R10)', () => {
+    // Nullable because an unpaid booking has no split, and because the fee *in force at
+    // confirmation* is what a session owed — a later change must not rewrite it.
+    for (const field of ['feePercentApplied', 'platformFeeCents', 'mentorShareCents'] as const) {
+      expect(properties[field]!.nullable).toBe(true);
+    }
   });
 
   it('refuses an unoffered length and a non-positive price in the database', () => {
