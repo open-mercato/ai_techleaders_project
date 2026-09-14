@@ -1,24 +1,27 @@
 # Handoff — 2026-09-14-e04-s01-text-session
 
-**Last updated:** 2026-09-14T09:35Z
-**Branch:** `feat/e04-s01-session-screen` (PR 3 of the stack)
+**Last updated:** 2026-09-14T09:56Z
+**Branch:** `feat/e04-s01-session-composer` (PR 4 of the stack) — to be created
 **PRs:** umbrella [#54](https://github.com/open-mercato/ai_techleaders_project/pull/54) ·
 PR 1 [#55](https://github.com/open-mercato/ai_techleaders_project/pull/55) ·
 PR 2 [#56](https://github.com/open-mercato/ai_techleaders_project/pull/56)
-**Current phase/step:** Phase 3 Step 3.2
-**Last commit:** `3b678c4` — feat(sessions): seed text sessions manual QA can actually reach
+**Current phase/step:** Phase 4 Step 4.1
+**Last commit:** `61d9912` — fix(sessions): stop drawing a live session as ended
 
 ## What just happened
-- Phase 2 landed and shipped as PR #56: `SessionMessage` + migration, `messageCreateSchema`,
-  `TextSessionService`, the two routes, and `QaSessionSeeder` / `npm run db:seed:sessions`.
-- Checkpoint 2 verified the whole API over HTTP on a **production build against a real
-  PostgreSQL** — both parties, the third-user 403, the two window refusals, CSRF, validation.
-- Step 3.1 landed `useApiResource(path, { pollMs })`: a silent refresh that neither shows a
-  spinner nor erases loaded data when it fails.
+- Phase 3 landed: silent polling in `useApiResource` (`pollMs` + `pollWhile`), the session
+  screen composed from the design system, `/sessions/[bookingId]` with its own layout and
+  guard, an "Open text session" link on both lists, and Step 3.5 — a live session is no
+  longer drawn "Ended" under *Past*, which the checkpoint-3 screenshots caught.
+- Checkpoint 3 walked all three window states plus the third-user refusal in a real browser,
+  as the mentee and as the mentor. Screenshots in `checkpoint-3-artifacts/`.
+- Chrome: the borrowed `dm-chrome` container disappeared mid-run; this run now owns
+  `dm-e04-chrome` (CDP on 9333) and must remove it at cleanup.
 
 ## Next concrete action
-- Step 3.2 — `packages/app/src/app/sessions/[bookingId]/session-screen.tsx`, composing
-  `SessionHeader` + `SessionTranscript` + a closed `SessionComposer` from the `GET` response.
+- Create `feat/e04-s01-session-composer` from `feat/e04-s01-session-screen` and start Step
+  4.1 — wire `SessionComposer` to `POST /api/sessions/{id}/messages` with delivery states,
+  replacing `READ_ONLY_REASON`.
 
 ## Blockers / open questions
 - **Q18 is open** (owner founder A). Built on its plain reading as a recorded `[ASSUMPTION]`.

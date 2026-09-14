@@ -97,3 +97,14 @@
   upcoming", which a live session no longer contradicts.
 - This touches two E03 files (`booking.service.ts`, `sessions-list.tsx`) beyond the action
   slots the plan reserved. Recorded here as a deliberate widening, with its reason.
+
+## 2026-09-14T09:56Z — checkpoint 3 (Phase 3 / PR 3 closed)
+- The session screen, its address, the polling and both lists' entry points landed. Typecheck,
+  storybook typecheck, lint, 2280 unit tests and the full coverage gate (100% on all four
+  metrics) are green; `npm run build` passes.
+- Walked all three window states plus the third-user refusal in a real browser against a real
+  database, as the mentee and as the mentor: seven screenshots in `checkpoint-3-artifacts/`.
+  The same session from the other side swaps the message sides and the counterpart name, which
+  is `isOwn` coming from the viewer's id rather than a display name.
+- The borrowed `dm-chrome` CDP container disappeared mid-checkpoint (another run removed it).
+  This run started its own, `dm-e04-chrome` on port 9333, and owns removing it at cleanup.
