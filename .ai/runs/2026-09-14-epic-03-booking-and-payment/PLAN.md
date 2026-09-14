@@ -27,7 +27,7 @@
 | 2 | 2.6 | Let a mentee pick a slot and a length | inline | done | 5739ee3 |
 | 2 | 2.6-review-fix | Defer the viewer timezone switch | inline | done | 48cbfcd |
 | 2 | 2.1-review-fix | Clear reservations before times in the mentor fixture | inline | done | 26776ba |
-| 3 | 3.1 | Define the payment gateway port and mock | inline | todo | — |
+| 3 | 3.1 | Define the payment gateway port and mock | inline | done | pending |
 | 3 | 3.2 | Record payments and processed webhook events | inline | todo | — |
 | 3 | 3.3 | Select the Stripe gateway from configuration | inline | todo | — |
 | 3 | 3.4 | Open a Checkout session for a pending booking | inline | todo | — |

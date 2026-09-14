@@ -141,6 +141,8 @@ export default defineConfig({
         'packages/core/src/services/mentors/mentor-profile.service.ts',
         'packages/core/src/services/availability/slot.service.ts',
         'packages/core/src/services/bookings/booking.service.ts',
+        'packages/core/src/services/payments/payment-gateway.port.ts',
+        'packages/core/src/services/payments/adapters/mock-payment-gateway.ts',
         'packages/core/src/services/operator/platform-settings.service.ts',
         'packages/core/src/services/mentors/readiness.ts',
         'packages/core/src/time/clock.ts',
