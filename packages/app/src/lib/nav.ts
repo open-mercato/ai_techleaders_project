@@ -84,3 +84,19 @@ const NAV_ORDER: readonly Role[] = ['operator', 'mentor', 'mentee'];
 export function navLinksFor(roles: readonly Role[]): NavLink[] {
   return NAV_ORDER.filter((role) => roles.includes(role)).flatMap((role) => LINKS_BY_ROLE[role]);
 }
+
+/**
+ * Where "back to your sessions" goes for a session screen (#26).
+ *
+ * **Mentee first**, which is the same tie-break `GET /api/bookings` already applies when a
+ * caller holds both roles: the mentee list is the one every account can have. Deliberately
+ * **not** `homeFor`, which answers a different question — it would send a mentor to
+ * `/mentor`, their workspace, rather than to the list of sessions they just came from, and
+ * an operator who is also a mentor to `/admin`, where there are no sessions at all.
+ *
+ * The two spellings are the product's, not a choice made here: #12 names `/home` and #23
+ * names `/mentor/sessions`.
+ */
+export function sessionsHomeFor(roles: readonly Role[]): string {
+  return roles.includes('mentee') ? '/home' : '/mentor/sessions';
+}

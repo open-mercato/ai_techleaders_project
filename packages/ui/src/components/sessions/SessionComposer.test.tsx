@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { SessionComposer, composerCount } from './SessionComposer';
+import { SessionComposer, SessionComposerClosed, composerCount } from './SessionComposer';
 
 afterEach(cleanup);
 
@@ -105,14 +105,8 @@ it('ignores the send shortcut while the send is blocked', () => {
   expect(onSend).not.toHaveBeenCalled();
 });
 
-it('replaces the controls with the reason when the session is not open', () => {
-  render(<SessionComposer
-    value=""
-    onChange={vi.fn()}
-    onSend={vi.fn()}
-    maxLength={4000}
-    closedReason="This session has not started yet."
-  />);
+it('states the reason and offers no controls when the session is not open', () => {
+  render(<SessionComposerClosed reason="This session has not started yet." />);
 
   expect(screen.getByRole('note').textContent).toBe('This session has not started yet.');
   expect(screen.queryByRole('textbox')).toBeNull();

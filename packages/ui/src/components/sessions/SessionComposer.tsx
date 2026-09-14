@@ -15,9 +15,10 @@ import { Textarea } from '../ui/textarea';
  * "this session has ended".
  *
  * **It knows nothing about time, sessions or HTTP.** No clock, no fetch, no window
- * arithmetic: the caller decides whether the session is open and supplies `closedReason` when
- * it is not. That is what keeps every state reachable from a Storybook story with no database
- * behind it, which is how #26's UI is meant to be verified by hand.
+ * arithmetic: the caller decides whether the session is open, and renders
+ * `SessionComposerClosed` below instead when it is not. That is what keeps every state
+ * reachable from a Storybook story with no database behind it, which is how #26's UI is meant
+ * to be verified by hand.
  */
 export interface SessionComposerProps {
   value: string;
@@ -32,14 +33,23 @@ export interface SessionComposerProps {
   pending?: boolean;
   /** A refusal or validation message, from the server or the caller. */
   error?: string;
-  /**
-   * Why there is nothing to write in. Present for every window except `open`, and it
-   * *replaces* the controls — a disabled textarea invites the typing and then discards it.
-   */
-  closedReason?: ReactNode;
   label?: string;
   placeholder?: string;
   sendLabel?: string;
+}
+
+/**
+ * Why a session cannot be written in — a separate component rather than a `closedReason`
+ * prop on the composer above.
+ *
+ * The two are different things with different inputs. This one has no value, no bound and no
+ * callbacks, and folding it into the composer would force every read-only caller to invent an
+ * `onChange` and an `onSend` that can never fire — dead code the coverage gate cannot reach,
+ * in every caller. It is a callout rather than a disabled textarea because a disabled box
+ * invites the typing and then discards it.
+ */
+export function SessionComposerClosed({ reason }: { reason: ReactNode }) {
+  return <p className="dm-product-callout" role="note">{reason}</p>;
 }
 
 /**
@@ -61,16 +71,11 @@ export function SessionComposer({
   maxLength,
   pending = false,
   error,
-  closedReason,
   label = 'Your message',
   placeholder = 'Write your message',
   sendLabel = 'Send',
 }: SessionComposerProps) {
   const fieldId = useId();
-
-  if (closedReason !== undefined) {
-    return <p className="dm-product-callout" role="note">{closedReason}</p>;
-  }
 
   const over = value.length > maxLength;
   // Whitespace alone is not a message. The server trims and refuses it too; refusing it here

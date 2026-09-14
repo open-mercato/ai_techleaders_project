@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROLES, type Role } from '@devmentor/db';
-import { navLinksFor } from './nav';
+import { navLinksFor, sessionsHomeFor } from './nav';
 
 /**
  * Navigation is pure data, so this is an ordinary `node` test: no DOM, no renderer, and
@@ -120,5 +120,24 @@ describe('navLinksFor', () => {
         expect(link.label.toLowerCase()).not.toContain('become');
       }
     }
+  });
+});
+
+describe('sessionsHomeFor', () => {
+  it('sends a mentee to their own list', () => {
+    expect(sessionsHomeFor(['mentee'])).toBe('/home');
+  });
+
+  it('sends a mentor to the booked-sessions list', () => {
+    expect(sessionsHomeFor(['mentor'])).toBe('/mentor/sessions');
+  });
+
+  it('breaks a dual role towards the mentee list, like GET /api/bookings does', () => {
+    expect(sessionsHomeFor(['mentor', 'mentee'])).toBe('/home');
+    expect(sessionsHomeFor(['operator', 'mentee'])).toBe('/home');
+  });
+
+  it('sends an operator who does not mentee to the mentor list rather than /admin', () => {
+    expect(sessionsHomeFor(['operator', 'mentor'])).toBe('/mentor/sessions');
   });
 });
