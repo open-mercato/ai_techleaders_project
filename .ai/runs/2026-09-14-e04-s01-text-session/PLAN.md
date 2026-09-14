@@ -29,7 +29,7 @@
 | 2 Data & API | 2.3 | `text-session.service.ts` — window, party check, posting | inline | done | 66fb4af |
 | 2 Data & API | 2.4 | `GET /api/sessions/[bookingId]` + `POST .../messages` | inline | done | 988cd62 |
 | 2 Data & API | 2.5 | `QaSessionSeeder` + `npm run db:seed:sessions` | inline | done | 3b678c4 |
-| 3 Session screen | 3.1 | `useApiResource` gains a non-flashing `pollMs` | inline | todo | — |
+| 3 Session screen | 3.1 | `useApiResource` gains a non-flashing `pollMs` | inline | done | — |
 | 3 Session screen | 3.2 | `session-screen.tsx` — DS composition, read-only | inline | todo | — |
 | 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard | inline | todo | — |
 | 3 Session screen | 3.4 | "Open session" entry point in both sessions lists | inline | todo | — |
