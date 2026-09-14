@@ -33,6 +33,7 @@
     "db:migrate:down": "npm run migration:down --workspace @devmentor/db",
     "db:schema:update": "npm run schema:update --workspace @devmentor/db",
     "db:seed": "npm run seed --workspace @devmentor/db",
+    "db:seed:sessions": "npm run seed:sessions --workspace @devmentor/db",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "prototype": "node scripts/build-prototype.mjs",

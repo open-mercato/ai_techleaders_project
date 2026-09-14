@@ -144,6 +144,12 @@ webhook, which authenticates by verifying a signature. See `BACKWARD_COMPATIBILI
 - `npm run db:migration:create -- --name <x>` — generate a migration from entity diff.
 - `npm run db:migrate` / `npm run db:migrate:down` — apply / revert migrations.
 - `npm run db:seed` — run the default seeder.
+- `npm run db:seed:sessions` — plant the manual-QA text-session fixtures (#26): three
+  confirmed bookings between the seeded mock mentee and mock mentor, one before its start,
+  one open now, one ended. Deliberately **not** part of `db:seed` — the default seed's empty
+  sessions list is a state E03's screens and integration tests assert on. A booking needs two
+  hours of lead time, so without this no manually created session can ever be open now. Safe
+  to re-run: it deletes and recreates only the rows carrying its own fixture keys.
 
 ### Configuration
 
