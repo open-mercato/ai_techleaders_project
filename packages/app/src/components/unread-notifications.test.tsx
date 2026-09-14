@@ -53,6 +53,13 @@ describe('UnreadNotifications', () => {
     expect(screen.getByRole('heading', { name: '2 unread notifications' })).toBeTruthy();
   });
 
+  it('reads the time out rather than printing the machine instant', () => {
+    render(<UnreadNotifications as="mentee" />);
+
+    const stamp = screen.getByText('14 September at 12:00');
+    expect(stamp.getAttribute('datetime')).toBe('2026-09-14T12:00:00.000Z');
+  });
+
   it('sends each side to its own sessions list', () => {
     render(<UnreadNotifications as="mentee" />);
     expect(screen.getByRole('link', { name: 'A session was booked' }).getAttribute('href'))

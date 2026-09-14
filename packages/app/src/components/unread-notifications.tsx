@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { NotificationDto } from '@devmentor/core';
 import { NotificationItem } from '@devmentor/ui';
 import { apiCall, ErrorMessage, useApiResource } from '@devmentor/ui/backend';
+import { useViewerTimeZone } from './sessions-list';
 
 /**
  * Where a notification sends the person reading it.
@@ -46,6 +47,7 @@ export interface UnreadNotificationsProps {
  */
 export function UnreadNotifications({ as }: UnreadNotificationsProps) {
   const resource = useApiResource<NotificationDto[]>('/api/notifications');
+  const timeZone = useViewerTimeZone();
   const [dismissed, setDismissed] = useState<readonly string[]>([]);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -64,6 +66,16 @@ export function UnreadNotifications({ as }: UnreadNotificationsProps) {
     if (!result.ok) setFailure(result.error.message);
   }
 
+  // Readable, in the viewer's zone — not the ISO instant, which is the `dateTime`
+  // attribute's job and not a thing anybody reads.
+  const when = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return <section className="flex flex-col gap-3" aria-label="Unread notifications">
     <h2 className="text-lg font-semibold tracking-tight">
       {unread.length === 1 ? '1 unread notification' : `${unread.length} unread notifications`}
@@ -73,7 +85,7 @@ export function UnreadNotifications({ as }: UnreadNotificationsProps) {
       title={COPY[notification.kind].title}
       description={COPY[notification.kind].description}
       createdAt={notification.createdAt}
-      timeLabel={new Date(notification.createdAt).toISOString()}
+      timeLabel={when.format(new Date(notification.createdAt))}
       read={false}
       onMarkRead={() => void markRead(notification.id)}
       href={destinationFor(as)}

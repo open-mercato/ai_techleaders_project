@@ -44,6 +44,7 @@
 | 4 | 4.6 | Show a mentee their sessions | inline | done | pending |
 | 4 | 4.7 | Show a mentor their sessions | inline | done | pending |
 | 4 | 4.8 | Surface unread notifications on each role home | inline | done | pending |
+| 4 | 4.8-review-fix | Read the notification time out | inline | done | pending |
 | 5 | 5.1 | Add the cancellation columns | inline | todo | — |
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | todo | — |
 | 5 | 5.3 | Settle a refund from the webhook | inline | todo | — |
@@ -328,6 +329,11 @@ lines for the files the Step adds or changes.
 **4.8 Surface unread notifications on each role home**
 - `NotificationItem` rendered on the mentee home and the mentor home with a mark-as-read
   action. Tests: unread and read states, mark-read call.
+
+**4.8-review-fix Read the notification time out**
+- The checkpoint-5 screenshot showed a notification stamped `2026-09-14T08:21:15.889Z`. The
+  ISO instant is the `dateTime` attribute's job, not a thing anybody reads; the visible
+  label is now formatted in the viewer's zone.
 
 ### Phase 5 — Cancellation (E03-S05, #24)
 
