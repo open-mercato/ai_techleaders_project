@@ -35,6 +35,7 @@ describe('navLinksFor', () => {
       { href: '/mentor/prices', label: 'Session prices' },
       { href: '/mentor/slots', label: 'Available times' },
       { href: '/mentor/sessions', label: 'Booked sessions' },
+      { href: '/mentor/payouts', label: 'Payouts' },
     ]);
   });
 
@@ -60,6 +61,7 @@ describe('navLinksFor', () => {
       '/mentor/prices',
       '/mentor/slots',
       '/mentor/sessions',
+      '/mentor/payouts',
     ]);
   });
 
@@ -72,6 +74,7 @@ describe('navLinksFor', () => {
       '/mentor/prices',
       '/mentor/slots',
       '/mentor/sessions',
+      '/mentor/payouts',
       '/home',
     ]);
   });
@@ -88,6 +91,7 @@ describe('navLinksFor', () => {
       { href: '/mentor/prices', label: 'Session prices' },
       { href: '/mentor/slots', label: 'Available times' },
       { href: '/mentor/sessions', label: 'Booked sessions' },
+      { href: '/mentor/payouts', label: 'Payouts' },
     ]);
   });
 
@@ -103,7 +107,7 @@ describe('navLinksFor', () => {
   it('exposes no route that would grant a role, for any combination of roles (R07)', () => {
     const permitted = [
       '/admin', '/admin/users',
-      '/mentor', '/mentor/profile', '/mentor/prices', '/mentor/slots', '/mentor/sessions',
+      '/mentor', '/mentor/profile', '/mentor/prices', '/mentor/slots', '/mentor/sessions', '/mentor/payouts',
       '/home',
     ];
 

@@ -55,6 +55,7 @@ export default defineConfig({
         'packages/app/src/app/api/mentors/route.ts',
         'packages/app/src/app/api/notifications/route.ts',
         'packages/app/src/app/api/operator/payouts/run/route.ts',
+        'packages/app/src/app/api/mentor/payouts/route.ts',
         'packages/app/src/app/api/payments/webhook/route.ts',
         'packages/app/src/app/api/mentors/me/onboarding/route.ts',
         'packages/app/src/app/api/mentors/me/prices/route.ts',
@@ -105,6 +106,7 @@ export default defineConfig({
         // it composes: which links a role set may see, and the name in the user block.
         'packages/app/src/components/cancel-session-action.tsx',
         'packages/app/src/components/mentee-session-actions.tsx',
+        'packages/app/src/components/payouts-list.tsx',
         'packages/app/src/components/sessions-list.tsx',
         'packages/app/src/components/unread-notifications.tsx',
         'packages/app/src/components/workspace-shell.tsx',

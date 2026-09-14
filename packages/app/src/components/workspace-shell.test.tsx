@@ -80,6 +80,7 @@ describe('WorkspaceShell', () => {
       ['/mentor/prices', 'Session prices'],
       ['/mentor/slots', 'Available times'],
       ['/mentor/sessions', 'Booked sessions'],
+      ['/mentor/payouts', 'Payouts'],
     ]);
   });
 
@@ -101,6 +102,7 @@ describe('WorkspaceShell', () => {
       ['/mentor/prices', 'Session prices'],
       ['/mentor/slots', 'Available times'],
       ['/mentor/sessions', 'Booked sessions'],
+      ['/mentor/payouts', 'Payouts'],
     ]);
   });
 
@@ -115,6 +117,7 @@ describe('WorkspaceShell', () => {
       '/mentor/prices',
       '/mentor/slots',
       '/mentor/sessions',
+      '/mentor/payouts',
     ]);
   });
 });
