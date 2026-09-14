@@ -179,3 +179,34 @@
 - Design-system pass: no DS lint exists in this repo, so `typecheck:storybook`,
   `build-storybook` and the dot-separator rule were run over the diff. All clean; no
   auto-fixable violations, so no `X.Y-ds-fix` Steps were appended.
+
+## 2026-09-14T09:46:00Z — code review, and two blockers it caught
+- `om-auto-review-pr 53 --autofix` ran as the single authoritative review pass. Verdict
+  after autofix: **approved**, 2 blockers found and fixed, 0 remaining.
+- **Blocker 1 (`0537cba`)** — `selectPaymentGateway` chose `MockPaymentGateway` from
+  `STRIPE_SECRET_KEY` being *absent*. A production deploy missing only that key (the
+  ordinary first deploy) booted green and gave sessions away: the mock returns the caller's
+  own `successUrl`, and `MOCK_WEBHOOK_SECRET` is a repository constant. Replaced with a
+  `PAYMENT_GATEWAY` flag under the same two-signal rule as the identity and mail seams.
+  The rule was already written in this repo, on `selectGithubIdentity`, and `env.ts` even
+  documented the correct behaviour while the code did the inverse.
+- **Blocker 2 (`9b6d19d`)** — `expires_at` was passed to Stripe below its 30-minute floor,
+  because the hold starts at reservation and checkout starts a round trip later. Every real
+  Checkout would have been rejected. Invisible to the whole suite, because the mock accepts
+  any expiry.
+- **Both blockers are in the money path, and neither was reachable without Stripe or a
+  production-shaped environment.** They are the strongest evidence yet for the manual QA
+  pass this run has been recording as owed, and they are the reason the review comment now
+  says so directly rather than in passing.
+- Self-review: GitHub refuses to let the author approve their own PR, so the verdict is a
+  comment. The second reviewer `SDLC.md` requires on the money stories is still outstanding.
+- **CI is not a signal on this PR.** All four checks report failure after 3s because the
+  GitHub account's payments have failed and the jobs never started. Unrelated to this branch
+  and unfixable from it; disclosed in the review comment and the summary.
+
+## 2026-09-14T09:50:00Z — run closed
+- PR #53 flipped from draft to ready, `Status: complete`, labelled
+  `merge-queue` / `feature` / `security` / `needs-qa` / `priority-high` / `risk-high`.
+- 57 Steps, 63 commits, 184 files. Final gate and integration suite green.
+- Owed to a human: a real Stripe pass in test mode, a second reviewer, and a fix to the
+  repository's GitHub Actions billing so CI can run at all.

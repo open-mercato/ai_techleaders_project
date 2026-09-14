@@ -21,7 +21,7 @@ no way to reach a mentor except a share link.
 Classified as a Spec-implementation run. The epic and each of its stories recorded a spec as
 owed and none had been written, so the run opened by writing one —
 `.ai/specs/2026-09-14-booking-and-payment.md`, covering all six stories in one document
-because they share one entity, one money path and one set of invariants. It then executed 54
+because they share one entity, one money path and one set of invariants. It then executed 57
 Steps across 7 Phases, one commit each, with a verification checkpoint every ~5 Steps.
 
 | Phase | Story | What shipped |
@@ -69,6 +69,23 @@ Seven checkpoints, each posted to PR #53 with its outcome and, where UI changed,
   "Ended" under "Upcoming"; the cancellation consequence printed twice; held-payout copy that
   said nothing was needed from the mentor while waiting on the one thing only they can do.
 
+## What the code review caught
+
+`om-auto-review-pr 53 --autofix` was the single authoritative review pass. It found **two
+blockers**, both in the money path, both fixed and re-verified:
+
+- **`0537cba`** — `selectPaymentGateway` chose the mock from `STRIPE_SECRET_KEY` being
+  *absent*. An ordinary first production deploy would have booted green and given every
+  session away: the mock returns the caller's own `successUrl`, and `MOCK_WEBHOOK_SECRET`
+  is a constant in this repository. Replaced with a `PAYMENT_GATEWAY` flag under the same
+  two-signal rule the identity and mail seams already use — a rule this repo had written
+  down twice and this seam alone broke.
+- **`9b6d19d`** — the Stripe Checkout expiry floor, above.
+
+Neither was reachable from the test suite as written, and both were in the one area the run
+had already flagged as unverified. That is the useful lesson: **the limitation a run records
+honestly is the map of where its next bug is.**
+
 ## Deviations, recorded rather than papered over
 
 - **Steps 4.6 and 4.7 share one commit.** The two sessions screens share a component that had
@@ -89,6 +106,12 @@ Seven checkpoints, each posted to PR #53 with its outcome and, where UI changed,
   redelivery checks meaningful — and the Stripe adapter is covered against a stubbed SDK
   surface. That proves the translation, not the live contract. **A real end-to-end Stripe
   pass is owed to manual QA.**
+
+  This limit stopped being theoretical at review time. `om-auto-review-pr` found that
+  `expires_at` was being sent below Stripe's documented 30-minute floor, so **every real
+  Checkout would have been rejected** while 2176 unit tests and 82 integration tests stayed
+  green — the mock accepts any expiry. Treat the remaining Stripe surface with the same
+  suspicion rather than as verified-by-proxy.
 - **Money paths are `risk-high`.** `SDLC.md` requires a second reviewer and manual QA on
   E03-S03, E03-S05 and E03-S06, and self-QA is not accepted for them.
 - **Connect onboarding is still E02-S05 (#19).** This run added the two columns a payout
