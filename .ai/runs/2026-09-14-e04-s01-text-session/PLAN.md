@@ -34,9 +34,9 @@
 | 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard + layout | inline | done | e4aa644 |
 | 3 Session screen | 3.4 | "Open session" entry point in both sessions lists (carries the poll-predicate and lint fixes) | inline | done | efd449f |
 | 3 Session screen | 3.5 | Draw a live session as in progress, not as ended under Past | inline | done | 61d9912 |
-| 4 Composer | 4.1 | Wire the composer to `POST`; refusals shown where typed | inline | done | — |
-| 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | done | — |
-| 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | todo | — |
+| 4 Composer | 4.1 | Wire the composer to `POST`; refusals shown where typed | inline | done | e9d28ea |
+| 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | done | e9d28ea |
+| 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | done | — |
 
 Legend: `todo` · `in-progress` · `done`. One Step = one commit. `Exec` is `inline` for
 every Step: the stack's branches must be created and pushed in order, and a dispatched
