@@ -24,8 +24,8 @@
 | 1 Design system | 1.1 | `SessionComposer` component, CSS, unit tests, export | inline | done | e1fe077 |
 | 1 Design system | 1.2 | Composer + whole-screen Storybook stories for every window state | inline | done | de4bc9f |
 | 1 Design system | 1.2-ds-fix | Say sessions are text once per screen (found by screenshot) | inline | done | aed0d61 |
-| 2 Data & API | 2.1 | `SessionMessage` entity + `sessions` migration | inline | done | — |
-| 2 Data & API | 2.2 | `message-create.schema.ts` validator | inline | todo | — |
+| 2 Data & API | 2.1 | `SessionMessage` entity + `sessions` migration | inline | done | af51f7e |
+| 2 Data & API | 2.2 | `message-create.schema.ts` validator | inline | done | — |
 | 2 Data & API | 2.3 | `session.service.ts` — window, party check, posting | inline | todo | — |
 | 2 Data & API | 2.4 | `GET /api/sessions/[bookingId]` + `POST .../messages` | inline | todo | — |
 | 2 Data & API | 2.5 | `QaSessionSeeder` + `npm run db:seed:sessions` | inline | todo | — |

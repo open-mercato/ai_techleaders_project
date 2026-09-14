@@ -135,6 +135,10 @@ export {
   type NotificationReadInput,
 } from './validators/notifications/notification-read.schema';
 export {
+  messageCreateSchema,
+  type MessageCreateInput,
+} from './validators/sessions/message-create.schema';
+export {
   MAX_SLUG_LENGTH,
   RESERVED_SLUGS,
   slugify,
