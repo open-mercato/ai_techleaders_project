@@ -36,16 +36,16 @@
 | 3 | 3.7 | Serve the booking checkout route | inline | done | 06530ed |
 | 3 | 3.8 | Serve the payment webhook route | inline | done | d7ed4e9 |
 | 3 | 3.9 | Take the mentee through checkout and back | inline | done | e9387c9 |
-| 4 | 4.1 | Add the Notification entity and migration | inline | done | pending |
-| 4 | 4.2 | Tell both parties about a confirmed booking | inline | done | pending |
-| 4 | 4.3 | List a caller's own bookings | inline | done | pending |
-| 4 | 4.4 | Serve the role-scoped bookings list route | inline | done | pending |
-| 4 | 4.5 | Serve the notifications routes | inline | done | pending |
-| 4 | 4.6 | Show a mentee their sessions | inline | done | pending |
-| 4 | 4.7 | Show a mentor their sessions | inline | done | pending |
-| 4 | 4.8 | Surface unread notifications on each role home | inline | done | pending |
-| 4 | 4.8-review-fix | Read the notification time out | inline | done | pending |
-| 4 | 4.6-review-fix | Draw an unpaid hold as waiting, not ended | inline | done | pending |
+| 4 | 4.1 | Add the Notification entity and migration | inline | done | 3b1eca2 |
+| 4 | 4.2 | Tell both parties about a confirmed booking | inline | done | 37a5b53 |
+| 4 | 4.3 | List a caller's own bookings | inline | done | d21090f |
+| 4 | 4.4 | Serve the role-scoped bookings list route | inline | done | b4fc38d |
+| 4 | 4.5 | Serve the notifications routes | inline | done | dd6150c |
+| 4 | 4.6 | Show a mentee their sessions | inline | done | 20dd9e9 |
+| 4 | 4.7 | Show a mentor their sessions | inline | done | 20dd9e9 |
+| 4 | 4.8 | Surface unread notifications on each role home | inline | done | 999a37a |
+| 4 | 4.8-review-fix | Read the notification time out | inline | done | 62b0e38 |
+| 4 | 4.6-review-fix | Draw an unpaid hold as waiting, not ended | inline | done | 2a8f1a0 |
 | 5 | 5.1 | Add the cancellation columns | inline | todo | — |
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | todo | — |
 | 5 | 5.3 | Settle a refund from the webhook | inline | todo | — |

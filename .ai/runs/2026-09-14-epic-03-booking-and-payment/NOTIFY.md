@@ -123,3 +123,23 @@
 - The mentor's list is new and does need its own route: `/mentor/sessions`, with a
   "Booked sessions" nav entry. `nav.test.ts`'s closed href set and `workspace-shell`'s
   ordering assertions were extended for it.
+
+## 2026-09-14T08:24:30Z — checkpoint 5
+- Steps 4.1 through 4.6-review-fix (`3b1eca2..2a8f1a0`): Phase 4, both parties know (#23),
+  complete.
+- Typecheck, lint and the 100% per-file coverage gate pass; the `notifications` migration
+  was proved up/down/up with entity-schema parity.
+- The whole journey was driven in a real browser with two signed-in sessions: empty list,
+  book and pay, return with a banner that does not claim confirmation, webhook confirms,
+  session appears as upcoming with an unread notification, and the mentor sees it from the
+  other side.
+- Two findings fixed inside the checkpoint, both found by reading the screenshots and
+  neither visible from a unit test: a raw ISO timestamp on a notification
+  (`4.8-review-fix`), and an unpaid hold drawn as "Ended" under "Upcoming"
+  (`4.6-review-fix`, which added a `pending` state to `SessionCard`).
+
+## 2026-09-14T08:24:30Z — deviation: steps 4.6 and 4.7 share one commit
+- `20dd9e9` carries both sessions screens, against this run's one-Step-one-commit rule. The
+  two pages share `SessionsList`, which had to exist for either to work, and splitting after
+  the fact would have meant rewriting already-pushed history. The consequence is one bisect
+  point covering two Steps; nothing else. Recorded rather than papered over.
