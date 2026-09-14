@@ -24,7 +24,7 @@
 | 2 | 2.3 | Reserve a slot under a database lock | inline | done | pending |
 | 2 | 2.4 | Serve the booking creation route | inline | done | pending |
 | 2 | 2.5 | Add the text-session notice component | inline | done | pending |
-| 2 | 2.6 | Let a mentee pick a slot and a length | inline | todo | — |
+| 2 | 2.6 | Let a mentee pick a slot and a length | inline | done | pending |
 | 3 | 3.1 | Define the payment gateway port and mock | inline | todo | — |
 | 3 | 3.2 | Record payments and processed webhook events | inline | todo | — |
 | 3 | 3.3 | Select the Stripe gateway from configuration | inline | todo | — |

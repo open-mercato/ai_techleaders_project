@@ -81,6 +81,8 @@ export default defineConfig({
         'packages/app/src/app/invitation/\\[token\\]/page.tsx',
         'packages/app/src/app/invitation/\\[token\\]/invitation-actions.tsx',
         'packages/app/src/app/m/\\[slug\\]/page.tsx',
+        'packages/app/src/app/m/\\[slug\\]/book-session-panel.tsx',
+        'packages/app/src/app/m/\\[slug\\]/booking-slots.ts',
         'packages/app/src/app/mentors/page.tsx',
         'packages/app/src/app/mentors/mentors-directory.tsx',
         'packages/app/src/app/admin/layout.tsx',
