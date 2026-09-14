@@ -47,7 +47,7 @@ function makeEm({
       return { id: `created-${created.length}`, ...data };
     }),
   };
-  return { em: em as unknown as EntityManager, raw: em, created, deleted };
+  return { em: em as unknown as EntityManager, created, deleted };
 }
 
 function createdOf(created: Created[], entity: unknown): Record<string, unknown>[] {

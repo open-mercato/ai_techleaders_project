@@ -70,3 +70,17 @@
   `textSessionService`. "Text session" is the product's own word (R03), so the longer name is
   the product's vocabulary rather than a suffix invented to dodge a clash. The spec was
   updated in the same commit.
+
+## 2026-09-14T09:32Z — checkpoint 2 (Phase 2 / PR 2 closed)
+- Entity + migration, validator, `TextSessionService`, the two routes and the QA seeder
+  landed. Typecheck, lint, 2229 unit tests and the full coverage gate (100% on all four
+  metrics) are green, `npm run build` passes, and the migration applies and reverts against a
+  real PostgreSQL 17.
+- The production build was run against a throwaway database with the seeded fixtures and
+  every below-the-UI acceptance criterion was exercised over HTTP: both parties read and post
+  in the open window, the counterpart name flips per side, a third user holding `operator` is
+  refused 403, an unknown or unconfirmed booking is 404, posting before the start and after
+  the end is 409, a missing CSRF header is 403 and whitespace-only is a field error.
+  Transcript: `checkpoint-2-artifacts/session-api-transcript.md`.
+- `npm run db:seed:sessions` proven idempotent: two runs leave exactly three bookings, three
+  slots and four seeded messages, with no orphaned slot.
