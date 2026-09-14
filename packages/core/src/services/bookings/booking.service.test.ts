@@ -448,6 +448,9 @@ describe('BookingService session lists', () => {
       refundStatus: 'none',
       startsAt: FAR_ENOUGH.toISOString(),
       isPast: false,
+      cancellable: true,
+      // FAR_ENOUGH is three hours out, so cancelling now would forfeit the fee.
+      refundOnCancel: false,
     }]);
     expect(h.em.find).toHaveBeenCalledExactlyOnceWith(
       Booking,
@@ -466,6 +469,26 @@ describe('BookingService session lists', () => {
     const sessions = await h.service.listForMentee();
 
     expect(sessions.map((session) => session.isPast)).toEqual([true, false]);
+  });
+
+  it('says whether cancelling right now would refund, so the screen can state it (R09)', async () => {
+    const wellAhead = new Date(NOW.getTime() + 48 * 60 * 60 * 1000);
+    const h = listHarness({ userId: MENTEE_ID, roles: ['mentee'] }, [
+      listed({ startsAt: wellAhead }),
+      listed({ id: 'soon', startsAt: new Date(NOW.getTime() + 60_000) }),
+      listed({ id: 'unpaid', status: 'pending', startsAt: wellAhead }),
+      listed({ id: 'done', startsAt: new Date(NOW.getTime() - 1) }),
+    ]);
+
+    const sessions = await h.service.listForMentee();
+
+    expect(sessions.map((session) => [session.cancellable, session.refundOnCancel])).toEqual([
+      [true, true],
+      [true, false],
+      // An unpaid hold is not cancellable: it releases its own time.
+      [false, false],
+      [false, false],
+    ]);
   });
 
   it('keeps a mentee own unpaid hold visible to them', async () => {

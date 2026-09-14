@@ -24,7 +24,9 @@ function resolves(data: SessionListItemDto[]) {
   });
 }
 
-const { SessionsList, sessionCardState, sessionTitle } = await import('./sessions-list');
+const { SessionsList, refundNote, sessionCardState, sessionTitle } = await import(
+  './sessions-list'
+);
 
 afterEach(cleanup);
 
@@ -38,6 +40,8 @@ const upcoming: SessionListItemDto = {
   refundStatus: 'none',
   startsAt: '2026-09-20T09:00:00.000Z',
   isPast: false,
+  cancellable: true,
+  refundOnCancel: true,
 };
 const past: SessionListItemDto = {
   ...upcoming,
@@ -85,6 +89,22 @@ describe('sessionTitle', () => {
     ['cancelled', 'Text session'],
   ])('names a %s booking %o', (status, expected) => {
     expect(sessionTitle({ ...upcoming, status })).toBe(expected);
+  });
+});
+
+describe('refundNote', () => {
+  it.each([
+    ['refunded', 'Refunded in full'],
+    ['pending', 'Refund in progress'],
+    ['failed', 'Refund needs attention — contact DevMentor'],
+    ['none', 'Cancelled inside 24 hours, so the fee was not refunded'],
+  ])('explains a %s refund on a cancelled session', (refundStatus, expected) => {
+    expect(refundNote({ ...upcoming, status: 'cancelled', refundStatus })).toBe(expected);
+  });
+
+  it.each(['confirmed', 'pending', 'expired'])('says nothing about a %s session', (status) => {
+    // Printing "no refund" on a session nobody cancelled would read like a refusal.
+    expect(refundNote({ ...upcoming, status })).toBeNull();
   });
 });
 
@@ -172,7 +192,9 @@ describe('SessionsList', () => {
   it('renders a caller-supplied banner and per-session actions', () => {
     render(list({
       banner: <p>Your payment was sent.</p>,
-      actionsFor: (session) => <button type="button">Cancel {session.id}</button>,
+      actionsFor: (session: SessionListItemDto) => (
+        <button type="button">Cancel {session.id}</button>
+      ),
     }));
 
     expect(screen.getByText('Your payment was sent.')).toBeTruthy();
@@ -184,5 +206,19 @@ describe('SessionsList', () => {
     render(list());
 
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('shows a cancelled session what happened to its money', () => {
+    resolves([{ ...upcoming, status: 'cancelled', refundStatus: 'refunded' }]);
+    render(list());
+
+    expect(screen.getByText('Refunded in full')).toBeTruthy();
+  });
+
+  it('hands an action the reload, so cancelling can refresh the list', () => {
+    const actionsFor = vi.fn(() => null);
+    render(list({ actionsFor }));
+
+    expect(actionsFor).toHaveBeenCalledWith(upcoming, api.reload);
   });
 });

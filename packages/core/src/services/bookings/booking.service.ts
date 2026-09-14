@@ -112,6 +112,17 @@ export interface SessionListItemDto {
   refundStatus: string;
   startsAt: string;
   isPast: boolean;
+  /** Whether this session can be cancelled at all — paid for, and not yet started. */
+  cancellable: boolean;
+  /**
+   * Whether cancelling it **right now** would refund the fee (D10).
+   *
+   * Computed here rather than in the browser, because R09 requires the confirmation screen
+   * to state the outcome *before* the mentee confirms, and a browser clock is a setting. It
+   * is a snapshot from when the list was read; the server decides again at cancellation and
+   * the response says what actually happened.
+   */
+  refundOnCancel: boolean;
 }
 
 export function toBookingDto(booking: IBooking): BookingDto {
@@ -130,6 +141,8 @@ export function toBookingDto(booking: IBooking): BookingDto {
 }
 
 function toSessionListItem(booking: IBooking, counterpartName: string, now: Date): SessionListItemDto {
+  const isPast = booking.startsAt.getTime() <= now.getTime();
+  const cancellable = booking.status === 'confirmed' && !isPast;
   return {
     id: booking.id,
     counterpartName,
@@ -139,7 +152,11 @@ function toSessionListItem(booking: IBooking, counterpartName: string, now: Date
     status: booking.status,
     refundStatus: booking.refundStatus,
     startsAt: booking.startsAt.toISOString(),
-    isPast: booking.startsAt.getTime() <= now.getTime(),
+    isPast,
+    cancellable,
+    refundOnCancel:
+      cancellable
+      && booking.startsAt.getTime() - now.getTime() >= FREE_CANCELLATION_HOURS * 60 * 60 * 1000,
   };
 }
 

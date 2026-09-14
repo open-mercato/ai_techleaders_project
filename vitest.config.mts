@@ -101,6 +101,8 @@ export default defineConfig({
         'packages/app/src/components/email-auth-form.tsx',
         // The signed-in chrome the three layouts above delegate to, and the two modules
         // it composes: which links a role set may see, and the name in the user block.
+        'packages/app/src/components/cancel-session-action.tsx',
+        'packages/app/src/components/mentee-session-actions.tsx',
         'packages/app/src/components/sessions-list.tsx',
         'packages/app/src/components/unread-notifications.tsx',
         'packages/app/src/components/workspace-shell.tsx',

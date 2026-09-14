@@ -1,3 +1,4 @@
+import { MenteeSessionActions } from '../../../components/mentee-session-actions';
 import { SessionsList } from '../../../components/sessions-list';
 import { UnreadNotifications } from '../../../components/unread-notifications';
 import { requirePageRole } from '../../../lib/session';
@@ -39,6 +40,7 @@ export default async function MenteeHomePage({
         emptyTitle="No sessions yet"
         emptyDescription="Find a mentor, choose a time, and your sessions will be listed here."
         banner={booked === undefined ? undefined : <BookedBanner />}
+        actionsFor={MenteeSessionActions}
       />
     </div>
   );

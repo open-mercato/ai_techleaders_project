@@ -12,8 +12,11 @@ export interface SessionsListProps {
   emptyDescription: string;
   /** Rendered above the list, e.g. the confirmation banner after a checkout. */
   banner?: ReactNode;
-  /** Per-session actions, e.g. cancelling. Given the session so it can decide. */
-  actionsFor?: (session: SessionListItemDto) => ReactNode;
+  /**
+   * Per-session actions, e.g. cancelling. Given the session so it can decide, and a reload
+   * so an action that changes the list can refresh it.
+   */
+  actionsFor?: (session: SessionListItemDto, reload: () => void) => ReactNode;
 }
 
 /**
@@ -45,6 +48,20 @@ export function sessionCardState(
 export function sessionTitle(session: SessionListItemDto): string {
   if (session.status === 'expired') return 'Reservation expired';
   return 'Text session';
+}
+
+/**
+ * What a cancelled session says about its money (R09).
+ *
+ * `null` for everything else: a session nobody cancelled has nothing to say about refunds,
+ * and printing "no refund" on one would read like a refusal.
+ */
+export function refundNote(session: SessionListItemDto): string | null {
+  if (session.status !== 'cancelled') return null;
+  if (session.refundStatus === 'refunded') return 'Refunded in full';
+  if (session.refundStatus === 'pending') return 'Refund in progress';
+  if (session.refundStatus === 'failed') return 'Refund needs attention — contact DevMentor';
+  return 'Cancelled inside 24 hours, so the fee was not refunded';
 }
 
 /**
@@ -102,12 +119,14 @@ export function SessionsList({
           heading="Upcoming"
           sessions={sessions.filter((session) => !session.isPast)}
           timeZone={timeZone}
+          reload={resource.reload}
           actionsFor={actionsFor}
         />
         <Section
           heading="Past"
           sessions={sessions.filter((session) => session.isPast)}
           timeZone={timeZone}
+          reload={resource.reload}
           actionsFor={actionsFor}
         />
       </>}
@@ -118,12 +137,14 @@ function Section({
   heading,
   sessions,
   timeZone,
+  reload,
   actionsFor,
 }: {
   heading: string;
   sessions: SessionListItemDto[];
   timeZone: string;
-  actionsFor?: (session: SessionListItemDto) => ReactNode;
+  reload: () => void;
+  actionsFor?: (session: SessionListItemDto, reload: () => void) => ReactNode;
 }) {
   if (sessions.length === 0) return null;
   const when = new Intl.DateTimeFormat('en-GB', {
@@ -137,16 +158,22 @@ function Section({
 
   return <section className="flex flex-col gap-3">
     <h2 className="text-lg font-semibold tracking-tight">{heading}</h2>
-    {sessions.map((session) => <SessionCard
-      key={session.id}
-      title={sessionTitle(session)}
-      participant={session.counterpartName}
-      startsAt={session.startsAt}
-      dateLabel={when.format(new Date(session.startsAt))}
-      timeZone={timeZone}
-      duration={session.lengthMinutes === 25 ? 25 : 50}
-      state={sessionCardState(session)}
-      actions={actionsFor?.(session)}
-    />)}
+    {sessions.map((session) => {
+      const refund = refundNote(session);
+      return <SessionCard
+        key={session.id}
+        title={sessionTitle(session)}
+        participant={session.counterpartName}
+        startsAt={session.startsAt}
+        dateLabel={when.format(new Date(session.startsAt))}
+        timeZone={timeZone}
+        duration={session.lengthMinutes === 25 ? 25 : 50}
+        state={sessionCardState(session)}
+        actions={<>
+          {refund === null ? null : <p className="dm-product-caption">{refund}</p>}
+          {actionsFor?.(session, reload)}
+        </>}
+      />;
+    })}
   </section>;
 }

@@ -50,7 +50,7 @@
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | done | pending |
 | 5 | 5.3 | Settle a refund from the webhook | inline | done | pending |
 | 5 | 5.4 | Serve the booking cancellation route | inline | done | pending |
-| 5 | 5.5 | Confirm a cancellation and its refund outcome | inline | todo | — |
+| 5 | 5.5 | Confirm a cancellation and its refund outcome | inline | done | pending |
 | 6 | 6.1 | Make the platform fee configurable | inline | todo | — |
 | 6 | 6.2 | Add the fee snapshot, payout and Connect columns | inline | todo | — |
 | 6 | 6.3 | Snapshot the fee split at confirmation | inline | todo | — |
