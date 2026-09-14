@@ -46,6 +46,7 @@ export default defineConfig({
         'packages/app/src/app/api/availability/slots/route.ts',
         'packages/app/src/app/api/bookings/route.ts',
         'packages/app/src/app/api/bookings/\\[id\\]/checkout/route.ts',
+        'packages/app/src/app/api/bookings/\\[id\\]/cancel/route.ts',
         'packages/app/src/app/api/availability/slots/\\[id\\]/route.ts',
         'packages/app/src/app/(mentor)/mentor/slots/page.tsx',
         'packages/app/src/app/(mentor)/mentor/slots/mentor-slots-client.tsx',
