@@ -205,7 +205,7 @@ function selectMailer({ env, logger }: Cradle): Mailer {
  * `STRIPE_SECRET_KEY` now gets the real adapter and a visible 503 at the pay button, which
  * is a bug report; the old behaviour was free sessions, which is a bank statement.
  */
-function selectPaymentGateway({ env, logger }: Cradle): PaymentGateway {
+function selectPaymentGateway({ env, logger, clock }: Cradle): PaymentGateway {
   if (env.PAYMENT_GATEWAY === 'mock' && env.INTEGRATION_TEST_RUN) {
     // Loud, once, on first resolution — the same reason the mock identity adapter and the
     // log mailer are loud.
@@ -233,7 +233,7 @@ function selectPaymentGateway({ env, logger }: Cradle): PaymentGateway {
     return new MockPaymentGateway();
   }
 
-  return new StripePaymentGateway({ env, logger });
+  return new StripePaymentGateway({ env, logger, clock });
 }
 
 async function build(): Promise<AwilixContainer<Cradle>> {
