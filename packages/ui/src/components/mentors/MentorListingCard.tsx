@@ -40,7 +40,7 @@ export function MentorListingCard({
   nextAvailableAt,
   profileHref,
 }: MentorListingCardProps) {
-  return <Card className="dm-product-panel dm-mentor-listing">
+  return <Card className="dm-product-panel">
     <MentorIdentity name={name} headline={headline} initials={initials} />
     <TechnologyChips stacks={stacks} />
     <div className="dm-fact-chips" role="group" aria-label="Session prices">
