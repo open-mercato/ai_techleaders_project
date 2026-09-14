@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { type StackTag } from '@devmentor/core';
-import { Invitation, MentorProfile, MikroORM, Slot, User, entities } from '@devmentor/db';
+import { Booking, Invitation, MentorProfile, MikroORM, Slot, User, entities } from '@devmentor/db';
 
 export interface PublishedMentorFixture {
   profileId: string;
@@ -45,6 +45,10 @@ export async function seedPublishedMentorProfile(
     profile.price25Cents = null;
     profile.price50Cents = null;
     profile.lastPublishedAvailabilityAt = null;
+    // Bookings reference slots with `on delete restrict` — a booking is a money record and
+    // must not vanish with the time it was made for. A fixture that resets a mentor
+    // therefore clears its reservations first, in that order, or the slot delete is refused.
+    await em.nativeDelete(Booking, { mentorProfile: profile.id });
     await em.nativeDelete(Slot, { mentorProfile: profile.id });
     await em.flush();
     return fixture;
@@ -85,6 +89,8 @@ export async function seedMentorProfileMissingStackTags(
     profile.lastPublishedAvailabilityAt = null;
     profile.price25Cents = null;
     profile.price50Cents = null;
+    // Reservations before times, for the reason given in `seedPublishedMentorProfile`.
+    await em.nativeDelete(Booking, { mentorProfile: profile.id });
     await em.nativeDelete(Slot, { mentorProfile: profile.id });
     await em.flush();
     return fixture;
@@ -161,6 +167,9 @@ export async function resetPublishedMentorProfile(databaseUrl: string): Promise<
     const em = orm.em.fork();
     const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
     const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
+    // Reservations first: `bookings_slot_id_foreign` restricts, so deleting a booked slot
+    // is refused. See the note in `seedPublishedMentorProfile`.
+    await em.nativeDelete(Booking, { mentorProfile: profile.id });
     await em.nativeDelete(Slot, { mentorProfile: profile.id });
     profile.slug = null;
     profile.publicWorkUrl = null;

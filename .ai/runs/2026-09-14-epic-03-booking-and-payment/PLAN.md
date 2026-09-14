@@ -26,6 +26,7 @@
 | 2 | 2.5 | Add the text-session notice component | inline | done | pending |
 | 2 | 2.6 | Let a mentee pick a slot and a length | inline | done | pending |
 | 2 | 2.6-review-fix | Defer the viewer timezone switch | inline | done | pending |
+| 2 | 2.1-review-fix | Clear reservations before times in the mentor fixture | inline | done | pending |
 | 3 | 3.1 | Define the payment gateway port and mock | inline | todo | — |
 | 3 | 3.2 | Record payments and processed webhook events | inline | todo | — |
 | 3 | 3.3 | Select the Stripe gateway from configuration | inline | todo | — |
@@ -206,6 +207,11 @@ lines for the files the Step adds or changes.
 - Wire it into `packages/app/src/app/m/[slug]/page.tsx`.
 - Tests: both render paths, disabled reasons, sign-in redirect target, pre-selection,
   submit calling `apiCall`.
+
+**2.1-review-fix Clear reservations before times in the mentor fixture**
+- `bookings_slot_id_foreign` restricts, so the shared integration fixture's
+  `nativeDelete(Slot, …)` is refused once a slot has a booking. All three reset paths in
+  `tests/integration/fixtures/mentor.ts` now clear reservations first.
 
 **2.6-review-fix Defer the viewer timezone switch**
 - `react-hooks/set-state-in-effect` refuses a `setState` called synchronously in an effect
