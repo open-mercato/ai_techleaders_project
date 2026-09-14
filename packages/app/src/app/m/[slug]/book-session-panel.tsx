@@ -74,7 +74,10 @@ export function BookSessionPanel({
   const [held, setHeld] = useState<HeldBooking | null>(null);
 
   useEffect(() => {
-    setTimeZone(new Intl.DateTimeFormat().resolvedOptions().timeZone);
+    const viewerZone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // Deferred rather than set synchronously in the effect body, which React's lint rule
+    // rejects as a cascading render. `LocalTime` defers the same switch the same way.
+    queueMicrotask(() => setTimeZone(viewerZone));
   }, []);
 
   const days = useMemo(() => groupSlotsByDay(slots, timeZone), [slots, timeZone]);

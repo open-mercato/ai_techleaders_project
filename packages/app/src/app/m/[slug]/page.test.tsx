@@ -108,7 +108,7 @@ describe('/m/[slug] page', () => {
   });
 
   it('treats a projection without times or prices as an empty, unbookable offer', async () => {
-    const { slots: _slots, prices: _prices, ...bare } = profile;
+    const bare = { ...profile, slots: undefined, prices: undefined };
     harness.getPublicBySlug.mockResolvedValue(bare);
 
     const props = panelProps(
