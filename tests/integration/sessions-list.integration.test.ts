@@ -1,4 +1,4 @@
-import { MentorProfile, MikroORM, Slot, User, entities } from '@devmentor/db';
+import { MentorProfile, MikroORM, Slot, User } from '@devmentor/db';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { closeAgentBrowser, runAgentBrowser, signInAs, signInCookieHeader } from './agent-browser';
 import { bookAndPay, clearBookingData, withOrm } from './fixtures/booking';

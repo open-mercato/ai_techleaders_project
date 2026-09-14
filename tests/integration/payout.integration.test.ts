@@ -1,4 +1,4 @@
-import { MentorProfile, MikroORM, Payout, entities } from '@devmentor/db';
+import { MentorProfile, MikroORM, Payout } from '@devmentor/db';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { closeAgentBrowser, runAgentBrowser, signInAs, signInCookieHeader } from './agent-browser';
 import { clickNamed } from './browser-actions';
