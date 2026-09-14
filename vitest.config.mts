@@ -200,6 +200,7 @@ export default defineConfig({
         'packages/ui/src/components/operators/MetricSummary.tsx',
         'packages/ui/src/components/payments/PaymentStatus.tsx',
         'packages/ui/src/components/sessions/SessionCard.tsx',
+        'packages/ui/src/components/sessions/SessionIsTextNotice.tsx',
         'packages/ui/src/components/sessions/WrittenAnswer.tsx',
         'packages/ui/src/components/ui/accordion.tsx',
         'packages/ui/src/components/ui/alert-dialog.tsx',
