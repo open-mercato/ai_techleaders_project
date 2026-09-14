@@ -143,3 +143,14 @@
   two pages share `SessionsList`, which had to exist for either to work, and splitting after
   the fact would have meant rewriting already-pushed history. The consequence is one bisect
   point covering two Steps; nothing else. Recorded rather than papered over.
+
+## 2026-09-14T08:38:00Z — checkpoint 6
+- Steps 5.1 through 5.5-review-fix (`3ebdb22..f5f0795`): Phase 5, cancellation (#24),
+  complete.
+- Typecheck, lint and the 100% per-file coverage gate pass; the `booking-cancellation`
+  migration was proved up/down/up with entity-schema parity.
+- Both sides of the 24-hour rule were proved in a real browser against two real paid
+  bookings: full refund outside the window, forfeited fee inside it, and the outcome stated
+  before the mentee confirmed (R09) in both cases.
+- One finding fixed inside the checkpoint (`5.5-review-fix`): the consequence sentence
+  appeared twice on the confirmation dialog.

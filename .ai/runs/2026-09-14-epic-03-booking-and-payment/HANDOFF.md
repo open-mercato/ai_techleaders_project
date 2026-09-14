@@ -1,26 +1,24 @@
 # Handoff — 2026-09-14-epic-03-booking-and-payment
 
-**Last updated:** 2026-09-14T08:24:30Z
+**Last updated:** 2026-09-14T08:38:00Z
 **Branch:** `feat/epic-03-booking-and-payment`
 **PR:** https://github.com/open-mercato/ai_techleaders_project/pull/53 (draft)
-**Current phase/step:** Phase 5 Step 5.1
-**Last commit:** `2a8f1a0` — fix(ui): draw an unpaid hold as waiting, not ended
+**Current phase/step:** Phase 6 Step 6.1
+**Last commit:** `f5f0795` — fix(bookings): say the cancellation consequence once, not twice
 
 ## What just happened
-- Phase 4 (E03-S04 / #23) is complete and verified at checkpoint 5. The whole journey was
-  driven in a real browser: a mentee books and pays, returns to a banner that does not claim
-  confirmation, the webhook confirms, the session appears as upcoming with an unread
-  notification, and the mentor sees it from the other side.
-- Phases 1–3 shipped and were verified at checkpoints 1–4.
-- Everything up to and including "both parties know" now works. What is left is cancelling
-  (Phase 5), the fee split and payouts (Phase 6), and the permanent integration suite plus
-  the records (Phase 7).
+- Phase 5 (E03-S05 / #24) is complete and verified at checkpoint 6. Both sides of the
+  24-hour rule were proved in a real browser against two real paid bookings, with the
+  outcome stated before the mentee confirmed in each case.
+- Phases 1–4 shipped and were verified at checkpoints 1–5.
+- Five of the epic's six stories are done. What is left is the fee split and payouts
+  (Phase 6, #25), then the permanent integration suite and the records (Phase 7).
 
 ## Next concrete action
-- Step 5.1 — add the cancellation columns to `Booking` (`cancelledAt`, `refundStatus`
-  = `none` | `pending` | `refunded` | `failed`, `stripeRefundId`, `refundedAmountCents`),
-  generate the migration with `DB_MIGRATIONS_SNAPSHOT=false` on `db:migrate`, and extend the
-  entity and migration tests.
+- Step 6.1 — add `PLATFORM_FEE_PERCENT` to the zod env schema (default 20, integer 0–100),
+  expose it as `PlatformSettingsService.get().feePercent`, and add a `splitFor(priceCents)`
+  helper returning `{ platformFeeCents, mentorShareCents }` that always sums back to the
+  price.
 
 ## Blockers / open questions
 - None blocking.

@@ -68,8 +68,11 @@ function makeHarness({
     persist: vi.fn(),
     flush: vi.fn(async () => undefined),
   };
+  // Typed parameter so `mock.calls[n][0]` is a `MailMessage` rather than `undefined`; the
+  // body is read by two assertions below.
   const mailer = {
-    send: vi.fn(async (_message: MailMessage) => {
+    send: vi.fn(async (message: MailMessage) => {
+      void message;
       if (sendFails) throw new Error('provider rejected the message');
     }),
   };
