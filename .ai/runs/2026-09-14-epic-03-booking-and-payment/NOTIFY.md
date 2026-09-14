@@ -65,3 +65,23 @@
   unaffected; it installs the dependencies as root.
 - Follow-up owned by Step 7.2: make the CDP endpoint a harness option
   (`AGENT_BROWSER_CDP`) instead of repeating the connect in every scenario.
+
+## 2026-09-14T07:41:00Z — checkpoint 2
+- Steps 2.1 through 2.1-review-fix (`c5fb678..26776ba`): Phase 2, reserving a slot (#21),
+  complete and verified.
+- Typecheck, lint and the 100% per-file coverage gate pass. The bookings migration was
+  proved up/down/up with entity-schema parity. Acceptance criteria 5–8 of #21 proved in a
+  real browser; criterion 9 (the concurrency refusal) is unit-tested and gets its
+  integration proof at Step 7.2.
+- Two findings fixed inside the checkpoint: a React lint refusal on the timezone switch
+  (`2.6-review-fix`), and the shared integration fixture being unable to delete a booked
+  slot now that the FK restricts (`2.1-review-fix`) — the scenario passed and its cleanup
+  was what failed.
+
+## 2026-09-14T07:41:00Z — decision: migrate with the snapshot writer off
+- `npm run db:migrate` with `DB_MIGRATIONS_SNAPSHOT=true` rewrites
+  `migrations/devmentor.json` from database introspection, which reformatted CHECK
+  constraints on `users`, `invitations` and `mentor_profiles` that this run never touched.
+- Only `migration:create` writes that file from here on; `db:migrate` runs with
+  `DB_MIGRATIONS_SNAPSHOT=false`. The committed snapshot diff for the bookings migration is
+  purely additive as a result.

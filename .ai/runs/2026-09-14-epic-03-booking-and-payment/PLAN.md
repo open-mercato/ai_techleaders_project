@@ -19,14 +19,14 @@
 | 1 | 1.3 | Serve the public mentor list route | inline | done | 55335d3 |
 | 1 | 1.4 | Render the public mentor list page | inline | done | f5f12eb |
 | 1 | 1.4-review-fix | Count one mentor as one mentor | inline | done | edc15ed |
-| 2 | 2.1 | Add the Booking entity and migration | inline | done | pending |
-| 2 | 2.2 | Validate the booking request body | inline | done | pending |
-| 2 | 2.3 | Reserve a slot under a database lock | inline | done | pending |
-| 2 | 2.4 | Serve the booking creation route | inline | done | pending |
-| 2 | 2.5 | Add the text-session notice component | inline | done | pending |
-| 2 | 2.6 | Let a mentee pick a slot and a length | inline | done | pending |
-| 2 | 2.6-review-fix | Defer the viewer timezone switch | inline | done | pending |
-| 2 | 2.1-review-fix | Clear reservations before times in the mentor fixture | inline | done | pending |
+| 2 | 2.1 | Add the Booking entity and migration | inline | done | c5fb678 |
+| 2 | 2.2 | Validate the booking request body | inline | done | 950d846 |
+| 2 | 2.3 | Reserve a slot under a database lock | inline | done | c6f1d53 |
+| 2 | 2.4 | Serve the booking creation route | inline | done | a0bab57 |
+| 2 | 2.5 | Add the text-session notice component | inline | done | 15767cf |
+| 2 | 2.6 | Let a mentee pick a slot and a length | inline | done | 5739ee3 |
+| 2 | 2.6-review-fix | Defer the viewer timezone switch | inline | done | 48cbfcd |
+| 2 | 2.1-review-fix | Clear reservations before times in the mentor fixture | inline | done | 26776ba |
 | 3 | 3.1 | Define the payment gateway port and mock | inline | todo | — |
 | 3 | 3.2 | Record payments and processed webhook events | inline | todo | — |
 | 3 | 3.3 | Select the Stripe gateway from configuration | inline | todo | — |
