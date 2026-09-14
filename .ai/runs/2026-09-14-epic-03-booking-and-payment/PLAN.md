@@ -13,7 +13,7 @@
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 1 | 1.1 | Add the mentor listing card component | inline | todo | — |
+| 1 | 1.1 | Add the mentor listing card component | inline | done | 3b54e12 |
 | 1 | 1.2 | List published bookable mentors by tag | inline | todo | — |
 | 1 | 1.3 | Serve the public mentor list route | inline | todo | — |
 | 1 | 1.4 | Render the public mentor list page | inline | todo | — |

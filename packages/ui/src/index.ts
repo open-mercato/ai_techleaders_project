@@ -18,6 +18,7 @@ export * from './components/availability/SlotTime';
 export * from './components/bookings/BookingSummary';
 export * from './components/disputes/DisputeDetail';
 export * from './components/invitations/InvitationBatch';
+export * from './components/mentors/MentorListingCard';
 export * from './components/mentors/MentorProfileCard';
 export * from './components/mentors/MentorProfileEditor';
 export * from './components/mentors/MentorPageView';

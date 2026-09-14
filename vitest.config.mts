@@ -177,6 +177,7 @@ export default defineConfig({
         'packages/ui/src/components/bookings/BookingSummary.tsx',
         'packages/ui/src/components/disputes/DisputeDetail.tsx',
         'packages/ui/src/components/invitations/InvitationBatch.tsx',
+        'packages/ui/src/components/mentors/MentorListingCard.tsx',
         'packages/ui/src/components/mentors/MentorProfileCard.tsx',
         'packages/ui/src/components/mentors/MentorProfileEditor.tsx',
         'packages/ui/src/components/mentors/MentorPageView.tsx',
