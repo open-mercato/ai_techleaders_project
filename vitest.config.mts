@@ -182,6 +182,7 @@ export default defineConfig({
         'packages/db/src/entities/notifications/notification.entity.ts',
         'packages/db/src/entities/notifications/notification-kind.ts',
         'packages/db/src/entities/payments/payout.entity.ts',
+        'packages/db/src/entities/sessions/session-message.entity.ts',
         'packages/db/src/entities/payments/payout-status.ts',
         'packages/db/src/entities/payments/processed-webhook-event.entity.ts',
         'packages/db/src/entities/index.ts',

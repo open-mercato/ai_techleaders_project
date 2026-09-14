@@ -539,7 +539,7 @@
           "keyName": "bookings_active_slot_unique",
           "primary": false,
           "unique": true,
-          "where": "\"status\" in ('pending', 'confirmed')"
+          "where": "status = ANY (ARRAY['pending'::text, 'confirmed'::text])"
         },
         {
           "columnNames": [
@@ -598,8 +598,9 @@
       "checks": [
         {
           "name": "bookings_length_minutes_offered",
-          "expression": "\"length_minutes\" in (25, 50)",
-          "definition": "check (\"length_minutes\" in (25, 50))"
+          "expression": "length_minutes = ANY (ARRAY[25, 50])",
+          "definition": "CHECK ((length_minutes = ANY (ARRAY[25, 50])))",
+          "columnName": "length_minutes"
         },
         {
           "name": "bookings_payment_issue_check",
@@ -609,8 +610,9 @@
         },
         {
           "name": "bookings_price_cents_positive",
-          "expression": "\"price_cents\" > 0",
-          "definition": "check (\"price_cents\" > 0)"
+          "expression": "price_cents > 0",
+          "definition": "CHECK ((price_cents > 0))",
+          "columnName": "price_cents"
         },
         {
           "name": "bookings_refund_status_check",
@@ -837,12 +839,7 @@
           "default": null,
           "comment": null,
           "collation": null,
-          "enumItems": [
-            "TypeScript",
-            "React",
-            "Python",
-            "AI agents"
-          ],
+          "enumItems": [],
           "mappedType": "array"
         },
         "token_hash": {
@@ -890,7 +887,7 @@
           "keyName": "invitations_pending_email_unique",
           "primary": false,
           "unique": true,
-          "where": "\"accepted_at\" is null and \"revoked_at\" is null"
+          "where": "(accepted_at IS NULL) AND (revoked_at IS NULL)"
         },
         {
           "columnNames": [
@@ -916,13 +913,14 @@
       "checks": [
         {
           "name": "invitations_acceptance_complete",
-          "expression": "(\"accepted_at\" is null) = (\"accepted_by_id\" is null)",
-          "definition": "check ((\"accepted_at\" is null) = (\"accepted_by_id\" is null))"
+          "expression": "(accepted_at IS NULL) = (accepted_by_id IS NULL)",
+          "definition": "CHECK (((accepted_at IS NULL) = (accepted_by_id IS NULL)))",
+          "columnName": "accepted_at"
         },
         {
           "name": "invitations_stack_tags_check",
-          "expression": "\"stack_tags\" <@ array['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]",
-          "definition": "check (\"stack_tags\" <@ array['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text])",
+          "expression": "stack_tags <@ ARRAY['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]",
+          "definition": "CHECK ((stack_tags <@ ARRAY['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]))",
           "columnName": "stack_tags"
         }
       ],
@@ -1165,12 +1163,7 @@
           "default": "'{}'",
           "comment": null,
           "collation": null,
-          "enumItems": [
-            "TypeScript",
-            "React",
-            "Python",
-            "AI agents"
-          ],
+          "enumItems": [],
           "mappedType": "array"
         },
         "stripe_connect_account_id": {
@@ -1277,23 +1270,26 @@
       "checks": [
         {
           "name": "mentor_profiles_price_25_positive",
-          "expression": "\"price_25_cents\" > 0",
-          "definition": "check (\"price_25_cents\" > 0)"
+          "expression": "price_25_cents > 0",
+          "definition": "CHECK ((price_25_cents > 0))",
+          "columnName": "price_25_cents"
         },
         {
           "name": "mentor_profiles_price_50_positive",
-          "expression": "\"price_50_cents\" > 0",
-          "definition": "check (\"price_50_cents\" > 0)"
+          "expression": "price_50_cents > 0",
+          "definition": "CHECK ((price_50_cents > 0))",
+          "columnName": "price_50_cents"
         },
         {
           "name": "mentor_profiles_publication_has_slug",
-          "expression": "\"published_at\" is null or \"slug\" is not null",
-          "definition": "check (\"published_at\" is null or \"slug\" is not null)"
+          "expression": "(published_at IS NULL) OR (slug IS NOT NULL)",
+          "definition": "CHECK (((published_at IS NULL) OR (slug IS NOT NULL)))",
+          "columnName": "published_at"
         },
         {
           "name": "mentor_profiles_stack_tags_check",
-          "expression": "\"stack_tags\" <@ array['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]",
-          "definition": "check (\"stack_tags\" <@ array['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text])",
+          "expression": "stack_tags <@ ARRAY['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]",
+          "definition": "CHECK ((stack_tags <@ ARRAY['TypeScript'::text, 'React'::text, 'Python'::text, 'AI agents'::text]))",
           "columnName": "stack_tags"
         }
       ],
@@ -1701,8 +1697,9 @@
       "checks": [
         {
           "name": "payouts_amount_cents_non_negative",
-          "expression": "\"amount_cents\" >= 0",
-          "definition": "check (\"amount_cents\" >= 0)"
+          "expression": "amount_cents >= 0",
+          "definition": "CHECK ((amount_cents >= 0))",
+          "columnName": "amount_cents"
         },
         {
           "name": "payouts_held_reason_check",
@@ -1881,6 +1878,173 @@
       "comment": null
     },
     {
+      "name": "session_messages",
+      "schema": "public",
+      "columns": {
+        "author_id": {
+          "name": "author_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "booking_id": {
+          "name": "booking_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "uuid"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "columnNames": [
+            "booking_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "keyName": "session_messages_booking_created_at_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "session_messages_pkey",
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "session_messages_body_length",
+          "expression": "(length(body) >= 1) AND (length(body) <= 4000)",
+          "definition": "CHECK (((length(body) >= 1) AND (length(body) <= 4000)))",
+          "columnName": "body"
+        }
+      ],
+      "triggers": [],
+      "foreignKeys": {
+        "session_messages_author_id_foreign": {
+          "columnNames": [
+            "author_id"
+          ],
+          "constraintName": "session_messages_author_id_foreign",
+          "localTableName": "public.session_messages",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "restrict"
+        },
+        "session_messages_booking_id_foreign": {
+          "columnNames": [
+            "booking_id"
+          ],
+          "constraintName": "session_messages_booking_id_foreign",
+          "localTableName": "public.session_messages",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.bookings",
+          "deleteRule": "cascade"
+        }
+      },
+      "comment": null
+    },
+    {
       "name": "slots",
       "schema": "public",
       "columns": {
@@ -1998,7 +2162,7 @@
           "keyName": "slots_active_mentor_profile_starts_at_unique",
           "primary": false,
           "unique": true,
-          "where": "\"removed_at\" is null"
+          "where": "removed_at IS NULL"
         },
         {
           "columnNames": [
@@ -2211,11 +2375,7 @@
           "default": "'{mentee}'",
           "comment": null,
           "collation": null,
-          "enumItems": [
-            "mentee",
-            "mentor",
-            "operator"
-          ],
+          "enumItems": [],
           "mappedType": "array"
         },
         "session_version": {
@@ -2288,14 +2448,15 @@
       "checks": [
         {
           "name": "users_roles_check",
-          "expression": "\"roles\" <@ array['mentee'::text, 'mentor'::text, 'operator'::text]",
-          "definition": "check (\"roles\" <@ array['mentee'::text, 'mentor'::text, 'operator'::text])",
+          "expression": "roles <@ ARRAY['mentee'::text, 'mentor'::text, 'operator'::text]",
+          "definition": "CHECK ((roles <@ ARRAY['mentee'::text, 'mentor'::text, 'operator'::text]))",
           "columnName": "roles"
         },
         {
           "name": "users_roles_non_empty",
-          "expression": "cardinality(\"roles\") >= 1",
-          "definition": "check (cardinality(\"roles\") >= 1)"
+          "expression": "cardinality(roles) >= 1",
+          "definition": "CHECK ((cardinality(roles) >= 1))",
+          "columnName": "roles"
         }
       ],
       "triggers": [],
