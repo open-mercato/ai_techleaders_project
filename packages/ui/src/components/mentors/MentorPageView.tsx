@@ -2,6 +2,7 @@ import { ExternalLink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TechnologyIcon } from './TechnologyChips';
 import { SlotTime } from '../availability/SlotTime';
+import { priceLabel } from '../../lib/money';
 
 export interface MentorPageProfile {
   displayName: string;
@@ -10,10 +11,6 @@ export interface MentorPageProfile {
   stackTags: string[];
   slots?: { id: string; startsAt: string; meetsLeadTime: boolean }[];
   prices?: { price25Cents: number; price50Cents: number; currency: string } | null;
-}
-
-function priceLabel(cents: number, currency: string): string {
-  return `${currency} ${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, '0')}`;
 }
 
 export interface MentorPageViewProps {
