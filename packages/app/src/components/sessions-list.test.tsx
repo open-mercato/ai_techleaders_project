@@ -66,9 +66,10 @@ describe('sessionCardState', () => {
     ['a confirmed future session', { status: 'confirmed', isPast: false }, 'upcoming'],
     ['a confirmed session that has started', { status: 'confirmed', isPast: true }, 'ended'],
     ['a cancelled session', { status: 'cancelled', isPast: false }, 'cancelled'],
-    // An unpaid hold is not a session anybody has; drawing it as upcoming would tell a
-    // mentee they have a booking they have not paid for.
-    ['an unpaid hold', { status: 'pending', isPast: false }, 'ended'],
+    // An unpaid hold is not a session anybody has, so not `upcoming` — and it is a future
+    // time, so not `ended` either, which would contradict the section it sits in.
+    ['an unpaid hold', { status: 'pending', isPast: false }, 'pending'],
+    ['a hold whose time has passed', { status: 'pending', isPast: true }, 'ended'],
     ['a lapsed hold', { status: 'expired', isPast: false }, 'ended'],
   ])('draws %s as %s', (_label, overrides, expected) => {
     expect(sessionCardState({ ...upcoming, ...overrides })).toBe(expected);
@@ -77,8 +78,8 @@ describe('sessionCardState', () => {
 
 describe('sessionTitle', () => {
   it.each([
-    ['pending', 'Waiting for payment'],
     ['expired', 'Reservation expired'],
+    ['pending', 'Text session'],
     ['confirmed', 'Text session'],
     ['cancelled', 'Text session'],
   ])('names a %s booking %o', (status, expected) => {

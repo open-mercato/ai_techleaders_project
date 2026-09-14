@@ -17,16 +17,19 @@ export interface SessionsListProps {
 }
 
 /**
- * Map a booking's own state to the three the design system draws.
+ * Map a booking's own state to the one the design system draws.
  *
- * `pending` is deliberately **not** `upcoming`: an unpaid hold is not a session anybody has,
- * and drawing it the same way would tell a mentee they have a booking they have not paid
- * for. It reads as ended, and its title says what it is waiting for.
+ * A `pending` booking is deliberately **not** `upcoming` — an unpaid hold is not a session
+ * anybody has, and drawing it the same way would tell a mentee they have a booking they have
+ * not paid for. It is not `ended` either: it is a future time, and labelling one "Ended"
+ * contradicts the section it sits in. `SessionCard` carries its own `pending` state for
+ * exactly this.
  */
 export function sessionCardState(
   session: SessionListItemDto,
-): 'upcoming' | 'ended' | 'cancelled' {
+): 'upcoming' | 'pending' | 'ended' | 'cancelled' {
   if (session.status === 'cancelled') return 'cancelled';
+  if (session.status === 'pending') return session.isPast ? 'ended' : 'pending';
   if (session.status === 'confirmed' && !session.isPast) return 'upcoming';
   return 'ended';
 }
@@ -36,11 +39,10 @@ export function sessionCardState(
  *
  * Deliberately **not** the length: `SessionCard` already prints
  * "{duration}-minute text session" as its caption, so repeating it here would put the same
- * sentence on the card twice. This slot carries the one thing the caption cannot — whether
- * the booking is a session at all yet.
+ * sentence on the card twice. A lapsed reservation says so, because `expired` has no state
+ * chip of its own and "Ended" alone would read like a session that happened.
  */
 export function sessionTitle(session: SessionListItemDto): string {
-  if (session.status === 'pending') return 'Waiting for payment';
   if (session.status === 'expired') return 'Reservation expired';
   return 'Text session';
 }

@@ -45,6 +45,7 @@
 | 4 | 4.7 | Show a mentor their sessions | inline | done | pending |
 | 4 | 4.8 | Surface unread notifications on each role home | inline | done | pending |
 | 4 | 4.8-review-fix | Read the notification time out | inline | done | pending |
+| 4 | 4.6-review-fix | Draw an unpaid hold as waiting, not ended | inline | done | pending |
 | 5 | 5.1 | Add the cancellation columns | inline | todo | — |
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | todo | — |
 | 5 | 5.3 | Settle a refund from the webhook | inline | todo | — |
@@ -329,6 +330,12 @@ lines for the files the Step adds or changes.
 **4.8 Surface unread notifications on each role home**
 - `NotificationItem` rendered on the mentee home and the mentor home with a mark-as-read
   action. Tests: unread and read states, mark-read call.
+
+**4.6-review-fix Draw an unpaid hold as waiting, not ended**
+- The checkpoint-5 screenshot showed a reserved-but-unpaid session under "Upcoming" with an
+  "Ended" chip, which contradicts itself. `SessionCard` gains a `pending` state
+  ("Waiting for payment", warning tone) — the design system drew sessions before payments
+  existed, and a hold is a state the product now has.
 
 **4.8-review-fix Read the notification time out**
 - The checkpoint-5 screenshot showed a notification stamped `2026-09-14T08:21:15.889Z`. The
