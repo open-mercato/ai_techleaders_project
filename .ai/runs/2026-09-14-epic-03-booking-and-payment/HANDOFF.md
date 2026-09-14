@@ -1,26 +1,24 @@
 # Handoff — 2026-09-14-epic-03-booking-and-payment
 
-**Last updated:** 2026-09-14T07:41:00Z
+**Last updated:** 2026-09-14T07:55:00Z
 **Branch:** `feat/epic-03-booking-and-payment`
 **PR:** https://github.com/open-mercato/ai_techleaders_project/pull/53 (draft)
-**Current phase/step:** Phase 3 Step 3.1
-**Last commit:** `26776ba` — test(bookings): clear reservations before times in the mentor fixture
+**Current phase/step:** Phase 3 Step 3.6
+**Last commit:** `d7d6d33` — feat(payments): confirm a booking exactly once from the webhook
 
 ## What just happened
-- Phase 2 (E03-S02 / #21) is complete and verified at checkpoint 2: the `Booking` entity
-  with its partial unique slot index and migration, the request validator,
-  `BookingService.start` under a locked transaction, `POST /api/bookings`, the
-  text-session notice, and the mentor page's booking panel.
-- Phase 1 (E03-S01 / #20) shipped and was verified at checkpoint 1.
-- A mentee can now reach a `pending` booking. Nothing charges yet — that is Phase 3.
+- Phase 3 is half landed (Steps 3.1–3.5) and verified at checkpoint 3: the `PaymentGateway`
+  port with its mock and Stripe adapters, the payment columns and `ProcessedWebhookEvent`
+  with their migration, `startCheckout`, and the exactly-once `handleWebhookEvent`.
+- Phases 1 and 2 shipped and were verified at checkpoints 1 and 2.
+- A payment can be opened and confirmed from a verified delivery. No route exposes either
+  yet — that is 3.7 and 3.8.
 
 ## Next concrete action
-- Step 3.1 — define `PaymentGateway` in
-  `packages/core/src/services/payments/payment-gateway.port.ts` (`createCheckoutSession`,
-  `parseWebhookEvent`, `refund`; `transfer` arrives at 6.4) and write
-  `adapters/mock-payment-gateway.ts` with in-memory sessions, deterministic ids,
-  `simulateCheckoutCompleted` and a signature scheme good enough to make a bad-signature
-  test real. Export the port from `core`; do not export either adapter.
+- Step 3.6 — `PaymentService.expirePending(now)`: mark every `pending` booking past
+  `expiresAt` as `expired` (clearing `expiresAt`), which releases its slot through the
+  partial unique index, and return the count. Leave live holds and confirmed bookings
+  alone.
 
 ## Blockers / open questions
 - None blocking.

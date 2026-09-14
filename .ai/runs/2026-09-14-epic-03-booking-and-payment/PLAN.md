@@ -27,11 +27,11 @@
 | 2 | 2.6 | Let a mentee pick a slot and a length | inline | done | 5739ee3 |
 | 2 | 2.6-review-fix | Defer the viewer timezone switch | inline | done | 48cbfcd |
 | 2 | 2.1-review-fix | Clear reservations before times in the mentor fixture | inline | done | 26776ba |
-| 3 | 3.1 | Define the payment gateway port and mock | inline | done | pending |
-| 3 | 3.2 | Record payments and processed webhook events | inline | done | pending |
-| 3 | 3.3 | Select the Stripe gateway from configuration | inline | done | pending |
-| 3 | 3.4 | Open a Checkout session for a pending booking | inline | done | pending |
-| 3 | 3.5 | Confirm a booking exactly once from the webhook | inline | done | pending |
+| 3 | 3.1 | Define the payment gateway port and mock | inline | done | 9331e40 |
+| 3 | 3.2 | Record payments and processed webhook events | inline | done | b602b5f |
+| 3 | 3.3 | Select the Stripe gateway from configuration | inline | done | 716550e |
+| 3 | 3.4 | Open a Checkout session for a pending booking | inline | done | a94bee5 |
+| 3 | 3.5 | Confirm a booking exactly once from the webhook | inline | done | d7d6d33 |
 | 3 | 3.6 | Expire a lapsed booking hold | inline | todo | — |
 | 3 | 3.7 | Serve the booking checkout route | inline | todo | — |
 | 3 | 3.8 | Serve the payment webhook route | inline | todo | — |

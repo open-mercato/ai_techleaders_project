@@ -85,3 +85,13 @@
 - Only `migration:create` writes that file from here on; `db:migrate` runs with
   `DB_MIGRATIONS_SNAPSHOT=false`. The committed snapshot diff for the bookings migration is
   purely additive as a result.
+
+## 2026-09-14T07:55:00Z — checkpoint 3
+- Steps 3.1 through 3.5 (`9331e40..d7d6d33`): the payment port, both adapters, the payment
+  columns and their migration, Checkout creation and the exactly-once confirmation.
+- Typecheck, lint and the 100% per-file coverage gate pass; the `payments` migration was
+  proved up/down/up with entity-schema parity.
+- **UI verification skipped, with reason**: no Step in this window touched a page, a
+  component or a route. The checkout UI is Step 3.9 and the webhook route is 3.8.
+- `stripe` was added as a pinned dependency of `@devmentor/core` (^20.4.1). It is imported
+  by exactly one module, `adapters/stripe-payment-gateway.ts`.
