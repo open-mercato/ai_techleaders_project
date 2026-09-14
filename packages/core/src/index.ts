@@ -121,6 +121,10 @@ export {
   type BookingCreateInput,
 } from './validators/bookings/booking-create.schema';
 export {
+  notificationReadSchema,
+  type NotificationReadInput,
+} from './validators/notifications/notification-read.schema';
+export {
   MAX_SLUG_LENGTH,
   RESERVED_SLUGS,
   slugify,
