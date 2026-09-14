@@ -39,7 +39,7 @@ describe('public mentor directory', () => {
     expect(prices.textContent).toContain('50 min: PLN 220.00');
     expect(screen.getByRole('link', { name: 'View Ada Lovelace' }).getAttribute('href'))
       .toBe('/m/ada');
-    expect(screen.getByRole('status').textContent).toBe('1 mentors available');
+    expect(screen.getByRole('status').textContent).toBe('1 mentor available');
   });
 
   it('builds decorative initials from the first two words of a display name', () => {

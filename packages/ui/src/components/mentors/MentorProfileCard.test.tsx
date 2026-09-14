@@ -48,6 +48,9 @@ it('filters by a single stack, clears the selection and preserves caller result 
   fireEvent.click(screen.getByRole('button', { name: 'All stacks' }));
   expect(onStackChange).toHaveBeenLastCalledWith(null);
   expect(screen.getByRole('status').textContent).toBe('2 mentors available');
+  rerender(<MentorDirectory {...props} selectedStack={null} resultCount={1} />);
+  expect(screen.getByRole('status').textContent).toBe('1 mentor available');
+  rerender(<MentorDirectory {...props} selectedStack={null} />);
   expect(screen.getByText('Second published').nextElementSibling?.textContent).toBe('First published');
   rerender(<MentorDirectory {...props} selectedStack="TypeScript" resultCount={0} />);
   expect(screen.getByText('No matching mentors')).toBeTruthy();

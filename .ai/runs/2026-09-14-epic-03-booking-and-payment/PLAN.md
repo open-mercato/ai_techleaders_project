@@ -18,6 +18,7 @@
 | 1 | 1.3 | Serve the public mentor list route | inline | done | pending |
 | 1 | 1.1-review-fix | Drop the undefined listing-card class | inline | done | pending |
 | 1 | 1.4 | Render the public mentor list page | inline | done | pending |
+| 1 | 1.4-review-fix | Count one mentor as one mentor | inline | done | pending |
 | 2 | 2.1 | Add the Booking entity and migration | inline | todo | — |
 | 2 | 2.2 | Validate the booking request body | inline | todo | — |
 | 2 | 2.3 | Reserve a slot under a database lock | inline | todo | — |
@@ -149,6 +150,10 @@ lines for the files the Step adds or changes.
   (`/mentors?tag=React`).
 - Landing page links to it.
 - Tests: page invocation with and without a tag; the landing link.
+
+**1.4-review-fix Count one mentor as one mentor**
+- The checkpoint-1 screenshot of the live page reads "1 mentors available". `MentorDirectory`
+  hard-coded the plural; the count is now singular at one.
 
 ### Phase 2 — Reserving a slot (E03-S02, #21)
 
