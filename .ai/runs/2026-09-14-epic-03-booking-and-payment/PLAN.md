@@ -39,7 +39,7 @@
 | 4 | 4.1 | Add the Notification entity and migration | inline | done | pending |
 | 4 | 4.2 | Tell both parties about a confirmed booking | inline | done | pending |
 | 4 | 4.3 | List a caller's own bookings | inline | done | pending |
-| 4 | 4.4 | Serve the role-scoped bookings list route | inline | todo | — |
+| 4 | 4.4 | Serve the role-scoped bookings list route | inline | done | pending |
 | 4 | 4.5 | Serve the notifications routes | inline | todo | — |
 | 4 | 4.6 | Show a mentee their sessions | inline | todo | — |
 | 4 | 4.7 | Show a mentor their sessions | inline | todo | — |
