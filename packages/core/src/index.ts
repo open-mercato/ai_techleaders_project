@@ -99,6 +99,7 @@ export {
   NOT_PAYABLE_MESSAGE,
   checkoutReturnUrls,
   type StartedCheckout,
+  type WebhookOutcome,
 } from './services/payments/payment.service';
 export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {

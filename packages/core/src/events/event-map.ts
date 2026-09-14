@@ -40,6 +40,21 @@ export interface EventMap {
     slotId: string;
     startsAt: string;
   };
+  /**
+   * A payment was verified and its booking became real.
+   *
+   * **Emitted only from the payment webhook**, after the confirming transaction commits —
+   * never from the browser's return to `success_url`, which proves nothing. E03-S04's
+   * notification service is its subscriber, and nothing subscribes to a pending or expired
+   * booking, so an unconfirmed reservation notifies nobody.
+   */
+  'bookings.booking.confirmed': {
+    bookingId: string;
+    menteeId: string;
+    mentorProfileId: string;
+    startsAt: string;
+    lengthMinutes: number;
+  };
 }
 
 export type EventId = keyof EventMap;

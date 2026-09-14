@@ -340,6 +340,15 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     },
   );
   container.cradle.eventBus.on(
+    'bookings.booking.confirmed',
+    ({ bookingId, menteeId, mentorProfileId, startsAt, lengthMinutes }) => {
+      container.cradle.logger.info(
+        { bookingId, menteeId, mentorProfileId, startsAt, lengthMinutes },
+        'bookings.booking.confirmed',
+      );
+    },
+  );
+  container.cradle.eventBus.on(
     'availability.slot.published',
     ({ mentorProfileId, slotId, startsAt }) => {
       container.cradle.logger.info(

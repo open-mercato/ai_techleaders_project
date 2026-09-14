@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Booking, type EntityManager, type IBooking } from '@devmentor/db';
+import {
+  Booking,
+  UniqueConstraintViolationException,
+  type EntityManager,
+  type IBooking,
+} from '@devmentor/db';
 import type { AppEnv } from '../../config/env';
 import type { Session } from '../../http/auth';
 import {
@@ -18,6 +23,7 @@ import {
 
 const NOW = new Date('2026-09-14T12:00:00.000Z');
 const MENTEE_ID = '10000000-0000-4000-8000-000000000001';
+const PROFILE_ID = '30000000-0000-4000-8000-000000000001';
 const BOOKING_ID = '50000000-0000-4000-8000-000000000001';
 const APP_URL = 'https://devmentor.test';
 
@@ -25,7 +31,7 @@ function booking(overrides: Partial<IBooking> = {}): IBooking {
   return {
     id: BOOKING_ID,
     mentee: { id: MENTEE_ID },
-    mentorProfile: { slug: 'mock-mentor', user: { displayName: 'Mock Mentor' } },
+    mentorProfile: { id: PROFILE_ID, slug: 'mock-mentor', user: { displayName: 'Mock Mentor' } },
     lengthMinutes: 25,
     priceCents: 12_000,
     currency: 'PLN',
@@ -33,6 +39,11 @@ function booking(overrides: Partial<IBooking> = {}): IBooking {
     startsAt: new Date('2026-09-14T15:00:00.000Z'),
     expiresAt: new Date('2026-09-14T12:30:00.000Z'),
     stripeCheckoutSessionId: null,
+    stripePaymentIntentId: null,
+    paidAt: null,
+    bookedAt: null,
+    amountPaidCents: null,
+    paymentIssue: null,
     ...overrides,
   } as unknown as IBooking;
 }
@@ -50,14 +61,23 @@ function makeHarness({
     findOne: vi.fn(async () => stored),
     flush: vi.fn(async () => undefined),
   };
+  const eventBus = { emit: vi.fn(async () => undefined) };
   const service = new PaymentService({
     em: em as unknown as EntityManager,
     clock: { now: () => NOW },
     env: { APP_URL } as AppEnv,
+    eventBus: eventBus as never,
     paymentGateway: gateway,
     session: session instanceof Promise ? session : Promise.resolve(session),
   });
-  return { service, em, gateway, stored };
+  return { service, em, eventBus, gateway, stored };
+}
+
+function uniqueViolation(constraint?: string): UniqueConstraintViolationException {
+  const error = Object.create(UniqueConstraintViolationException.prototype) as
+    UniqueConstraintViolationException & { constraint?: string };
+  if (constraint !== undefined) error.constraint = constraint;
+  return error;
 }
 
 beforeEach(() => vi.clearAllMocks());
@@ -197,5 +217,185 @@ describe('PaymentService.startCheckout', () => {
     expect(h.stored?.status).toBe('pending');
     expect(h.stored?.stripeCheckoutSessionId).toBeNull();
     expect(h.em.flush).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaymentService.handleWebhookEvent', () => {
+  const completed = {
+    id: 'evt_1',
+    type: 'checkout.session.completed',
+    checkoutSessionId: 'cs_mock_000001',
+    paymentIntentId: 'pi_1',
+    amountTotalCents: 12_000,
+    currency: 'PLN',
+  } as const;
+
+  function webhookHarness({
+    stored = booking({ stripeCheckoutSessionId: 'cs_mock_000001' }),
+    onFlush,
+  }: { stored?: IBooking | null; onFlush?: () => void } = {}) {
+    const recorded: Record<string, unknown>[] = [];
+    const tx = {
+      create: vi.fn((_entity: unknown, data: Record<string, unknown>) => {
+        recorded.push(data);
+        return data;
+      }),
+      persist: vi.fn(),
+      flush: vi.fn(async () => onFlush?.()),
+      findOne: vi.fn(async () => stored),
+    };
+    const em = {
+      transactional: vi.fn(async (run: (inner: typeof tx) => unknown) => run(tx)),
+    };
+    const eventBus = { emit: vi.fn(async () => undefined) };
+    const service = new PaymentService({
+      em: em as unknown as EntityManager,
+      clock: { now: () => NOW },
+      env: { APP_URL } as AppEnv,
+      eventBus: eventBus as never,
+      paymentGateway: new MockPaymentGateway(),
+      session: Promise.resolve(null),
+    });
+    return { service, tx, eventBus, stored, recorded };
+  }
+
+  it('confirms the booking, stamps booking-to-start, and releases the hold', async () => {
+    const h = webhookHarness();
+
+    await expect(h.service.handleWebhookEvent(completed)).resolves.toBe('confirmed');
+
+    expect(h.stored).toMatchObject({
+      status: 'confirmed',
+      bookedAt: NOW,
+      paidAt: NOW,
+      amountPaidCents: 12_000,
+      stripePaymentIntentId: 'pi_1',
+      paymentIssue: null,
+      // The hold is over: the slot is held by a confirmed booking now, not by a timer.
+      expiresAt: null,
+    });
+  });
+
+  it('records the delivery before it acts on it', async () => {
+    const h = webhookHarness();
+
+    await h.service.handleWebhookEvent(completed);
+
+    expect(h.recorded[0]).toEqual({
+      eventId: 'evt_1',
+      type: 'checkout.session.completed',
+      receivedAt: NOW,
+    });
+    // Recorded first, booking looked up second.
+    expect(h.tx.create.mock.invocationCallOrder[0]!)
+      .toBeLessThan(h.tx.findOne.mock.invocationCallOrder[0]!);
+  });
+
+  it('announces the confirmation after the transaction, never inside it', async () => {
+    const h = webhookHarness();
+
+    await h.service.handleWebhookEvent(completed);
+
+    expect(h.eventBus.emit).toHaveBeenCalledExactlyOnceWith('bookings.booking.confirmed', {
+      bookingId: BOOKING_ID,
+      menteeId: MENTEE_ID,
+      mentorProfileId: PROFILE_ID,
+      startsAt: '2026-09-14T15:00:00.000Z',
+      lengthMinutes: 25,
+    });
+    // A subscriber that sent mail inside the transaction would announce a booking a
+    // rollback then erased.
+    expect(h.tx.flush.mock.invocationCallOrder.at(-1)!)
+      .toBeLessThan(h.eventBus.emit.mock.invocationCallOrder[0]!);
+  });
+
+  it('treats a redelivered event as a no-op and announces nothing', async () => {
+    const h = webhookHarness({
+      onFlush: () => {
+        throw uniqueViolation('processed_webhook_events_event_id_unique');
+      },
+    });
+
+    await expect(h.service.handleWebhookEvent(completed)).resolves.toBe('duplicate');
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it('lets an unrelated unique violation surface rather than reporting a redelivery', async () => {
+    const h = webhookHarness({
+      onFlush: () => {
+        throw uniqueViolation('some_other_unique');
+      },
+    });
+
+    await expect(h.service.handleWebhookEvent(completed)).rejects
+      .toThrow(UniqueConstraintViolationException);
+  });
+
+  it('lets a unique violation with no constraint name surface unchanged', async () => {
+    const h = webhookHarness({ onFlush: () => { throw uniqueViolation(); } });
+
+    await expect(h.service.handleWebhookEvent(completed)).rejects
+      .toThrow(UniqueConstraintViolationException);
+  });
+
+  it('lets an ordinary database failure surface rather than reporting a redelivery', async () => {
+    const h = webhookHarness({ onFlush: () => { throw new Error('connection reset'); } });
+
+    await expect(h.service.handleWebhookEvent(completed)).rejects.toThrow('connection reset');
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it('refuses an amount that is not the mentor price, and flags it (R08)', async () => {
+    const h = webhookHarness();
+
+    await expect(
+      h.service.handleWebhookEvent({ ...completed, amountTotalCents: 1 }),
+    ).resolves.toBe('amount_mismatch');
+
+    expect(h.stored).toMatchObject({
+      status: 'pending',
+      paymentIssue: 'amount_mismatch',
+      amountPaidCents: 1,
+      stripePaymentIntentId: 'pi_1',
+      bookedAt: null,
+    });
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it('answers a session no booking claims without changing anything', async () => {
+    const h = webhookHarness({ stored: null });
+
+    await expect(h.service.handleWebhookEvent(completed)).resolves.toBe('unknown_booking');
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it('confirms once when the same payment arrives after the booking is already confirmed', async () => {
+    const h = webhookHarness({ stored: booking({ status: 'confirmed' }) });
+
+    await expect(h.service.handleWebhookEvent(completed)).resolves.toBe('already_confirmed');
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it.each(['cancelled', 'expired'] as const)(
+    'does not resurrect a %s booking from a late payment',
+    async (status) => {
+      const h = webhookHarness({ stored: booking({ status }) });
+
+      await expect(h.service.handleWebhookEvent(completed)).resolves.toBe('not_pending');
+      expect(h.stored?.status).toBe(status);
+    },
+  );
+
+  it('acknowledges an event type the product does not act on, keeping the record', async () => {
+    const h = webhookHarness();
+
+    await expect(
+      h.service.handleWebhookEvent({ id: 'evt_9', type: 'unhandled', rawType: 'invoice.paid' }),
+    ).resolves.toBe('ignored');
+
+    // Recorded under the provider's own type, so "received and ignored" stays tellable
+    // from "never received".
+    expect(h.recorded[0]).toMatchObject({ eventId: 'evt_9', type: 'invoice.paid' });
+    expect(h.tx.findOne).not.toHaveBeenCalled();
   });
 });
