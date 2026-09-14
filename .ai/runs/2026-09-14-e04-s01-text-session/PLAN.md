@@ -32,8 +32,8 @@
 | 3 Session screen | 3.1 | `useApiResource` gains a non-flashing `pollMs` | inline | done | 71be908 |
 | 3 Session screen | 3.2 | `session-screen.tsx` — DS composition, read-only | inline | done | 7bc0ce5 |
 | 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard + layout | inline | done | e4aa644 |
-| 3 Session screen | 3.4 | "Open session" entry point in both sessions lists | inline | done | — |
-| 3 Session screen | 3.4-fix | Poll by a render-derived predicate, not `setState` in an effect | inline | done | — |
+| 3 Session screen | 3.4 | "Open session" entry point in both sessions lists (carries the poll-predicate and lint fixes) | inline | done | efd449f |
+| 3 Session screen | 3.5 | Draw a live session as in progress, not as ended under Past | inline | done | — |
 | 4 Composer | 4.1 | Wire the composer to `POST`, with delivery states | inline | todo | — |
 | 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | todo | — |
 | 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | todo | — |
@@ -133,8 +133,15 @@ and a **closed** composer in every state (posting arrives in Phase 4).
 **3.3** `/sessions/[bookingId]/page.tsx` — `requirePageSession` (no role: both parties use
 it), `force-dynamic`, both branches tested, added to `coverage.include`.
 
-**3.4** An "Open session" action on both sessions lists, shown only for a confirmed session
-whose window has started, so a mentee and a mentor can actually reach the screen.
+**3.4** An "Open text session" action on both sessions lists, for every confirmed booking, so
+a mentee and a mentor can actually reach the screen. Shown whatever the window: the screen
+itself says when a session starts.
+
+**3.5** *(added mid-flight, found by the checkpoint-3 screenshots.)* `SessionListItemDto`
+gains `isOpen`, computed by the same `sessionWindow` the session screen uses, and both lists
+draw a session inside its window as **In progress** in a "Now and upcoming" section. Before
+this, a session in its 25th minute was drawn "Ended" under *Past* — the one place its party
+looks for it — and `SessionCard`'s own `open` state had no way to be reached at all.
 
 ### Phase 4 — Posting (PR 4)
 

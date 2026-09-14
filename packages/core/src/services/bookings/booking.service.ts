@@ -28,6 +28,7 @@ import {
   type PlatformSettingsService,
 } from '../operator/platform-settings.service';
 import { mentorOfferReady } from '../mentors/readiness';
+import { sessionWindow } from '../sessions/text-session.service';
 
 const ACTIVE_SLOT_CONSTRAINT = 'bookings_active_slot_unique';
 
@@ -112,6 +113,19 @@ export interface SessionListItemDto {
   refundStatus: string;
   startsAt: string;
   isPast: boolean;
+  /**
+   * Whether the booked window is open **right now** (#26).
+   *
+   * Separate from `isPast`, which only says the start has passed: a session in its 25th
+   * minute is both past its start and very much happening. Without this the two lists drew a
+   * live session as "Ended" under *Past* — the one place a party looks for the session they
+   * are in — and `SessionCard`'s own `open` state had no way to be reached at all.
+   *
+   * Computed from the server's clock by the same `sessionWindow` the session screen and its
+   * route use, so a list and the screen it links to cannot disagree about whether a session
+   * is open.
+   */
+  isOpen: boolean;
   /** Whether this session can be cancelled at all — paid for, and not yet started. */
   cancellable: boolean;
   /**
@@ -153,6 +167,7 @@ function toSessionListItem(booking: IBooking, counterpartName: string, now: Date
     refundStatus: booking.refundStatus,
     startsAt: booking.startsAt.toISOString(),
     isPast,
+    isOpen: booking.status === 'confirmed' && sessionWindow(booking, now).state === 'open',
     cancellable,
     refundOnCancel:
       cancellable

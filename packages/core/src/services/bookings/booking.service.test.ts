@@ -449,6 +449,7 @@ describe('BookingService session lists', () => {
       refundStatus: 'none',
       startsAt: FAR_ENOUGH.toISOString(),
       isPast: false,
+      isOpen: false,
       cancellable: true,
       // FAR_ENOUGH is three hours out, so cancelling now would forfeit the fee.
       refundOnCancel: false,
@@ -470,6 +471,28 @@ describe('BookingService session lists', () => {
     const sessions = await h.service.listForMentee();
 
     expect(sessions.map((session) => session.isPast)).toEqual([true, false]);
+  });
+
+  it('says which session is open right now, so a live one is not drawn as ended (#26)', async () => {
+    const h = listHarness({ userId: MENTEE_ID, roles: ['mentee'] }, [
+      // Started 10 minutes ago, 25 minutes long: open.
+      listed({ id: 'live', startsAt: new Date(NOW.getTime() - 10 * 60_000) }),
+      // Started 30 minutes ago, 25 minutes long: over.
+      listed({ id: 'over', startsAt: new Date(NOW.getTime() - 30 * 60_000) }),
+      // Not yet started.
+      listed({ id: 'later', startsAt: FAR_ENOUGH }),
+      // An unpaid hold inside what would be its window is not a session anybody has.
+      listed({ id: 'unpaid', status: 'pending', startsAt: new Date(NOW.getTime() - 60_000) }),
+    ]);
+
+    const sessions = await h.service.listForMentee();
+
+    expect(sessions.map((session) => [session.id, session.isPast, session.isOpen])).toEqual([
+      ['live', true, true],
+      ['over', true, false],
+      ['later', false, false],
+      ['unpaid', true, false],
+    ]);
   });
 
   it('says whether cancelling right now would refund, so the screen can state it (R09)', async () => {

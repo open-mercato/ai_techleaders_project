@@ -40,6 +40,7 @@ const upcoming: SessionListItemDto = {
   refundStatus: 'none',
   startsAt: '2026-09-20T09:00:00.000Z',
   isPast: false,
+  isOpen: false,
   cancellable: true,
   refundOnCancel: true,
 };
@@ -120,7 +121,7 @@ describe('SessionsList', () => {
   it('splits upcoming from past on the server answer, not the browser clock', () => {
     render(list());
 
-    expect(screen.getByRole('heading', { name: 'Upcoming' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Now and upcoming' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Past' })).toBeTruthy();
     expect(screen.getAllByText('Mock Mentor', { exact: false })).toHaveLength(2);
     // The length lives in the card's own caption; the title does not repeat it.
@@ -133,7 +134,7 @@ describe('SessionsList', () => {
     resolves([upcoming]);
     render(list());
 
-    expect(screen.getByRole('heading', { name: 'Upcoming' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Now and upcoming' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Past' })).toBeNull();
   });
 
@@ -220,5 +221,24 @@ describe('SessionsList', () => {
     render(list({ actionsFor }));
 
     expect(actionsFor).toHaveBeenCalledWith(upcoming, api.reload);
+  });
+});
+
+describe('a session that is open right now (#26)', () => {
+  const live = { ...upcoming, id: 'b-live', isPast: true, isOpen: true, cancellable: false };
+
+  it('is drawn as in progress rather than ended', () => {
+    expect(sessionCardState(live)).toBe('open');
+    // The distinction is `isOpen`, not `isPast`: a session in its 25th minute is both.
+    expect(sessionCardState({ ...live, isOpen: false })).toBe('ended');
+  });
+
+  it('sits in the first section, where its party looks for it', () => {
+    resolves([live]);
+    render(list());
+
+    expect(screen.getByRole('heading', { name: 'Now and upcoming' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Past' })).toBeNull();
+    expect(screen.getByText('In progress')).toBeTruthy();
   });
 });

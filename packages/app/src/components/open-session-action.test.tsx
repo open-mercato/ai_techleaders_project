@@ -17,6 +17,7 @@ const session: SessionListItemDto = {
   refundStatus: 'none',
   startsAt: '2026-09-20T09:00:00.000Z',
   isPast: false,
+  isOpen: false,
   cancellable: true,
   refundOnCancel: true,
 };

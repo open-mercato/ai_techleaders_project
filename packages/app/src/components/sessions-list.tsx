@@ -27,12 +27,19 @@ export interface SessionsListProps {
  * not paid for. It is not `ended` either: it is a future time, and labelling one "Ended"
  * contradicts the section it sits in. `SessionCard` carries its own `pending` state for
  * exactly this.
+ *
+ * **A session inside its booked window is `open`** (#26), which is what `SessionCard`'s
+ * "In progress" chip has always been for. Before the session screen existed nothing could
+ * produce that state, so a session in its 25th minute was drawn "Ended" — under *Past* — in
+ * the one place its party looks for it. `isOpen` is the server's answer, from the same
+ * `sessionWindow` the session screen uses.
  */
 export function sessionCardState(
   session: SessionListItemDto,
-): 'upcoming' | 'pending' | 'ended' | 'cancelled' {
+): 'upcoming' | 'pending' | 'open' | 'ended' | 'cancelled' {
   if (session.status === 'cancelled') return 'cancelled';
   if (session.status === 'pending') return session.isPast ? 'ended' : 'pending';
+  if (session.status === 'confirmed' && session.isOpen) return 'open';
   if (session.status === 'confirmed' && !session.isPast) return 'upcoming';
   return 'ended';
 }
@@ -86,8 +93,10 @@ export function useViewerTimeZone(): string {
  * route decides which list to return from the session, so `as` only chooses the query
  * string, never who the sessions belong to.
  *
- * **Past and upcoming are split on the server's answer** (`isPast`), not on the browser's
- * clock, which is a setting.
+ * **Past and upcoming are split on the server's answer** (`isPast` and `isOpen`), not on the
+ * browser's clock, which is a setting. A session that is open right now belongs in the first
+ * section however long ago it started — hence "Now and upcoming" rather than "Upcoming",
+ * which a live session would have contradicted.
  */
 export function SessionsList({
   as,
@@ -116,15 +125,15 @@ export function SessionsList({
       ? <EmptyState title={emptyTitle} description={emptyDescription} />
       : <>
         <Section
-          heading="Upcoming"
-          sessions={sessions.filter((session) => !session.isPast)}
+          heading="Now and upcoming"
+          sessions={sessions.filter((session) => session.isOpen || !session.isPast)}
           timeZone={timeZone}
           reload={resource.reload}
           actionsFor={actionsFor}
         />
         <Section
           heading="Past"
-          sessions={sessions.filter((session) => session.isPast)}
+          sessions={sessions.filter((session) => session.isPast && !session.isOpen)}
           timeZone={timeZone}
           reload={resource.reload}
           actionsFor={actionsFor}

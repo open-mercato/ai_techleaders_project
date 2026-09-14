@@ -84,3 +84,16 @@
   Transcript: `checkpoint-2-artifacts/session-api-transcript.md`.
 - `npm run db:seed:sessions` proven idempotent: two runs leave exactly three bookings, three
   slots and four seeded messages, with no orphaned slot.
+
+## 2026-09-14T09:50Z — decision: a live session is no longer drawn as "Ended" (Step 3.5 added)
+- The checkpoint-3 browser walkthrough showed the mentee's own home listing a session that was
+  **open right now** under *Past* with an "Ended" chip: E03's list splits on `isPast`
+  (`startsAt <= now`) and has no notion of a window, and `sessionCardState` could return
+  `open` for nothing — `SessionCard`'s "In progress" chip was unreachable by any screen.
+- Fixed inside this story rather than deferred, because it defeats the acceptance criterion
+  this story exists for: a party in a live session must be able to find it. `SessionListItemDto`
+  gains `isOpen`, computed by the same `sessionWindow` the session screen and its route use, so
+  a list and the screen it links to cannot disagree. The first section is now "Now and
+  upcoming", which a live session no longer contradicts.
+- This touches two E03 files (`booking.service.ts`, `sessions-list.tsx`) beyond the action
+  slots the plan reserved. Recorded here as a deliberate widening, with its reason.
