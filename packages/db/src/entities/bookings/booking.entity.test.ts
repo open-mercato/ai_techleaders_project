@@ -2,7 +2,12 @@ import type { EntityProperty } from '@mikro-orm/core';
 import { describe, expect, it } from 'vitest';
 import { entities } from '../index';
 import { Booking } from './booking.entity';
-import { ACTIVE_BOOKING_STATUSES, BOOKING_STATUSES, PAYMENT_ISSUES } from './booking-status';
+import {
+  ACTIVE_BOOKING_STATUSES,
+  BOOKING_STATUSES,
+  PAYMENT_ISSUES,
+  REFUND_STATUSES,
+} from './booking-status';
 
 function typeName(property: EntityProperty): string {
   const { type } = property as unknown as { type: string | { name: string } };
@@ -27,6 +32,7 @@ describe('Booking entity', () => {
     expect(Object.keys(properties).sort()).toEqual([
       'amountPaidCents',
       'bookedAt',
+      'cancelledAt',
       'createdAt',
       'currency',
       'expiresAt',
@@ -37,11 +43,14 @@ describe('Booking entity', () => {
       'paidAt',
       'paymentIssue',
       'priceCents',
+      'refundStatus',
+      'refundedAmountCents',
       'slot',
       'startsAt',
       'status',
       'stripeCheckoutSessionId',
       'stripePaymentIntentId',
+      'stripeRefundId',
       'updatedAt',
     ]);
   });
@@ -113,6 +122,14 @@ describe('Booking entity', () => {
       expect(properties[field]!.nullable).toBe(true);
     }
     expect(properties.paymentIssue!.items).toEqual([...PAYMENT_ISSUES]);
+  });
+
+  it('starts with no refund, which is also a cancellation inside the window (D10)', () => {
+    expect(properties.refundStatus!.default).toBe('none');
+    expect(properties.refundStatus!.items).toEqual([...REFUND_STATUSES]);
+    expect(properties.cancelledAt!.nullable).toBe(true);
+    expect(properties.stripeRefundId!.nullable).toBe(true);
+    expect(properties.refundedAmountCents!.nullable).toBe(true);
   });
 
   it('refuses an unoffered length and a non-positive price in the database', () => {

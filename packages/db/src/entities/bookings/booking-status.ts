@@ -35,3 +35,15 @@ export type ActiveBookingStatus = (typeof ACTIVE_BOOKING_STATUSES)[number];
 export const PAYMENT_ISSUES = ['amount_mismatch'] as const;
 
 export type PaymentIssue = (typeof PAYMENT_ISSUES)[number];
+
+/**
+ * Where a cancelled booking's money got to.
+ *
+ * `none` is the normal state and also the **deliberate** one for a cancellation inside the
+ * 24-hour window: D10 forfeits the fee, so "no refund" is an outcome the product chose, not
+ * a refund that failed. `failed` is the one that needs a person — it means the refund was
+ * owed, attempted, and did not settle.
+ */
+export const REFUND_STATUSES = ['none', 'pending', 'refunded', 'failed'] as const;
+
+export type RefundStatus = (typeof REFUND_STATUSES)[number];

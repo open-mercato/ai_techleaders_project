@@ -4,7 +4,12 @@ import { defineSingletonEntity } from '../define';
 import { Slot } from '../availability/slot.entity';
 import { User } from '../auth/user.entity';
 import { MentorProfile } from '../mentors/mentor-profile.entity';
-import { ACTIVE_BOOKING_STATUSES, BOOKING_STATUSES, PAYMENT_ISSUES } from './booking-status';
+import {
+  ACTIVE_BOOKING_STATUSES,
+  BOOKING_STATUSES,
+  PAYMENT_ISSUES,
+  REFUND_STATUSES,
+} from './booking-status';
 
 const p = defineEntity.properties;
 
@@ -65,6 +70,11 @@ export const Booking = defineSingletonEntity('Booking', () =>
       amountPaidCents: p.integer().nullable(),
       /** Set instead of confirming when the payment cannot be accepted as it stands. */
       paymentIssue: p.enum(PAYMENT_ISSUES).nullable(),
+      /** When the mentee cancelled, and where the money got to (D10, R09). */
+      cancelledAt: p.datetime().nullable(),
+      refundStatus: p.enum(REFUND_STATUSES).default('none'),
+      stripeRefundId: p.string().length(120).nullable(),
+      refundedAmountCents: p.integer().nullable(),
     },
     uniques: [
       {

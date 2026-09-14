@@ -182,6 +182,7 @@ export default defineConfig({
         'packages/db/migrations/Migration20260914072347_bookings.ts',
         'packages/db/migrations/Migration20260914074449_payments.ts',
         'packages/db/migrations/Migration20260914080328_notifications.ts',
+        'packages/db/migrations/Migration20260914082606_booking_cancellation.ts',
         'packages/db/src/seeders/database.seeder.ts',
         'packages/db/src/seeders/seed-password.ts',
         'packages/ui/src/backend/actions/WorkflowAction.tsx',

@@ -125,6 +125,23 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz(6)",
@@ -297,6 +314,45 @@
           "enumItems": [],
           "mappedType": "integer"
         },
+        "refund_status": {
+          "name": "refund_status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'none'",
+          "comment": null,
+          "collation": null,
+          "enumItems": [
+            "none",
+            "pending",
+            "refunded",
+            "failed"
+          ],
+          "mappedType": "enum"
+        },
+        "refunded_amount_cents": {
+          "name": "refunded_amount_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
         "slot_id": {
           "name": "slot_id",
           "type": "uuid",
@@ -372,6 +428,23 @@
         },
         "stripe_payment_intent_id": {
           "name": "stripe_payment_intent_id",
+          "type": "varchar(120)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 120,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "stripe_refund_id": {
+          "name": "stripe_refund_id",
           "type": "varchar(120)",
           "unsigned": false,
           "autoincrement": false,
@@ -487,6 +560,12 @@
           "name": "bookings_price_cents_positive",
           "expression": "\"price_cents\" > 0",
           "definition": "check (\"price_cents\" > 0)"
+        },
+        {
+          "name": "bookings_refund_status_check",
+          "expression": "\"refund_status\" in ('none', 'pending', 'refunded', 'failed')",
+          "definition": "check (\"refund_status\" in ('none', 'pending', 'refunded', 'failed'))",
+          "columnName": "refund_status"
         },
         {
           "name": "bookings_status_check",

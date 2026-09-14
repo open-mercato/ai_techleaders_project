@@ -46,7 +46,7 @@
 | 4 | 4.8 | Surface unread notifications on each role home | inline | done | 999a37a |
 | 4 | 4.8-review-fix | Read the notification time out | inline | done | 62b0e38 |
 | 4 | 4.6-review-fix | Draw an unpaid hold as waiting, not ended | inline | done | 2a8f1a0 |
-| 5 | 5.1 | Add the cancellation columns | inline | todo | — |
+| 5 | 5.1 | Add the cancellation columns | inline | done | pending |
 | 5 | 5.2 | Cancel a booking and refund inside the window | inline | todo | — |
 | 5 | 5.3 | Settle a refund from the webhook | inline | todo | — |
 | 5 | 5.4 | Serve the booking cancellation route | inline | todo | — |
