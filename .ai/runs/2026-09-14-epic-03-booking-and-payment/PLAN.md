@@ -22,7 +22,7 @@
 | 2 | 2.1 | Add the Booking entity and migration | inline | done | pending |
 | 2 | 2.2 | Validate the booking request body | inline | done | pending |
 | 2 | 2.3 | Reserve a slot under a database lock | inline | done | pending |
-| 2 | 2.4 | Serve the booking creation route | inline | todo | — |
+| 2 | 2.4 | Serve the booking creation route | inline | done | pending |
 | 2 | 2.5 | Add the text-session notice component | inline | todo | — |
 | 2 | 2.6 | Let a mentee pick a slot and a length | inline | todo | — |
 | 3 | 3.1 | Define the payment gateway port and mock | inline | todo | — |
