@@ -71,6 +71,16 @@ const eslintConfig = defineConfig([
     "@devmentor/app",
     "next",
   ]),
+  // ...which makes `no-html-link-for-pages` unsatisfiable inside `packages/ui`: the rule's
+  // fix is `next/link`, and the boundary directly above forbids importing it. The two rules
+  // were in silent contradiction until a `<a href="/sessions">` in a shell test collided with
+  // the new `/sessions/[bookingId]` page (#26) and turned it into a lint error with no legal
+  // fix. An `<a>` in this package is the deliberate design — `AppShell`'s `nav` is a
+  // `ReactNode` slot precisely so the host renders the `<Link>`s.
+  {
+    files: ["packages/ui/**/*.{ts,tsx}"],
+    rules: { "@next/next/no-html-link-for-pages": "off" },
+  },
   // db is the leaf — knows nothing about the rest, and nothing about rendering.
   boundary(["packages/db/**/*.{ts,tsx}"], [
     "@devmentor/core",

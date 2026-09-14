@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { elements, text } from '../../../../test/element-tree';
+import { MentorSessionActions } from '../../../../components/mentor-session-actions';
 import { SessionsList } from '../../../../components/sessions-list';
 
 class RedirectSentinel extends Error {}
@@ -29,6 +30,8 @@ describe('mentor sessions page', () => {
     // Scoping is the route's decision, from the session: there is no mentor id here.
     expect((list?.props as { as: string }).as).toBe('mentor');
     expect((list?.props as { emptyTitle: string }).emptyTitle).toBe('No sessions booked yet');
+    // #26: a mentor reaches the text session from this list, and cannot cancel from it.
+    expect((list?.props as { actionsFor: unknown }).actionsFor).toBe(MentorSessionActions);
   });
 
   it('renders nothing when the guard refuses', async () => {

@@ -9,8 +9,16 @@ vi.mock('./apiCall', () => ({ apiCall: vi.fn() }));
 
 const request = vi.mocked(apiCall);
 
-function Harness({ path, pollMs }: { path: string; pollMs?: number }) {
-  const resource = useApiResource<{ name: string }>(path, { pollMs });
+function Harness({
+  path,
+  pollMs,
+  pollWhile,
+}: {
+  path: string;
+  pollMs?: number;
+  pollWhile?: (data: { name: string } | undefined) => boolean;
+}) {
+  const resource = useApiResource<{ name: string }>(path, { pollMs, pollWhile });
   return <div>
     <span>{resource.loading ? 'loading' : resource.error ?? resource.data?.name}</span>
     <button type="button" onClick={resource.reload}>Reload</button>
@@ -153,6 +161,31 @@ it('does not poll at all when no interval is given', async () => {
     await act(async () => { vi.advanceTimersByTime(60_000); });
 
     expect(request).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('stops polling as soon as the data says there is nothing more to read', async () => {
+  request
+    .mockResolvedValueOnce({ ok: true, data: { name: 'live' } })
+    .mockResolvedValueOnce({ ok: true, data: { name: 'ended' } });
+  vi.useFakeTimers();
+  try {
+    render(<Harness
+      path="/api/session"
+      pollMs={5_000}
+      pollWhile={(data) => data?.name !== 'ended'}
+    />);
+    await act(async () => undefined);
+    expect(screen.getByText('live')).toBeTruthy();
+
+    // One more read, which answers "ended" — and the predicate then closes the interval.
+    await act(async () => { vi.advanceTimersByTime(5_000); });
+    expect(screen.getByText('ended')).toBeTruthy();
+
+    await act(async () => { vi.advanceTimersByTime(60_000); });
+    expect(request).toHaveBeenCalledTimes(2);
   } finally {
     vi.useRealTimers();
   }

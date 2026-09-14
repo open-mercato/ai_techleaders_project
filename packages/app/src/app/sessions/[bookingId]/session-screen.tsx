@@ -11,7 +11,6 @@ import {
 } from '@devmentor/ui';
 import { ErrorMessage, LoadingMessage, useApiResource } from '@devmentor/ui/backend';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { useViewerTimeZone } from '../../../components/sessions-list';
 
 /**
@@ -139,15 +138,12 @@ export interface SessionScreenProps {
  */
 export function SessionScreen({ bookingId, backHref }: SessionScreenProps) {
   const timeZone = useViewerTimeZone();
-  // The interval is state rather than a value derived in this render, because the answer that
-  // decides it — the window state — arrives from the request the interval drives.
-  const [pollMs, setPollMs] = useState<number | undefined>(SESSION_POLL_MS);
-  const resource = useApiResource<SessionViewDto>(`/api/sessions/${bookingId}`, { pollMs });
-  const windowState = resource.data?.window.state;
-
-  useEffect(() => {
-    setPollMs(windowState === 'ended' ? undefined : SESSION_POLL_MS);
-  }, [windowState]);
+  const resource = useApiResource<SessionViewDto>(`/api/sessions/${bookingId}`, {
+    pollMs: SESSION_POLL_MS,
+    // The answer that stops the polling arrives in the polled response, so it is a predicate
+    // the hook evaluates rather than something this component switches off in an effect.
+    pollWhile: (view) => view?.window.state !== 'ended',
+  });
 
   if (resource.loading) return <LoadingMessage message="Opening your text session" />;
   if (resource.error !== undefined || resource.data === undefined) {

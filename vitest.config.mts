@@ -112,6 +112,8 @@ export default defineConfig({
         // it composes: which links a role set may see, and the name in the user block.
         'packages/app/src/components/cancel-session-action.tsx',
         'packages/app/src/components/mentee-session-actions.tsx',
+        'packages/app/src/components/mentor-session-actions.tsx',
+        'packages/app/src/components/open-session-action.tsx',
         'packages/app/src/components/payouts-list.tsx',
         'packages/app/src/components/sessions-list.tsx',
         'packages/app/src/components/unread-notifications.tsx',

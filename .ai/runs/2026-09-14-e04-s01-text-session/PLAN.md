@@ -31,8 +31,9 @@
 | 2 Data & API | 2.5 | `QaSessionSeeder` + `npm run db:seed:sessions` | inline | done | 3b678c4 |
 | 3 Session screen | 3.1 | `useApiResource` gains a non-flashing `pollMs` | inline | done | 71be908 |
 | 3 Session screen | 3.2 | `session-screen.tsx` — DS composition, read-only | inline | done | 7bc0ce5 |
-| 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard + layout | inline | done | — |
-| 3 Session screen | 3.4 | "Open session" entry point in both sessions lists | inline | todo | — |
+| 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard + layout | inline | done | e4aa644 |
+| 3 Session screen | 3.4 | "Open session" entry point in both sessions lists | inline | done | — |
+| 3 Session screen | 3.4-fix | Poll by a render-derived predicate, not `setState` in an effect | inline | done | — |
 | 4 Composer | 4.1 | Wire the composer to `POST`, with delivery states | inline | todo | — |
 | 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | todo | — |
 | 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | todo | — |

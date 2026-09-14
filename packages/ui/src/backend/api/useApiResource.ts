@@ -33,7 +33,7 @@ function keepOrFail<T>(
   return { path, status: 'error', error };
 }
 
-export interface UseApiResourceOptions {
+export interface UseApiResourceOptions<T> {
   /**
    * Re-read the resource every `pollMs` milliseconds. Absent means never.
    *
@@ -44,6 +44,15 @@ export interface UseApiResourceOptions {
    * session (#26) that blanked the transcript every few seconds would be unusable.
    */
   pollMs?: number;
+  /**
+   * Keep polling only while this holds for the data in hand. Absent means "for ever".
+   *
+   * A predicate rather than something the consumer switches off itself, because the answer
+   * that decides it arrives *in* the polled response — a text session stops being worth
+   * re-reading once the server says it has ended. Evaluated during render, so the interval is
+   * derived state here and no consumer needs a `setState` inside an effect to stop it.
+   */
+  pollWhile?: (data: T | undefined) => boolean;
 }
 
 /**
@@ -53,7 +62,7 @@ export interface UseApiResourceOptions {
  */
 export function useApiResource<T>(
   path: string,
-  { pollMs }: UseApiResourceOptions = {},
+  { pollMs, pollWhile }: UseApiResourceOptions<T> = {},
 ): ApiResource<T> {
   const [revision, setRevision] = useState(0);
   const [state, setState] = useState<ResourceState<T>>({ path, status: 'loading' });
@@ -63,13 +72,16 @@ export function useApiResource<T>(
     setRevision((current) => current + 1);
   }, [path]);
 
+  const loaded = state.status === 'loaded' && state.path === path ? state.data : undefined;
+  const polling = pollMs !== undefined && (pollWhile === undefined || pollWhile(loaded));
+
   useEffect(() => {
-    if (pollMs === undefined) return;
+    if (!polling) return;
     // Bumping the revision alone re-runs the fetch below without touching `state`, so a
     // consumer keeps rendering the data it already has until the answer arrives.
     const timer = setInterval(() => setRevision((current) => current + 1), pollMs);
     return () => clearInterval(timer);
-  }, [path, pollMs]);
+  }, [path, pollMs, polling]);
 
   useEffect(() => {
     const controller = new AbortController();

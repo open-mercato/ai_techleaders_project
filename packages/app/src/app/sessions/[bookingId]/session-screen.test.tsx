@@ -4,12 +4,23 @@ import { SESSION_IS_TEXT_MESSAGE } from '@devmentor/ui';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+interface ResourceOptions {
+  pollMs?: number;
+  pollWhile?: (data: SessionViewDto | undefined) => boolean;
+}
+
 const state = vi.hoisted(() => ({ resource: vi.fn() }));
 
 vi.mock('@devmentor/ui/backend', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@devmentor/ui/backend')>()),
-  useApiResource: (path: string, options?: { pollMs?: number }) => state.resource(path, options),
+  useApiResource: (path: string, options?: ResourceOptions) => state.resource(path, options),
 }));
+
+/** The options the screen handed the shared hook on its most recent render. */
+function pollOptions(): ResourceOptions {
+  const call = state.resource.mock.calls.at(-1);
+  return (call?.[1] ?? {}) as ResourceOptions;
+}
 
 const {
   READ_ONLY_REASON,
@@ -124,9 +135,15 @@ describe('SessionScreen', () => {
   it('reads the session named in the address and polls an unfinished one', () => {
     render(<SessionScreen bookingId={BOOKING_ID} backHref="/home" />);
 
-    expect(state.resource).toHaveBeenCalledWith(`/api/sessions/${BOOKING_ID}`, {
-      pollMs: SESSION_POLL_MS,
-    });
+    expect(state.resource.mock.calls[0]?.[0]).toBe(`/api/sessions/${BOOKING_ID}`);
+    expect(pollOptions().pollMs).toBe(SESSION_POLL_MS);
+    expect(pollOptions().pollWhile?.(view())).toBe(true);
+    // Also while it has not started, so the screen opens itself at the booked minute.
+    expect(pollOptions().pollWhile?.(view({
+      window: { state: 'not_started', startsAt: '2026-09-14T16:00:00.000Z', endsAt: '2026-09-14T16:50:00.000Z' },
+    }))).toBe(true);
+    // And before the first answer has arrived at all.
+    expect(pollOptions().pollWhile?.(undefined)).toBe(true);
   });
 
   it('shows the transcript, the counterpart and the text-only line', () => {
@@ -187,9 +204,10 @@ describe('SessionScreen', () => {
     expect(screen.getByText('Ended')).toBeTruthy();
     expect(screen.getByText('Where should I validate it?')).toBeTruthy();
     expect(screen.getByRole('note').textContent).toContain('written answer comes next');
-    expect(state.resource).toHaveBeenLastCalledWith(`/api/sessions/${BOOKING_ID}`, {
-      pollMs: undefined,
-    });
+    // An ended session cannot change, so a tab left open on one stops asking.
+    expect(pollOptions().pollWhile?.(view({
+      window: { state: 'ended', startsAt: '2026-09-14T16:00:00.000Z', endsAt: '2026-09-14T16:50:00.000Z' },
+    }))).toBe(false);
   });
 
   it('states plainly that writing is not enabled while the session is open', () => {
