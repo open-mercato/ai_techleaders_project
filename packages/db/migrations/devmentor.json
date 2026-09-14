@@ -1385,7 +1385,8 @@
           "collation": null,
           "enumItems": [
             "booking_confirmed",
-            "booking_cancelled"
+            "booking_cancelled",
+            "payout_held"
           ],
           "mappedType": "enum"
         },
@@ -1467,8 +1468,8 @@
       "checks": [
         {
           "name": "notifications_kind_check",
-          "expression": "\"kind\" in ('booking_confirmed', 'booking_cancelled')",
-          "definition": "check (\"kind\" in ('booking_confirmed', 'booking_cancelled'))",
+          "expression": "\"kind\" in ('booking_confirmed', 'booking_cancelled', 'payout_held')",
+          "definition": "check (\"kind\" in ('booking_confirmed', 'booking_cancelled', 'payout_held'))",
           "columnName": "kind"
         }
       ],

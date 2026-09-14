@@ -9,11 +9,12 @@ import { useViewerTimeZone } from './sessions-list';
 /**
  * Where a notification sends the person reading it.
  *
- * The side decides, not the kind: every notification this product sends is about a booking,
- * and a booking lives on the reader's own sessions list either way. A per-kind table would
- * have been the same two routes written twice.
+ * For the two booking kinds the *side* decides, not the kind: a booking lives on the
+ * reader's own sessions list either way. A held payout is the exception, because it is about
+ * money rather than a session and its detail is on a different screen.
  */
-function destinationFor(as: 'mentee' | 'mentor'): string {
+function destinationFor(kind: NotificationDto['kind'], as: 'mentee' | 'mentor'): string {
+  if (kind === 'payout_held') return '/mentor/payouts';
   return as === 'mentor' ? '/mentor/sessions' : '/home';
 }
 
@@ -25,6 +26,10 @@ const COPY: Record<NotificationDto['kind'], { title: string; description: string
   booking_cancelled: {
     title: 'A session was cancelled',
     description: 'The time is free again. Its refund state is on the session.',
+  },
+  payout_held: {
+    title: 'A payout is waiting',
+    description: 'Your share cannot be sent until your payout account is set up.',
   },
 };
 
@@ -88,7 +93,7 @@ export function UnreadNotifications({ as }: UnreadNotificationsProps) {
       timeLabel={when.format(new Date(notification.createdAt))}
       read={false}
       onMarkRead={() => void markRead(notification.id)}
-      href={destinationFor(as)}
+      href={destinationFor(notification.kind, as)}
     />)}
     {failure === null ? null : <ErrorMessage message={failure} />}
   </section>;

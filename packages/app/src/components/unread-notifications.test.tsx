@@ -80,6 +80,16 @@ describe('UnreadNotifications', () => {
     expect(screen.getByText(/The time is free again/)).toBeTruthy();
   });
 
+  it('sends a held payout to the payouts screen, not the sessions list', () => {
+    resolves([{ ...unread, kind: 'payout_held' }]);
+    render(<UnreadNotifications as="mentor" />);
+
+    // About money rather than a session, and its detail is on a different screen.
+    expect(screen.getByRole('link', { name: 'A payout is waiting' }).getAttribute('href'))
+      .toBe('/mentor/payouts');
+    expect(screen.getByText(/payout account is set up/)).toBeTruthy();
+  });
+
   it('marks one read and stops showing it, without waiting for the server', async () => {
     render(<UnreadNotifications as="mentee" />);
 

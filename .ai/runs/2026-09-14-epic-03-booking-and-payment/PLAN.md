@@ -57,6 +57,7 @@
 | 6 | 6.3 | Snapshot the fee split at confirmation | inline | done | pending |
 | 6 | 6.4 | Add the Connect transfer to the payment gateway | inline | done | pending |
 | 6 | 6.5 | Pay out or hold a completed session | inline | done | pending |
+| 6 | 6.5-review-fix | Tell a mentor their payout is held | inline | done | pending |
 | 6 | 6.6 | Let the operator run payouts | inline | todo | — |
 | 6 | 6.7 | Show a mentor their payouts | inline | todo | — |
 | 7 | 7.1 | Report paid sessions and booking-to-start | inline | todo | — |
@@ -413,6 +414,12 @@ lines for the files the Step adds or changes.
   `listForMentor()` for the payouts page.
 - Tests: transferred, held, refunded excluded, cancelled excluded, not-yet-ended excluded,
   already-paid excluded, transfer failure → `failed` and retried on the next run.
+
+**6.5-review-fix Tell a mentor their payout is held**
+- Step 6.5 recorded a held payout but did not tell anybody, which is half of #25's criterion
+  27. `payout_held` joins the notification kinds (a widening migration, shipped before
+  anything writes the value), the payout run sends it, and the unread line routes it to the
+  payouts screen rather than the sessions list.
 
 **6.6 Let the operator run payouts**
 - `packages/app/src/app/api/operator/payouts/run/route.ts`: `POST`, operator only, logged

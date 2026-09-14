@@ -11,6 +11,7 @@ import { requireRole, type Session } from '../../http/auth';
 import { UnauthorizedError } from '../../http/errors';
 import type { Clock } from '../../time/clock';
 import type { PaymentGateway } from './payment-gateway.port';
+import type { NotificationService } from '../notifications/notification.service';
 
 const PAYOUT_BOOKING_CONSTRAINT = 'payouts_booking_id_unique';
 
@@ -52,6 +53,7 @@ export class PayoutService {
   private readonly clock: Clock;
   private readonly logger: Logger;
   private readonly paymentGateway: PaymentGateway;
+  private readonly notificationService: Pick<NotificationService, 'onPayoutHeld'>;
   private readonly session: Promise<Session | null>;
 
   constructor({
@@ -59,12 +61,14 @@ export class PayoutService {
     clock,
     logger,
     paymentGateway,
+    notificationService,
     session,
   }: {
     em: EntityManager;
     clock: Clock;
     logger: Logger;
     paymentGateway: PaymentGateway;
+    notificationService: Pick<NotificationService, 'onPayoutHeld'>;
     session: Promise<Session | null>;
   }) {
     // Destructure the PROXY cradle synchronously — resolving a key after an await can reach
@@ -73,6 +77,7 @@ export class PayoutService {
     this.clock = clock;
     this.logger = logger;
     this.paymentGateway = paymentGateway;
+    this.notificationService = notificationService;
     this.session = session;
     void session.catch(() => undefined);
   }
@@ -142,7 +147,9 @@ export class PayoutService {
     }
 
     if (!enabled) {
-      // Owed and unsent, with the reason on the row. The mentor is told by the caller.
+      // Owed and unsent, with the reason on the row — and the mentor is told, because money
+      // waiting on something only they can do is not something to leave them to discover.
+      await this.notificationService.onPayoutHeld(payout.id, booking.id);
       return 'held';
     }
 

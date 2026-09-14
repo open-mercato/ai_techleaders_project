@@ -149,6 +149,33 @@ export class NotificationService {
     });
   }
 
+  /**
+   * Tell a mentor their share is waiting on their Connect onboarding (#25, R05).
+   *
+   * Money held on something only they can do is not a thing to leave someone to discover.
+   * The notification points at their payouts screen, which carries the amount and the
+   * reason.
+   */
+  async onPayoutHeld(payoutId: string, bookingId: string): Promise<void> {
+    const booking = await this.em.findOne(
+      Booking,
+      { id: bookingId },
+      { populate: ['mentorProfile', 'mentorProfile.user'] },
+    );
+    if (booking === null) {
+      this.logger.warn({ payoutId, bookingId }, 'held payout has no booking to notify about');
+      return;
+    }
+
+    await this.tell(booking, 'payout_held', booking.mentorProfile.user, {
+      subject: 'Your payout is waiting on your payout account',
+      text:
+        'A session you completed has been paid for, and your share is waiting.\n'
+        + 'It cannot be sent until your payout account is set up.\n'
+        + `Your payouts: ${this.env.APP_URL}/mentor/payouts\n`,
+    });
+  }
+
   /** Write the durable record, then try the email. Order is the point. */
   private async tell(
     booking: IBooking,

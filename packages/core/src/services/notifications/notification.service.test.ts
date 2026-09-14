@@ -284,3 +284,32 @@ describe('NotificationService.onBookingCancelled', () => {
     );
   });
 });
+
+describe('NotificationService.onPayoutHeld', () => {
+  it('tells the mentor their share is waiting on their payout account', async () => {
+    const h = makeHarness();
+
+    await h.service.onPayoutHeld('payout-1', BOOKING_ID);
+
+    expect(h.created).toHaveLength(1);
+    expect(h.created[0]).toMatchObject({ kind: 'payout_held' });
+    expect((h.created[0]!.user as { id: string }).id).toBe(MENTOR_USER_ID);
+    expect(h.mailer.send).toHaveBeenCalledExactlyOnceWith({
+      to: 'mentor@devmentor.test',
+      subject: 'Your payout is waiting on your payout account',
+      text: expect.stringContaining(`${APP_URL}/mentor/payouts`),
+    });
+  });
+
+  it('says nothing when the booking behind the payout has gone', async () => {
+    const h = makeHarness({ stored: null });
+
+    await expect(h.service.onPayoutHeld('payout-1', BOOKING_ID)).resolves.toBeUndefined();
+
+    expect(h.created).toHaveLength(0);
+    expect(h.logger.warn).toHaveBeenCalledWith(
+      { payoutId: 'payout-1', bookingId: BOOKING_ID },
+      'held payout has no booking to notify about',
+    );
+  });
+});

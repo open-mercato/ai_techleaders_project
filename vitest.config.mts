@@ -190,6 +190,7 @@ export default defineConfig({
         'packages/db/migrations/Migration20260914080328_notifications.ts',
         'packages/db/migrations/Migration20260914082606_booking_cancellation.ts',
         'packages/db/migrations/Migration20260914084322_fee_split.ts',
+        'packages/db/migrations/Migration20260914085102_payout_held_notification.ts',
         'packages/db/src/seeders/database.seeder.ts',
         'packages/db/src/seeders/seed-password.ts',
         'packages/ui/src/backend/actions/WorkflowAction.tsx',

@@ -70,14 +70,16 @@ function makeHarness({
       })),
   };
   const logger = { error: vi.fn() } as unknown as Logger;
+  const notificationService = { onPayoutHeld: vi.fn(async () => undefined) };
   const service = new PayoutService({
     em: em as unknown as EntityManager,
     clock: { now: () => NOW },
     logger,
     paymentGateway: gateway,
+    notificationService,
     session: Promise.resolve(session),
   });
-  return { service, em, logger, gateway, created };
+  return { service, em, logger, gateway, notificationService, created };
 }
 
 function uniqueViolation(constraint?: string): UniqueConstraintViolationException {
@@ -170,6 +172,17 @@ describe('PayoutService.runDue', () => {
       amountCents: 9_600,
     });
     expect(h.gateway.transferRequests).toEqual([]);
+    // Money waiting on something only the mentor can do is not left for them to discover.
+    expect(h.notificationService.onPayoutHeld)
+      .toHaveBeenCalledExactlyOnceWith('payout-1', BOOKING_ID);
+  });
+
+  it('does not tell a mentor about a payout that was actually sent', async () => {
+    const h = makeHarness();
+
+    await h.service.runDue();
+
+    expect(h.notificationService.onPayoutHeld).not.toHaveBeenCalled();
   });
 
   it('holds a payout for a mentor marked enabled but with no account to send to', async () => {
@@ -283,6 +296,7 @@ describe('PayoutService.listForMentor', () => {
       clock: { now: () => NOW },
       logger: { error: vi.fn() } as unknown as Logger,
       paymentGateway: new MockPaymentGateway(),
+      notificationService: { onPayoutHeld: vi.fn(async () => undefined) },
       // The constructor attaches its own catch, so an unawaited rejection cannot crash the
       // process; the read still reports the failure to its caller.
       session: Promise.reject(failure),
