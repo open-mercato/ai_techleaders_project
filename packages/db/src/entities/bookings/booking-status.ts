@@ -23,3 +23,15 @@ export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 export const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed'] as const;
 
 export type ActiveBookingStatus = (typeof ACTIVE_BOOKING_STATUSES)[number];
+
+/**
+ * Why a payment could not be accepted, when the booking is otherwise intact.
+ *
+ * `amount_mismatch` is the one case E03-S03 names: the provider reported an amount that is
+ * not the mentor's price for the chosen length (R08). The booking is left unconfirmed and
+ * flagged rather than quietly confirmed at the wrong price, because the money has to be
+ * reconciled by a person either way and a silent acceptance hides that it must be.
+ */
+export const PAYMENT_ISSUES = ['amount_mismatch'] as const;
+
+export type PaymentIssue = (typeof PAYMENT_ISSUES)[number];

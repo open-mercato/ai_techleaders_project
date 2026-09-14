@@ -2,7 +2,7 @@ import type { EntityProperty } from '@mikro-orm/core';
 import { describe, expect, it } from 'vitest';
 import { entities } from '../index';
 import { Booking } from './booking.entity';
-import { ACTIVE_BOOKING_STATUSES, BOOKING_STATUSES } from './booking-status';
+import { ACTIVE_BOOKING_STATUSES, BOOKING_STATUSES, PAYMENT_ISSUES } from './booking-status';
 
 function typeName(property: EntityProperty): string {
   const { type } = property as unknown as { type: string | { name: string } };
@@ -25,6 +25,7 @@ describe('Booking entity', () => {
     expect(meta.className).toBe('Booking');
     expect(meta.tableName).toBe('bookings');
     expect(Object.keys(properties).sort()).toEqual([
+      'amountPaidCents',
       'bookedAt',
       'createdAt',
       'currency',
@@ -33,10 +34,14 @@ describe('Booking entity', () => {
       'lengthMinutes',
       'mentee',
       'mentorProfile',
+      'paidAt',
+      'paymentIssue',
       'priceCents',
       'slot',
       'startsAt',
       'status',
+      'stripeCheckoutSessionId',
+      'stripePaymentIntentId',
       'updatedAt',
     ]);
   });
@@ -94,6 +99,20 @@ describe('Booking entity', () => {
       },
       { name: 'bookings_status_expires_at_index', properties: ['status', 'expiresAt'] },
     ]);
+  });
+
+  it('lets one payment belong to one booking, and leaves every payment field open', () => {
+    expect(properties.stripeCheckoutSessionId!.unique).toBe(true);
+    expect(properties.stripeCheckoutSessionId!.nullable).toBe(true);
+    for (const field of [
+      'stripePaymentIntentId',
+      'paidAt',
+      'amountPaidCents',
+      'paymentIssue',
+    ] as const) {
+      expect(properties[field]!.nullable).toBe(true);
+    }
+    expect(properties.paymentIssue!.items).toEqual([...PAYMENT_ISSUES]);
   });
 
   it('refuses an unoffered length and a non-positive price in the database', () => {

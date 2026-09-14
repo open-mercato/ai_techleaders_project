@@ -4,7 +4,7 @@ import { defineSingletonEntity } from '../define';
 import { Slot } from '../availability/slot.entity';
 import { User } from '../auth/user.entity';
 import { MentorProfile } from '../mentors/mentor-profile.entity';
-import { ACTIVE_BOOKING_STATUSES, BOOKING_STATUSES } from './booking-status';
+import { ACTIVE_BOOKING_STATUSES, BOOKING_STATUSES, PAYMENT_ISSUES } from './booking-status';
 
 const p = defineEntity.properties;
 
@@ -54,6 +54,17 @@ export const Booking = defineSingletonEntity('Booking', () =>
       bookedAt: p.datetime().nullable(),
       /** When a `pending` hold lapses. Null once the booking leaves `pending`. */
       expiresAt: p.datetime().nullable(),
+      /**
+       * The payment provider's Checkout session, unique so a confirmation can find exactly
+       * one booking from a webhook and two bookings can never claim one payment.
+       */
+      stripeCheckoutSessionId: p.string().length(120).nullable().unique(),
+      stripePaymentIntentId: p.string().length(120).nullable(),
+      /** When the payment was verified, and the amount the provider actually reported. */
+      paidAt: p.datetime().nullable(),
+      amountPaidCents: p.integer().nullable(),
+      /** Set instead of confirming when the payment cannot be accepted as it stands. */
+      paymentIssue: p.enum(PAYMENT_ISSUES).nullable(),
     },
     uniques: [
       {
