@@ -44,6 +44,7 @@ describe('Booking entity', () => {
       'mentorShareCents',
       'paidAt',
       'paymentIssue',
+      'payout',
       'platformFeeCents',
       'priceCents',
       'refundStatus',
@@ -133,6 +134,14 @@ describe('Booking entity', () => {
     expect(properties.cancelledAt!.nullable).toBe(true);
     expect(properties.stripeRefundId!.nullable).toBe(true);
     expect(properties.refundedAmountCents!.nullable).toBe(true);
+  });
+
+  it('knows its payout by reference, without carrying a column for it', () => {
+    // The inverse side: the payout run asks for "confirmed sessions with no payout yet" in
+    // one query instead of reading every payout to subtract them.
+    expect(properties.payout!.kind).toBe('1:1');
+    expect(properties.payout!.mappedBy).toBe('booking');
+    expect(properties.payout!.nullable).toBe(true);
   });
 
   it('leaves the fee split open until a payment is confirmed (R10)', () => {

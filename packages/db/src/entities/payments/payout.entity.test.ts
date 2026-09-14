@@ -37,6 +37,8 @@ describe('Payout entity', () => {
   it('allows one payout per session, which is what makes the run repeatable', () => {
     // There is no scheduler: the run is triggered by hand and may be triggered twice. A
     // second row for one session would be a second transfer.
+    expect(properties.booking!.kind).toBe('1:1');
+    expect(properties.booking!.owner).toBe(true);
     expect(properties.booking!.unique).toBe(true);
     expect(properties.booking!.deleteRule).toBe('restrict');
     expect(properties.mentorProfile!.deleteRule).toBe('restrict');

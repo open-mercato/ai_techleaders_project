@@ -4,6 +4,7 @@ import { defineSingletonEntity } from '../define';
 import { Slot } from '../availability/slot.entity';
 import { User } from '../auth/user.entity';
 import { MentorProfile } from '../mentors/mentor-profile.entity';
+import { Payout } from '../payments/payout.entity';
 import {
   ACTIVE_BOOKING_STATUSES,
   BOOKING_STATUSES,
@@ -85,6 +86,12 @@ export const Booking = defineSingletonEntity('Booking', () =>
       refundStatus: p.enum(REFUND_STATUSES).default('none'),
       stripeRefundId: p.string().length(120).nullable(),
       refundedAmountCents: p.integer().nullable(),
+      /**
+       * The inverse of `Payout.booking`. No column: it exists so the payout run can ask for
+       * "confirmed sessions with no payout yet" in one query instead of reading every
+       * payout to subtract them.
+       */
+      payout: () => p.oneToOne(Payout).mappedBy('booking').nullable(),
     },
     uniques: [
       {

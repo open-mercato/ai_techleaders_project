@@ -106,6 +106,12 @@ export {
   type StartedCheckout,
   type WebhookOutcome,
 } from './services/payments/payment.service';
+export {
+  PayoutService,
+  toPayoutDto,
+  type PayoutDto,
+  type PayoutRunSummary,
+} from './services/payments/payout.service';
 export { mentorOfferReady, mentorPagePublishable } from './services/mentors/readiness';
 export {
   mentorProfileUpdateSchema,

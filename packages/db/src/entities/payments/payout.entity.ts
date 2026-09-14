@@ -29,7 +29,7 @@ export const Payout = defineSingletonEntity('Payout', () =>
     properties: {
       ...baseProperties,
       // Per-property thunks so the cross-entity references resolve lazily at discovery time.
-      booking: () => p.manyToOne(Booking).unique().deleteRule('restrict'),
+      booking: () => p.oneToOne(Booking).inversedBy('payout').owner().unique().deleteRule('restrict'),
       mentorProfile: () => p.manyToOne(MentorProfile).deleteRule('restrict'),
       amountCents: p.integer(),
       status: p.enum(PAYOUT_STATUSES).default('held'),

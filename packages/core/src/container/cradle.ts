@@ -12,6 +12,7 @@ import type { SlotService } from '../services/availability/slot.service';
 import type { BookingService } from '../services/bookings/booking.service';
 import type { PaymentService } from '../services/payments/payment.service';
 import type { NotificationService } from '../services/notifications/notification.service';
+import type { PayoutService } from '../services/payments/payout.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -92,6 +93,11 @@ export interface Cradle {
    * than closing over the emitting request's.
    */
   notificationService: NotificationService;
+  /**
+   * Mentor payouts (E03-S06). SCOPED because it holds `em`; the run is triggered by an
+   * operator request or by the `payouts:run` script, both of which open their own scope.
+   */
+  payoutService: PayoutService;
   platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes
