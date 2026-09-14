@@ -86,12 +86,16 @@ export {
 export {
   BookingService,
   BOOKING_HOLD_MINUTES,
+  FREE_CANCELLATION_HOURS,
   LEAD_TIME_MESSAGE,
+  NOT_CANCELLABLE_MESSAGE,
+  SESSION_STARTED_MESSAGE,
   MENTOR_NOT_BOOKABLE_MESSAGE,
   MIN_LEAD_MINUTES,
   SLOT_TAKEN_MESSAGE,
   toBookingDto,
   type BookingDto,
+  type CancelledBookingDto,
   type SessionListItemDto,
 } from './services/bookings/booking.service';
 export {

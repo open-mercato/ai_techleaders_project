@@ -120,6 +120,35 @@ export class NotificationService {
     });
   }
 
+  /**
+   * Tell the mentor a mentee cancelled (#24).
+   *
+   * **Only the mentor.** The mentee just pressed the button and was shown the outcome; a
+   * notification telling them what they themselves did would be noise. What the mentor
+   * needs is that the time is theirs again, which is true whether or not a refund was owed.
+   */
+  async onBookingCancelled(bookingId: string, refunded: boolean): Promise<void> {
+    const booking = await this.em.findOne(
+      Booking,
+      { id: bookingId },
+      { populate: ['mentee', 'mentorProfile', 'mentorProfile.user'] },
+    );
+    if (booking === null) {
+      this.logger.warn({ bookingId }, 'cancelled booking vanished before notification');
+      return;
+    }
+
+    await this.tell(booking, 'booking_cancelled', booking.mentorProfile.user, {
+      subject: `${booking.mentee.displayName} cancelled a session`,
+      text:
+        `${booking.mentee.displayName} cancelled a text session with you, `
+        + `so the time is free again.\n`
+        + `When it was: ${whenAndHowLong(booking)}\n`
+        + `${refunded ? 'The mentee was refunded in full.' : 'The mentee cancelled inside the 24-hour window, so the fee was not refunded.'}\n`
+        + `Your sessions: ${this.env.APP_URL}/mentor/sessions\n`,
+    });
+  }
+
   /** Write the durable record, then try the email. Order is the point. */
   private async tell(
     booking: IBooking,

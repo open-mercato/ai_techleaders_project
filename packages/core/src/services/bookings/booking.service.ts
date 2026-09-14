@@ -9,7 +9,7 @@ import {
   type IMentorProfile,
   type ISlot,
 } from '@devmentor/db';
-import { requireRole, type Session } from '../../http/auth';
+import { assertOwnership, requireRole, type Session } from '../../http/auth';
 import {
   ConflictError,
   NotFoundError,
@@ -18,6 +18,9 @@ import {
   ValidationError,
 } from '../../http/errors';
 import type { Clock } from '../../time/clock';
+import type { EventBus } from '../../events/event-bus';
+import type { Logger } from '../../logger';
+import type { PaymentGateway } from '../payments/payment-gateway.port';
 import type { SessionLength } from '../../domain/vocabularies/session-lengths';
 import type { BookingCreateInput } from '../../validators/bookings/booking-create.schema';
 import {
@@ -52,6 +55,28 @@ export const LEAD_TIME_MESSAGE =
 export const MENTOR_NOT_BOOKABLE_MESSAGE =
   'This mentor is not taking bookings at the moment.';
 
+/**
+ * How long before a session a mentee may still cancel and be refunded (D10, R09).
+ *
+ * Inclusive: at exactly 24 hours the cancellation is still free. A boundary that went the
+ * other way would refuse a refund to someone who cancelled at the moment the rule names.
+ */
+export const FREE_CANCELLATION_HOURS = 24;
+
+export const SESSION_STARTED_MESSAGE =
+  'This session has already started, so it can no longer be cancelled. '
+  + 'Raise a quality dispute with DevMentor instead.';
+export const NOT_CANCELLABLE_MESSAGE =
+  'Only a paid session can be cancelled. An unpaid reservation releases its time on its own.';
+
+export interface CancelledBookingDto {
+  id: string;
+  status: string;
+  refundStatus: string;
+  /** What the mentee is owed back, in minor units. `0` when the fee is forfeit. */
+  refundedAmountCents: number;
+}
+
 export interface BookingDto {
   id: string;
   slotId: string;
@@ -83,6 +108,8 @@ export interface SessionListItemDto {
   priceCents: number;
   currency: string;
   status: string;
+  /** Where a cancelled session's money got to (R09). `none` on everything else. */
+  refundStatus: string;
   startsAt: string;
   isPast: boolean;
 }
@@ -110,6 +137,7 @@ function toSessionListItem(booking: IBooking, counterpartName: string, now: Date
     priceCents: booking.priceCents,
     currency: booking.currency,
     status: booking.status,
+    refundStatus: booking.refundStatus,
     startsAt: booking.startsAt.toISOString(),
     isPast: booking.startsAt.getTime() <= now.getTime(),
   };
@@ -129,17 +157,26 @@ function storedPriceCents(profile: IMentorProfile, length: SessionLength): numbe
 export class BookingService {
   private readonly em: EntityManager;
   private readonly clock: Clock;
+  private readonly eventBus: EventBus;
+  private readonly logger: Logger;
+  private readonly paymentGateway: PaymentGateway;
   private readonly session: Promise<Session | null>;
   private readonly platformSettingsService?: Pick<PlatformSettingsService, 'get'>;
 
   constructor({
     em,
     clock,
+    eventBus,
+    logger,
+    paymentGateway,
     session,
     platformSettingsService,
   }: {
     em: EntityManager;
     clock: Clock;
+    eventBus: EventBus;
+    logger: Logger;
+    paymentGateway: PaymentGateway;
     session: Promise<Session | null>;
     platformSettingsService?: Pick<PlatformSettingsService, 'get'>;
   }) {
@@ -147,6 +184,9 @@ export class BookingService {
     // an await can reach a request scope that has already been disposed.
     this.em = em;
     this.clock = clock;
+    this.eventBus = eventBus;
+    this.logger = logger;
+    this.paymentGateway = paymentGateway;
     this.session = session;
     this.platformSettingsService = platformSettingsService;
     void session.catch(() => undefined);
@@ -322,5 +362,124 @@ export class BookingService {
       { populate: ['mentee'], orderBy: { startsAt: 'asc' } },
     );
     return bookings.map((booking) => toSessionListItem(booking, booking.mentee.displayName, now));
+  }
+
+  /**
+   * Cancel a paid session the signed-in mentee owns (#24, D10, R09).
+   *
+   * Three decisions, in the order they matter:
+   *
+   * 1. **A session that has started cannot be cancelled.** It is refused with a pointer at
+   *    the quality-dispute path (E05-S03), because the mentee still has a way to be heard —
+   *    a bare refusal would read as "your money is gone, goodbye".
+   * 2. **The slot is freed either way.** Cancelling inside the window still releases the
+   *    time: the mentor should be able to sell it again, and the forfeited fee is a separate
+   *    question from whether anybody can book that hour.
+   * 3. **The refund follows the 24-hour rule and nothing else.** More than 24 hours out, the
+   *    full amount comes back; inside it, nothing does, and `refundStatus` stays `none`
+   *    because that is a decision the product made rather than a refund that failed.
+   *
+   * The cancellation commits **before** the refund is attempted, and the event is emitted
+   * from the committed state. A refund that fails therefore leaves a cancelled booking with
+   * `refundStatus: 'failed'` — money owed and not yet returned, which is exactly the state
+   * an operator needs to see — rather than rolling back a cancellation the mentee already
+   * made and the mentor was already told about.
+   */
+  async cancelByMentee(bookingId: string): Promise<CancelledBookingDto> {
+    const session = await this.menteeSession();
+    const now = this.clock.now();
+
+    const booking = await this.em.findOne(
+      Booking,
+      { id: bookingId },
+      { populate: ['mentee', 'mentorProfile'] },
+    );
+    if (booking === null) throw new NotFoundError('That booking does not exist.');
+    assertOwnership(session, booking.mentee.id);
+
+    if (booking.status !== 'confirmed') throw new ConflictError(NOT_CANCELLABLE_MESSAGE);
+    if (booking.startsAt.getTime() <= now.getTime()) {
+      throw new ConflictError(SESSION_STARTED_MESSAGE);
+    }
+
+    const freeWindowMs = FREE_CANCELLATION_HOURS * 60 * 60 * 1000;
+    // Inclusive: at exactly 24 hours the cancellation is still free.
+    const refundOwed = booking.startsAt.getTime() - now.getTime() >= freeWindowMs;
+
+    await this.em.transactional(async (tx) => {
+      const held = await tx.findOne(Booking, { id: booking.id });
+      if (held === null) throw new NotFoundError('That booking does not exist.');
+      held.status = 'cancelled';
+      held.cancelledAt = now;
+      held.refundStatus = refundOwed ? 'pending' : 'none';
+      await tx.flush();
+    });
+
+    await this.eventBus.emit('bookings.booking.cancelled', {
+      bookingId: booking.id,
+      menteeId: booking.mentee.id,
+      mentorProfileId: booking.mentorProfile.id,
+      startsAt: booking.startsAt.toISOString(),
+      refunded: refundOwed,
+    });
+
+    if (!refundOwed) {
+      return {
+        id: booking.id,
+        status: 'cancelled',
+        refundStatus: 'none',
+        refundedAmountCents: 0,
+      };
+    }
+    return this.refund(booking.id, booking.stripePaymentIntentId ?? null, booking.priceCents);
+  }
+
+  /**
+   * Return the money, and record where it got to.
+   *
+   * The booking id is the idempotency key, so a retried cancellation is the same refund
+   * rather than a second one. A failure is recorded, not thrown: the session is already
+   * cancelled and the mentee already knows, so the useful outcome is a row an operator can
+   * find, not a 500 that hides it.
+   */
+  private async refund(
+    bookingId: string,
+    paymentIntentId: string | null,
+    priceCents: number,
+  ): Promise<CancelledBookingDto> {
+    let outcome: { refundStatus: string; refundId: string | null; amount: number };
+    try {
+      if (paymentIntentId === null) {
+        // A confirmed booking with no payment reference cannot be refunded automatically.
+        throw new Error('the booking carries no payment reference');
+      }
+      const refund = await this.paymentGateway.refund({
+        paymentIntentId,
+        amountCents: priceCents,
+        idempotencyKey: bookingId,
+      });
+      outcome = refund.status === 'succeeded'
+        ? { refundStatus: 'refunded', refundId: refund.id, amount: priceCents }
+        : { refundStatus: refund.status === 'failed' ? 'failed' : 'pending', refundId: refund.id, amount: 0 };
+    } catch (error) {
+      this.logger.error({ err: error, bookingId }, 'refund could not be completed');
+      outcome = { refundStatus: 'failed', refundId: null, amount: 0 };
+    }
+
+    await this.em.transactional(async (tx) => {
+      const held = await tx.findOne(Booking, { id: bookingId });
+      if (held === null) return;
+      held.refundStatus = outcome.refundStatus as typeof held.refundStatus;
+      held.stripeRefundId = outcome.refundId;
+      held.refundedAmountCents = outcome.amount;
+      await tx.flush();
+    });
+
+    return {
+      id: bookingId,
+      status: 'cancelled',
+      refundStatus: outcome.refundStatus,
+      refundedAmountCents: outcome.amount,
+    };
   }
 }

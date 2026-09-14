@@ -317,6 +317,21 @@ describe('getContainer', () => {
     );
   });
 
+  it('logs the default bookings.booking.cancelled subscriber', async () => {
+    const container = await getContainer();
+    const payload = {
+      bookingId: 'booking-1',
+      menteeId: 'user-1',
+      mentorProfileId: 'profile-1',
+      startsAt: '2026-09-14T15:00:00.000Z',
+      refunded: true,
+    };
+
+    await container.cradle.eventBus.emit('bookings.booking.cancelled', payload);
+
+    expect(logger.info).toHaveBeenCalledWith(payload, 'bookings.booking.cancelled');
+  });
+
   it('logs the default bookings.booking.confirmed subscriber', async () => {
     const container = await getContainer();
     const payload = {

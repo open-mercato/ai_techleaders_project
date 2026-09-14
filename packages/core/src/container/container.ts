@@ -357,6 +357,18 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     withScope(({ notificationService }) => notificationService.onBookingConfirmed(bookingId)),
   );
   container.cradle.eventBus.on(
+    'bookings.booking.cancelled',
+    ({ bookingId, menteeId, mentorProfileId, startsAt, refunded }) => {
+      container.cradle.logger.info(
+        { bookingId, menteeId, mentorProfileId, startsAt, refunded },
+        'bookings.booking.cancelled',
+      );
+      return withScope(({ notificationService }) =>
+        notificationService.onBookingCancelled(bookingId, refunded),
+      );
+    },
+  );
+  container.cradle.eventBus.on(
     'availability.slot.published',
     ({ mentorProfileId, slotId, startsAt }) => {
       container.cradle.logger.info(

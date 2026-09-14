@@ -242,3 +242,42 @@ describe('NotificationService.markRead', () => {
       .toThrow(UnauthorizedError);
   });
 });
+
+describe('NotificationService.onBookingCancelled', () => {
+  it('tells the mentor the time is free, and that a refund was made', async () => {
+    const h = makeHarness();
+
+    await h.service.onBookingCancelled(BOOKING_ID, true);
+
+    // Only the mentor: the mentee pressed the button and was shown the outcome.
+    expect(h.created).toHaveLength(1);
+    expect((h.created[0]!.user as { id: string }).id).toBe(MENTOR_USER_ID);
+    expect(h.created[0]!.kind).toBe('booking_cancelled');
+    expect(h.mailer.send).toHaveBeenCalledExactlyOnceWith({
+      to: 'mentor@devmentor.test',
+      subject: 'Ada Lovelace cancelled a session',
+      text: expect.stringContaining('refunded in full'),
+    });
+  });
+
+  it('says plainly when the fee was not refunded', async () => {
+    const h = makeHarness();
+
+    await h.service.onBookingCancelled(BOOKING_ID, false);
+
+    expect(h.mailer.send.mock.calls[0]![0].text).toContain('inside the 24-hour window');
+    expect(h.mailer.send.mock.calls[0]![0].text).toContain('the time is free again');
+  });
+
+  it('says nothing about a booking that vanished before the handler ran', async () => {
+    const h = makeHarness({ stored: null });
+
+    await expect(h.service.onBookingCancelled(BOOKING_ID, true)).resolves.toBeUndefined();
+
+    expect(h.created).toHaveLength(0);
+    expect(h.logger.warn).toHaveBeenCalledWith(
+      { bookingId: BOOKING_ID },
+      'cancelled booking vanished before notification',
+    );
+  });
+});

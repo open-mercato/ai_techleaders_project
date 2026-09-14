@@ -19,12 +19,15 @@ import {
   ValidationError,
 } from '../../http/errors';
 import type { PlatformSettings } from '../operator/platform-settings.service';
+import { MockPaymentGateway } from '../payments/adapters/mock-payment-gateway';
 import {
   BOOKING_HOLD_MINUTES,
   BookingService,
   LEAD_TIME_MESSAGE,
   MENTOR_NOT_BOOKABLE_MESSAGE,
   MIN_LEAD_MINUTES,
+  NOT_CANCELLABLE_MESSAGE,
+  SESSION_STARTED_MESSAGE,
   SLOT_TAKEN_MESSAGE,
   toBookingDto,
 } from './booking.service';
@@ -88,6 +91,7 @@ function makeHarness({
   storedSlot = slot(),
   held = null,
   withoutSettings = false,
+  gateway = new MockPaymentGateway(),
   onFlush,
 }: {
   session?: Session | null | Promise<Session | null>;
@@ -95,6 +99,7 @@ function makeHarness({
   held?: IBooking | null;
   /** Explicit flag, not an `undefined` override: a default parameter would replace it. */
   withoutSettings?: boolean;
+  gateway?: MockPaymentGateway;
   onFlush?: () => void;
 } = {}) {
   let created: Record<string, unknown> | null = null;
@@ -116,9 +121,14 @@ function makeHarness({
   const em = {
     transactional: vi.fn(async (run: (inner: typeof tx) => unknown) => run(tx)),
   };
+  const eventBus = { emit: vi.fn(async () => undefined) };
+  const logger = { error: vi.fn() };
   const service = new BookingService({
     em: em as unknown as EntityManager,
     clock: { now: () => NOW },
+    eventBus: eventBus as never,
+    logger: logger as never,
+    paymentGateway: gateway,
     session: session instanceof Promise ? session : Promise.resolve(session),
     platformSettingsService: withoutSettings
       ? undefined
@@ -128,6 +138,9 @@ function makeHarness({
     service,
     em,
     tx,
+    eventBus,
+    logger,
+    gateway,
     get created() {
       return created;
     },
@@ -402,6 +415,7 @@ describe('BookingService session lists', () => {
       priceCents: 12_000,
       currency: 'PLN',
       status: 'confirmed',
+      refundStatus: 'none',
       startsAt: FAR_ENOUGH,
       ...overrides,
     } as unknown as IBooking;
@@ -412,6 +426,9 @@ describe('BookingService session lists', () => {
     const service = new BookingService({
       em: em as unknown as EntityManager,
       clock: { now: () => NOW },
+      eventBus: { emit: vi.fn(async () => undefined) } as never,
+      logger: { error: vi.fn() } as never,
+      paymentGateway: new MockPaymentGateway(),
       session: Promise.resolve(session),
       platformSettingsService: { get: (): PlatformSettings => SETTINGS },
     });
@@ -428,6 +445,7 @@ describe('BookingService session lists', () => {
       priceCents: 12_000,
       currency: 'PLN',
       status: 'confirmed',
+      refundStatus: 'none',
       startsAt: FAR_ENOUGH.toISOString(),
       isPast: false,
     }]);
@@ -482,5 +500,239 @@ describe('BookingService session lists', () => {
     ).rejects.toThrow(ForbiddenError);
     await expect(listHarness(null, []).service.listForMentee()).rejects.toThrow(UnauthorizedError);
     await expect(listHarness(null, []).service.listForMentor()).rejects.toThrow(UnauthorizedError);
+  });
+});
+
+describe('BookingService.cancelByMentee', () => {
+  const MENTEE: Session = { userId: MENTEE_ID, roles: ['mentee'] };
+  const START = new Date('2026-09-20T12:00:00.000Z');
+
+  function confirmed(overrides: Partial<IBooking> = {}): IBooking {
+    return {
+      id: BOOKING_ID,
+      mentee: { id: MENTEE_ID },
+      mentorProfile: profile(),
+      lengthMinutes: 25,
+      priceCents: 12_000,
+      currency: 'PLN',
+      status: 'confirmed',
+      refundStatus: 'none',
+      startsAt: START,
+      stripePaymentIntentId: 'pi_1',
+      cancelledAt: null,
+      stripeRefundId: null,
+      refundedAmountCents: null,
+      ...overrides,
+    } as unknown as IBooking;
+  }
+
+  function cancelHarness({
+    session = MENTEE as Session | null,
+    stored = confirmed() as IBooking | null,
+    now = new Date('2026-09-18T12:00:00.000Z'),
+    gateway = new MockPaymentGateway(),
+  } = {}) {
+    const em = {
+      findOne: vi.fn(async () => stored),
+      transactional: vi.fn(async (run: (inner: unknown) => unknown) =>
+        run({ findOne: async () => stored, flush: async () => undefined })),
+    };
+    const eventBus = { emit: vi.fn(async () => undefined) };
+    const logger = { error: vi.fn() };
+    const service = new BookingService({
+      em: em as unknown as EntityManager,
+      clock: { now: () => now },
+      eventBus: eventBus as never,
+      logger: logger as never,
+      paymentGateway: gateway,
+      session: Promise.resolve(session),
+      platformSettingsService: { get: (): PlatformSettings => SETTINGS },
+    });
+    return { service, em, eventBus, logger, gateway, stored };
+  }
+
+  it('frees the time and refunds in full more than 24 hours out', async () => {
+    const h = cancelHarness();
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toEqual({
+      id: BOOKING_ID,
+      status: 'cancelled',
+      refundStatus: 'refunded',
+      refundedAmountCents: 12_000,
+    });
+    expect(h.stored).toMatchObject({
+      status: 'cancelled',
+      refundStatus: 'refunded',
+      stripeRefundId: 're_mock_000001',
+      refundedAmountCents: 12_000,
+    });
+  });
+
+  it('refunds at exactly 24 hours, because the rule names that moment', async () => {
+    const h = cancelHarness({ now: new Date(START.getTime() - 24 * 60 * 60 * 1000) });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toMatchObject({
+      refundStatus: 'refunded',
+    });
+  });
+
+  it('frees the time but refunds nothing one millisecond inside the window (D10)', async () => {
+    const h = cancelHarness({ now: new Date(START.getTime() - 24 * 60 * 60 * 1000 + 1) });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toEqual({
+      id: BOOKING_ID,
+      status: 'cancelled',
+      // `none`, not `failed`: the fee is forfeit by decision, not by a refund going wrong.
+      refundStatus: 'none',
+      refundedAmountCents: 0,
+    });
+    expect(h.stored).toMatchObject({ status: 'cancelled', refundStatus: 'none' });
+  });
+
+  it('tells the mentor the time is free, saying whether a refund was owed', async () => {
+    const free = cancelHarness();
+    await free.service.cancelByMentee(BOOKING_ID);
+    expect(free.eventBus.emit).toHaveBeenCalledExactlyOnceWith('bookings.booking.cancelled', {
+      bookingId: BOOKING_ID,
+      menteeId: MENTEE_ID,
+      mentorProfileId: PROFILE_ID,
+      startsAt: START.toISOString(),
+      refunded: true,
+    });
+
+    const late = cancelHarness({ now: new Date(START.getTime() - 1_000) });
+    await late.service.cancelByMentee(BOOKING_ID);
+    expect(late.eventBus.emit).toHaveBeenCalledExactlyOnceWith(
+      'bookings.booking.cancelled',
+      expect.objectContaining({ refunded: false }),
+    );
+  });
+
+  it('keys the refund on the booking, so a retry is the same refund', async () => {
+    const gateway = new MockPaymentGateway();
+    const first = cancelHarness({ gateway });
+    await first.service.cancelByMentee(BOOKING_ID);
+
+    const retry = cancelHarness({ gateway, stored: confirmed() });
+    await expect(retry.service.cancelByMentee(BOOKING_ID)).resolves.toMatchObject({
+      refundStatus: 'refunded',
+    });
+    // Same refund id both times: the provider was asked once.
+    expect(retry.stored?.stripeRefundId).toBe('re_mock_000001');
+  });
+
+  it('leaves the session cancelled and the refund failed when the provider refuses', async () => {
+    const gateway = new MockPaymentGateway();
+    gateway.failNextCall(new Error('provider unreachable'));
+    const h = cancelHarness({ gateway });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toEqual({
+      id: BOOKING_ID,
+      status: 'cancelled',
+      refundStatus: 'failed',
+      refundedAmountCents: 0,
+    });
+    // Money owed and not returned is exactly the state an operator needs to see. Rolling
+    // back a cancellation the mentee made and the mentor was told about would hide it.
+    expect(h.stored).toMatchObject({ status: 'cancelled', refundStatus: 'failed' });
+    expect(h.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: BOOKING_ID }),
+      'refund could not be completed',
+    );
+  });
+
+  it('records a refund the provider has not settled yet as pending, not as money returned', async () => {
+    const gateway = new MockPaymentGateway();
+    vi.spyOn(gateway, 'refund').mockResolvedValue({ id: 're_1', status: 'pending' });
+    const h = cancelHarness({ gateway });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toMatchObject({
+      refundStatus: 'pending',
+      refundedAmountCents: 0,
+    });
+  });
+
+  it('records a provider-reported failure as failed', async () => {
+    const gateway = new MockPaymentGateway();
+    vi.spyOn(gateway, 'refund').mockResolvedValue({ id: 're_1', status: 'failed' });
+    const h = cancelHarness({ gateway });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toMatchObject({
+      refundStatus: 'failed',
+    });
+  });
+
+  it('cannot refund a confirmed booking that carries no payment reference', async () => {
+    const h = cancelHarness({ stored: confirmed({ stripePaymentIntentId: null }) });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toMatchObject({
+      refundStatus: 'failed',
+    });
+    expect(h.logger.error).toHaveBeenCalled();
+  });
+
+  it('refuses a session that has already started, pointing at a quality dispute', async () => {
+    const h = cancelHarness({ now: START });
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).rejects.toMatchObject({
+      code: 'conflict',
+      message: SESSION_STARTED_MESSAGE,
+    });
+    expect(h.eventBus.emit).not.toHaveBeenCalled();
+  });
+
+  it.each(['pending', 'cancelled', 'expired'] as const)(
+    'refuses to cancel a %s booking',
+    async (status) => {
+      const h = cancelHarness({ stored: confirmed({ status }) });
+
+      await expect(h.service.cancelByMentee(BOOKING_ID)).rejects.toMatchObject({
+        code: 'conflict',
+        message: NOT_CANCELLABLE_MESSAGE,
+      });
+    },
+  );
+
+  it('refuses somebody else booking, an unknown one, and a caller without the role', async () => {
+    await expect(
+      cancelHarness({ stored: confirmed({ mentee: { id: 'someone-else' } } as never) })
+        .service.cancelByMentee(BOOKING_ID),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(cancelHarness({ stored: null }).service.cancelByMentee(BOOKING_ID)).rejects
+      .toThrow(NotFoundError);
+    await expect(
+      cancelHarness({ session: { userId: MENTEE_ID, roles: ['mentor'] } })
+        .service.cancelByMentee(BOOKING_ID),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it('still reports the refund when the booking vanished before it could be recorded', async () => {
+    const h = cancelHarness();
+    let transaction = 0;
+    h.em.transactional.mockImplementation(async (run: (inner: unknown) => unknown) => {
+      transaction += 1;
+      // The cancellation commits; the row is gone by the time the refund is written back.
+      return run({
+        findOne: async () => (transaction === 1 ? h.stored : null),
+        flush: async () => undefined,
+      });
+    });
+
+    // The money still moved, so the caller is told what happened rather than being handed a
+    // failure for a refund that succeeded.
+    await expect(h.service.cancelByMentee(BOOKING_ID)).resolves.toMatchObject({
+      refundStatus: 'refunded',
+      refundedAmountCents: 12_000,
+    });
+  });
+
+  it('survives the booking vanishing between the read and either write', async () => {
+    const h = cancelHarness();
+    // The cancelling transaction re-reads the row; a booking deleted in between is a
+    // not-found rather than a write through nothing.
+    h.em.transactional.mockImplementation(async (run: (inner: unknown) => unknown) =>
+      run({ findOne: async () => null, flush: async () => undefined }));
+
+    await expect(h.service.cancelByMentee(BOOKING_ID)).rejects.toThrow(NotFoundError);
   });
 });
