@@ -83,14 +83,14 @@ one click away.
 
 ### Phase 1: Source material
 
-- [ ] 1.1 Copy QA screenshots into `docs/screenshots/`
-- [ ] 1.2 Write `docs/DEVELOPMENT.md` with the moved technical reference
+- [x] 1.1 Copy QA screenshots into `docs/screenshots/` — 4946acb
+- [x] 1.2 Write `docs/DEVELOPMENT.md` with the moved technical reference — 4946acb, 290b8c1
 
 ### Phase 2: README rewrite
 
-- [ ] 2.1 Title, badges, hero, business value and use cases
-- [ ] 2.2 Feature sections with screenshots and status
-- [ ] 2.3 Getting Started, documentation index, contributing and license
+- [x] 2.1 Title, badges, hero, business value and use cases — acc8067
+- [x] 2.2 Feature sections with screenshots and status — acc8067
+- [x] 2.3 Getting Started, documentation index, contributing and license — acc8067
 
 ### Phase 3: Verification
 
