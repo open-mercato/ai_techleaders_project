@@ -389,12 +389,25 @@ behind.
    only their conclusions in the main thread. A clean context window is a
    correctness feature, not just a cost saving.
 
-6. **Work locally; obtain explicit permission before any remote write.** Prepare
-   and review changes locally. Never push commits, create or update remote PRs or
-   issues, publish/deploy artifacts, or write changes to Figma or another external
-   service without the user's explicit approval for that action. Read-only remote
-   research remains allowed. A request to build or edit something locally is not
-   approval to publish it.
+6. **Work locally by default; publish when the request itself is the approval.**
+   Prepare and review changes locally. Remote writes (pushing commits, creating or
+   updating PRs or issues, labels, reviews, comments) need the user's explicit
+   approval, and two kinds of request already give it, so do not stop to ask again:
+   - **The user invokes a pipeline skill whose documented job ends remotely:** any
+     `om-auto-*` skill, `om-open-pr`, `om-check-and-commit`, `om-approve-merge-pr`,
+     `om-close-fixed-issues`, `om-prepare-issue`, `om-review-prs`. Invoking the
+     skill approves every remote write that skill and the skills it chains into
+     document. For example, `om-auto-update-changelog` → `om-auto-create-pr` →
+     branch push, ready PR, labels and review. Run the chain to its `PR:` line.
+   - **The user explicitly asks you to ship:** "push it", "open a PR", "commit and
+     push", `/om-open-pr`, or equivalent wording.
+
+   The approval covers only that task's documented remote writes. Always ask first
+   before force-pushing, rewriting published history, pushing directly to the base
+   branch, deleting remote branches or tags, merging (unless the user invoked a merge
+   skill), deploying or publishing artifacts, or writing to Figma or another external
+   service. A request only to prepare, draft, build or edit locally is not approval
+   to publish. Read-only remote research is always allowed.
 7. **Commit `.ai` artifacts as project records.** Run logs, QA reports and evidence,
    generated test-environment helpers, PR drafts, working references and generated
    previews belong in the repository alongside the work that produced them. Review
