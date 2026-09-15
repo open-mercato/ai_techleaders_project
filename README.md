@@ -267,6 +267,26 @@ signals (`tests/integration/environment.ts`); you do not need any of them in a l
 | `npm run db:migrate` / `npm run db:migrate:down` | Apply / revert migrations |
 | `npm run db:seed` | Run the default seeder |
 
+## Releases
+
+Prepare a complete `# <version> (YYYY-MM-DD)` section in `CHANGELOG.md`, merge it to
+`master`, then run **Actions → Release DevMentor → Run workflow** from `master`. Choose
+`patch`, `minor`, or `major`, or choose `custom` and enter an exact stable version such
+as `1.4.0`. The custom field must stay empty for the three automatic bumps.
+
+The workflow validates the repository, updates the root and all workspace package
+versions plus `package-lock.json`, commits the bump, and atomically pushes that commit
+with an annotated `v<version>` tag. It then publishes a GitHub Release using only that
+version's changelog section. Repository rules must allow the workflow's `GITHUB_TOKEN`
+to push this release commit to the default branch.
+
+If publication fails after the commit and tag were pushed, rerun the workflow from
+`master` with `custom` and the same current version. Recovery proceeds only when the
+existing annotated tag belongs to the current `master` history, its tagged manifests,
+lockfile, and changelog agree, and no GitHub Release exists. Recovery publishes from
+that immutable tagged commit even if newer changes have since reached `master`; tags
+are never moved or replaced.
+
 ## Testing and pull-request checks
 
 Every pull request runs four independent GitHub checks: **Build**, **Lint**, **Unit
