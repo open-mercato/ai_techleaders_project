@@ -1,16 +1,18 @@
 'use client';
 
-import type { SessionViewDto, SessionWindow } from '@devmentor/core';
+import type { SessionMessageDto, SessionViewDto, SessionWindow } from '@devmentor/core';
 import {
   Button,
   SESSION_IS_TEXT_MESSAGE,
+  SessionComposer,
   SessionComposerClosed,
   SessionHeader,
   SessionTranscript,
   type SessionMessage,
 } from '@devmentor/ui';
-import { ErrorMessage, LoadingMessage, useApiResource } from '@devmentor/ui/backend';
+import { ErrorMessage, LoadingMessage, apiCall, useApiResource } from '@devmentor/ui/backend';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useViewerTimeZone } from '../../../components/sessions-list';
 
 /**
@@ -70,15 +72,6 @@ export function closedReason(state: SessionWindow['state']): string | undefined 
   return undefined;
 }
 
-/**
- * What the composer says while this stack has read-only screens.
- *
- * Temporary, and deliberately says only what is true rather than naming a change nobody
- * reading the product can see. The next PR in this stack wires the composer to the route and
- * deletes this constant along with the `??` that uses it.
- */
-export const READ_ONLY_REASON = 'You can read this session here. Writing is not enabled yet.';
-
 /** What an empty transcript says, which differs by window state rather than being generic. */
 export function emptyTranscriptMessage(window: SessionWindow, timeZone: string): string {
   if (window.state === 'not_started') {
@@ -90,15 +83,49 @@ export function emptyTranscriptMessage(window: SessionWindow, timeZone: string):
 }
 
 /**
+ * The transcript, plus anything this browser has just had accepted.
+ *
+ * A poll is up to `SESSION_POLL_MS` away, so a message the server has already stored would
+ * otherwise sit invisible for five seconds after the party pressed Send. These are **not**
+ * optimistic: each one is a message the route answered `ok` for, with the id it was given, so
+ * the de-duplication is exact and the poll that catches up changes nothing on screen.
+ */
+export function mergeAccepted(
+  fromServer: readonly SessionMessageDto[],
+  accepted: readonly SessionMessageDto[],
+): SessionMessageDto[] {
+  const known = new Set(fromServer.map((message) => message.id));
+  return [...fromServer, ...accepted.filter((message) => !known.has(message.id))];
+}
+
+/**
+ * What a refused send says, preferring the field error to the generic one.
+ *
+ * `apiHandler` answers a validation failure with `fieldErrors.body`, which is the sentence
+ * written for this control ("Write a message before sending it."), while `message` is the
+ * envelope's summary ("Validation failed") and says nothing useful to a party.
+ */
+export function sendFailureMessage(error: {
+  message: string;
+  fieldErrors?: Record<string, string[] | undefined>;
+}): string {
+  return error.fieldErrors?.body?.[0] ?? error.message;
+}
+
+/**
  * The server's messages as the design system's transcript.
  *
  * **`isOwn` comes from `viewerUserId`, never from the name.** Two people called Alex in one
  * session would otherwise both sit on the right, which is why `SessionTranscript` takes
  * ownership as a prop instead of inferring it.
  */
-export function transcriptMessages(view: SessionViewDto, timeZone: string): SessionMessage[] {
+export function transcriptMessages(
+  view: SessionViewDto,
+  timeZone: string,
+  accepted: readonly SessionMessageDto[] = [],
+): SessionMessage[] {
   const time = timeFormat(timeZone);
-  return view.messages.map((message) => ({
+  return mergeAccepted(view.messages, accepted).map((message) => ({
     id: message.id,
     author: message.authorName,
     sentAt: message.createdAt,
@@ -135,6 +162,11 @@ export interface SessionScreenProps {
  * **An ended session stops polling.** It cannot change, so a tab left open on one does not
  * keep asking; everything else polls, including a session that has not started, so the
  * composer opens on its own when the booked minute arrives.
+ *
+ * **A refused send is the server's answer, shown where it was typed.** The window is decided
+ * again at the write, so a tab left open across the end boundary is told "this session has
+ * ended" rather than silently dropping the message — and the text stays in the box, because a
+ * party who is told to try later should not have to retype what they wrote.
  */
 export function SessionScreen({ bookingId, backHref }: SessionScreenProps) {
   const timeZone = useViewerTimeZone();
@@ -144,6 +176,25 @@ export function SessionScreen({ bookingId, backHref }: SessionScreenProps) {
     // the hook evaluates rather than something this component switches off in an effect.
     pollWhile: (view) => view?.window.state !== 'ended',
   });
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [accepted, setAccepted] = useState<SessionMessageDto[]>([]);
+
+  async function send(): Promise<void> {
+    setSending(true);
+    setFailure(undefined);
+    const result = await apiCall<SessionMessageDto>(`/api/sessions/${bookingId}/messages`, {
+      body: { body: draft },
+    });
+    setSending(false);
+    if (!result.ok) {
+      setFailure(sendFailureMessage(result.error));
+      return;
+    }
+    setAccepted((current: SessionMessageDto[]) => [...current, result.data]);
+    setDraft('');
+  }
 
   if (resource.loading) return <LoadingMessage message="Opening your text session" />;
   if (resource.error !== undefined || resource.data === undefined) {
@@ -154,6 +205,7 @@ export function SessionScreen({ bookingId, backHref }: SessionScreenProps) {
   }
 
   const view = resource.data;
+  const reason = closedReason(view.window.state);
   return <div className="dm-product-stack">
     <SessionHeader
       title={`Text session with ${view.counterpartName}`}
@@ -163,11 +215,18 @@ export function SessionScreen({ bookingId, backHref }: SessionScreenProps) {
       notice={SESSION_IS_TEXT_MESSAGE}
     />
     <SessionTranscript
-      messages={transcriptMessages(view, timeZone)}
+      messages={transcriptMessages(view, timeZone, accepted)}
       emptyMessage={emptyTranscriptMessage(view.window, timeZone)}
-      composer={<SessionComposerClosed
-        reason={closedReason(view.window.state) ?? READ_ONLY_REASON}
-      />}
+      composer={reason === undefined
+        ? <SessionComposer
+            value={draft}
+            maxLength={view.maxMessageLength}
+            pending={sending}
+            error={failure}
+            onChange={setDraft}
+            onSend={send}
+          />
+        : <SessionComposerClosed reason={reason} />}
     />
   </div>;
 }

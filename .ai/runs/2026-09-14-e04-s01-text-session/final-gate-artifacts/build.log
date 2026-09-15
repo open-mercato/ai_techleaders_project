@@ -1,0 +1,74 @@
+
+> devmentor@0.1.0 build
+> npm run build --workspace @devmentor/app
+
+
+> @devmentor/app@0.1.0 build
+> NODE_ENV=production next build
+
+▲ Next.js 16.3.3 (Turbopack)
+✓ Running next.config.ts took 20ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 616ms
+  Running TypeScript ...
+  Finished TypeScript in 2.2s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/4) ...
+  Generating static pages using 15 workers (1/4) 
+  Generating static pages using 15 workers (2/4) 
+  Generating static pages using 15 workers (3/4) 
+✓ Generating static pages using 15 workers (4/4) in 116ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/users
+├ ƒ /api/auth/github
+├ ƒ /api/auth/github/callback
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/register
+├ ƒ /api/auth/verify-email
+├ ƒ /api/availability/slots
+├ ƒ /api/availability/slots/[id]
+├ ƒ /api/bookings
+├ ƒ /api/bookings/[id]/cancel
+├ ƒ /api/bookings/[id]/checkout
+├ ƒ /api/health
+├ ƒ /api/invitations/[token]
+├ ƒ /api/invitations/[token]/accept
+├ ƒ /api/mentor/payouts
+├ ƒ /api/mentors
+├ ƒ /api/mentors/[slug]
+├ ƒ /api/mentors/me
+├ ƒ /api/mentors/me/onboarding
+├ ƒ /api/mentors/me/prices
+├ ƒ /api/mentors/me/publish
+├ ƒ /api/mentors/me/unpublish
+├ ƒ /api/notifications
+├ ƒ /api/operator/payouts/run
+├ ƒ /api/payments/webhook
+├ ƒ /api/sessions/[bookingId]
+├ ƒ /api/sessions/[bookingId]/messages
+├ ƒ /api/users
+├ ƒ /home
+├ ƒ /invitation/[token]
+├ ƒ /m/[slug]
+├ ƒ /mentor
+├ ƒ /mentor/payouts
+├ ƒ /mentor/prices
+├ ƒ /mentor/profile
+├ ƒ /mentor/sessions
+├ ƒ /mentor/slots
+├ ƒ /mentors
+├ ƒ /register
+├ ƒ /sessions/[bookingId]
+└ ƒ /sign-in
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -34,9 +34,9 @@
 | 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard + layout | inline | done | e4aa644 |
 | 3 Session screen | 3.4 | "Open session" entry point in both sessions lists (carries the poll-predicate and lint fixes) | inline | done | efd449f |
 | 3 Session screen | 3.5 | Draw a live session as in progress, not as ended under Past | inline | done | 61d9912 |
-| 4 Composer | 4.1 | Wire the composer to `POST`, with delivery states | inline | todo | — |
-| 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | todo | — |
-| 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | todo | — |
+| 4 Composer | 4.1 | Wire the composer to `POST`; refusals shown where typed | inline | done | e9d28ea |
+| 4 Composer | 4.2 | Ended state points at the written answer (#27) | inline | done | e9d28ea |
+| 4 Composer | 4.3 | Integration scenario — third-user refusal + the R03 line | inline | done | da2d10e |
 
 Legend: `todo` · `in-progress` · `done`. One Step = one commit. `Exec` is `inline` for
 every Step: the stack's branches must be created and pushed in order, and a dispatched
@@ -50,12 +50,12 @@ previous one, so each PR's diff is only its own work. Merge in order, top to bot
 | # | PR | Branch | Base | Steps | How a human verifies it |
 | --- | --- | --- | --- | --- | --- |
 | U | [#54](https://github.com/open-mercato/ai_techleaders_project/pull/54) (umbrella) | `feat/e04-s01-text-session` | `feat/epic-03-booking-and-payment` | 0.1 | Read the spec; this table is the status board |
-| 1 | _pending_ | `feat/e04-s01-session-ds` | `feat/e04-s01-text-session` | 1.1–1.2 | `npm run storybook` → Product/Session screen: every window state, no database |
-| 2 | _pending_ | `feat/e04-s01-session-data` | `feat/e04-s01-session-ds` | 2.1–2.5 | `npm run db:migrate && npm run db:seed && npm run db:seed:sessions`, then the two routes |
-| 3 | _pending_ | `feat/e04-s01-session-screen` | `feat/e04-s01-session-data` | 3.1–3.4 | Sign in as the seeded mentee/mentor → `/home` → "Open session" → the three states |
-| 4 | _pending_ | `feat/e04-s01-session-composer` | `feat/e04-s01-session-screen` | 4.1–4.3 | Two browsers, both parties, post and watch it arrive; then the ended session |
+| 1 | [#55](https://github.com/open-mercato/ai_techleaders_project/pull/55) | `feat/e04-s01-session-ds` | `feat/e04-s01-text-session` | 1.1–1.2 | `npm run storybook` → Product/Session screen: every window state, no database |
+| 2 | [#56](https://github.com/open-mercato/ai_techleaders_project/pull/56) | `feat/e04-s01-session-data` | `feat/e04-s01-session-ds` | 2.1–2.5 | `npm run db:migrate && npm run db:seed && npm run db:seed:sessions`, then the two routes |
+| 3 | [#57](https://github.com/open-mercato/ai_techleaders_project/pull/57) | `feat/e04-s01-session-screen` | `feat/e04-s01-session-data` | 3.1–3.4 | Sign in as the seeded mentee/mentor → `/home` → "Open session" → the three states |
+| 4 | [#58](https://github.com/open-mercato/ai_techleaders_project/pull/58) | `feat/e04-s01-session-composer` | `feat/e04-s01-session-screen` | 4.1–4.3 | Two browsers, both parties, post and watch it arrive; then the ended session |
 
-PR numbers are filled in as each PR opens.
+All five PRs are open. Merge in order, top to bottom.
 
 ## Goal
 
@@ -145,12 +145,20 @@ looks for it — and `SessionCard`'s own `open` state had no way to be reached a
 
 ### Phase 4 — Posting (PR 4)
 
-**4.1** Wire `SessionComposer` to `POST .../messages`: optimistic `sending`, `failed` with a
-retry, reload on success, refusal messages from the server surfaced in the composer's error
-slot.
+**4.1** Wire `SessionComposer` to `POST .../messages`: the controls lock while the send is in
+flight, the accepted message appears from the server's own answer (so it does not wait up to
+five seconds for the next poll), and a refusal is shown in the composer's error slot with the
+text left in the box.
+
+**Deliberately not optimistic.** The design system carries `sending` and `failed` delivery
+states for a message bubble, and nothing here uses them: a bubble that appears before the
+server has accepted it has to be reconciled, retried and un-drawn, and the composer's own
+locked state already says "Sending…" in the one place the party is looking. The states stay
+available for a later offline pass.
 
 **4.2** The ended session's composer states the reason and points at the written answer to
-come (#27), without claiming it exists.
+come (#27), without claiming it exists. Landed with 4.1: the same `closedReason` that chooses
+between the open composer and the closed one carries the sentence.
 
 **4.3** `tests/integration/session.integration.test.ts` — a third signed-in user is refused;
 the screen carries the R03 line; a party posts inside the window and the other party's next

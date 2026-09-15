@@ -1,27 +1,26 @@
 # Handoff — 2026-09-14-e04-s01-text-session
 
-**Last updated:** 2026-09-14T09:56Z
-**Branch:** `feat/e04-s01-session-composer` (PR 4 of the stack) — to be created
+**Last updated:** 2026-09-14T10:07Z
+**Branch:** `feat/e04-s01-session-composer` (PR 4 of the stack, the last one)
 **PRs:** umbrella [#54](https://github.com/open-mercato/ai_techleaders_project/pull/54) ·
 PR 1 [#55](https://github.com/open-mercato/ai_techleaders_project/pull/55) ·
 PR 2 [#56](https://github.com/open-mercato/ai_techleaders_project/pull/56)
-**Current phase/step:** Phase 4 Step 4.1
-**Last commit:** `61d9912` — fix(sessions): stop drawing a live session as ended
+**Current phase/step:** every Step `done`; final gate passed
+**Last commit:** `da2d10e` — test(sessions): prove a text session end to end
 
 ## What just happened
-- Phase 3 landed: silent polling in `useApiResource` (`pollMs` + `pollWhile`), the session
-  screen composed from the design system, `/sessions/[bookingId]` with its own layout and
-  guard, an "Open text session" link on both lists, and Step 3.5 — a live session is no
-  longer drawn "Ended" under *Past*, which the checkpoint-3 screenshots caught.
-- Checkpoint 3 walked all three window states plus the third-user refusal in a real browser,
-  as the mentee and as the mentor. Screenshots in `checkpoint-3-artifacts/`.
-- Chrome: the borrowed `dm-chrome` container disappeared mid-run; this run now owns
-  `dm-e04-chrome` (CDP on 9333) and must remove it at cleanup.
+- Phase 4 landed: the composer posts to the route, a refusal is shown where the message was
+  typed, and `tests/integration/session.integration.test.ts` proves the story end to end.
+- Final gate passed: the full `validation.commands` list is green with 100% per-file coverage,
+  and **TC-SESSION-001 passed against the real harness** (Testcontainers + a production build).
+  TC-SESSION-002 could not run here — the harness launches its own Chrome, which cannot start
+  (`libnspr4.so`); the assertions were never reached, and CI runs it.
+- A real browser proved the exchange: the mentor's reply arrived in the mentee's open page with
+  no navigation and no reload (`final-gate-artifacts/04-poll-brought-the-reply.png`).
 
 ## Next concrete action
-- Create `feat/e04-s01-session-composer` from `feat/e04-s01-session-screen` and start Step
-  4.1 — wire `SessionComposer` to `POST /api/sessions/{id}/messages` with delivery states,
-  replacing `READ_ONLY_REASON`.
+- Nothing in the plan. The remaining work is on the PRs: `om-auto-review-pr` on each, and the
+  five retarget to `master` once #53 merges.
 
 ## Blockers / open questions
 - **Q18 is open** (owner founder A). Built on its plain reading as a recorded `[ASSUMPTION]`.

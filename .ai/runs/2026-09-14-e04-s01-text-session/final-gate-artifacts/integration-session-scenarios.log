@@ -1,0 +1,23 @@
+
+ RUN  v4.1.11 /home/pkarw/Projects/ai_techleaders_project/.ai/cezar/worktrees/680f1847-6cd9-4e2b-8533-22e337857fef
+
+ ❯ tests/integration/session.integration.test.ts (2 tests | 1 failed) 5280ms
+     × shows both parties the transcript and a composer, with no audio or video control 4976ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/session.integration.test.ts > TC-SESSION-002 the session screen says sessions are text and offers no call > shows both parties the transcript and a composer, with no audio or video control
+Error: Command failed: /home/pkarw/.nvm/versions/node/v24.15.0/bin/node /home/pkarw/Projects/ai_techleaders_project/.ai/cezar/worktrees/680f1847-6cd9-4e2b-8533-22e337857fef/node_modules/agent-browser/bin/agent-browser.js --session devmentor-text-session-4116502 open http://127.0.0.1:35425/api/auth/github?login=mock-mentee
+✗ Auto-launch failed: Chrome exited early (exit code: 127) without writing DevToolsActivePort
+(also tried parsing stderr) Chrome exited before providing DevTools URL
+Chrome stderr:
+  /home/pkarw/.agent-browser/browsers/chrome-152.0.7977.82/chrome: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  10:00:07
+   Duration  16.09s (transform 243ms, setup 0ms, import 551ms, tests 5.28s, environment 0ms)
+

@@ -1,0 +1,12 @@
+
+> devmentor@0.1.0 typecheck
+> tsc --noEmit
+
+
+> devmentor@0.1.0 typecheck:storybook
+> npm run typecheck:storybook --workspace @devmentor/ui
+
+
+> @devmentor/ui@0.1.0 typecheck:storybook
+> tsc --noEmit --project .storybook/tsconfig.json
+
