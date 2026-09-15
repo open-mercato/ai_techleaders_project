@@ -94,4 +94,4 @@ one click away.
 
 ### Phase 3: Verification
 
-- [x] 3.1 Link/path check, diff re-read, validation gate — 0ea8bd9
+- [x] 3.1 Link/path check, diff re-read, validation gate — 26c951a
