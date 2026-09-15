@@ -173,9 +173,8 @@ migrations, seeds the demo personas), reporting each step as `ran` or `skipped`.
 with email as `mock-mentee@devmentor.test`, or as `mock-operator@devmentor.test` to
 reach `/admin`, using the published demo password in
 `packages/db/src/seeders/seed-password.ts`; a mentor reaches the workspace at `/mentor`,
-and a public page appears at `/m/<slug>` once that mentor publishes one. Everything
-else —
-configuration variables, bring-your-own-PostgreSQL, manual setup, GitHub OAuth, the
+and a public page appears at `/m/<slug>` once that mentor publishes one. Everything else
+— configuration variables, bring-your-own-PostgreSQL, manual setup, GitHub OAuth, the
 script table, tests and architecture — is in the
 **[development guide](./docs/DEVELOPMENT.md)**.
 
