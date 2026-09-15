@@ -60,3 +60,27 @@
   class of defect was already corrected once in E03 (`say the cancellation consequence once`).
 - Still open: `npm run test:integration` launches its own browser and is expected to fail
   locally; Step 4.3's scenario will be written here and executed by CI.
+
+## 2026-09-14T09:24Z — decision: the service is `TextSessionService`, not `SessionService`
+- The name the spec proposed collides head-on: `SessionService` already exists in
+  `core/src/services/auth/session.service.ts` (it issues and verifies the sign-in cookie) and
+  is registered as `sessionService` on the `Cradle`. Registering a second one under the same
+  key would have replaced authentication.
+- Renamed to `TextSessionService` in `services/sessions/text-session.service.ts`, cradle key
+  `textSessionService`. "Text session" is the product's own word (R03), so the longer name is
+  the product's vocabulary rather than a suffix invented to dodge a clash. The spec was
+  updated in the same commit.
+
+## 2026-09-14T09:32Z — checkpoint 2 (Phase 2 / PR 2 closed)
+- Entity + migration, validator, `TextSessionService`, the two routes and the QA seeder
+  landed. Typecheck, lint, 2229 unit tests and the full coverage gate (100% on all four
+  metrics) are green, `npm run build` passes, and the migration applies and reverts against a
+  real PostgreSQL 17.
+- The production build was run against a throwaway database with the seeded fixtures and
+  every below-the-UI acceptance criterion was exercised over HTTP: both parties read and post
+  in the open window, the counterpart name flips per side, a third user holding `operator` is
+  refused 403, an unknown or unconfirmed booking is 404, posting before the start and after
+  the end is 409, a missing CSRF header is 403 and whitespace-only is a field error.
+  Transcript: `checkpoint-2-artifacts/session-api-transcript.md`.
+- `npm run db:seed:sessions` proven idempotent: two runs leave exactly three bookings, three
+  slots and four seeded messages, with no orphaned slot.

@@ -22,12 +22,13 @@
 | --- | --- | --- | --- | --- | --- |
 | 0 Umbrella | 0.1 | Spec + run folder on the umbrella branch | inline | done | 9b12b88 |
 | 1 Design system | 1.1 | `SessionComposer` component, CSS, unit tests, export | inline | done | e1fe077 |
-| 1 Design system | 1.2 | Composer + whole-screen Storybook stories for every window state | inline | done | — |
-| 2 Data & API | 2.1 | `SessionMessage` entity + `sessions` migration | inline | todo | — |
-| 2 Data & API | 2.2 | `message-create.schema.ts` validator | inline | todo | — |
-| 2 Data & API | 2.3 | `session.service.ts` — window, party check, posting | inline | todo | — |
-| 2 Data & API | 2.4 | `GET /api/sessions/[bookingId]` + `POST .../messages` | inline | todo | — |
-| 2 Data & API | 2.5 | `QaSessionSeeder` + `npm run db:seed:sessions` | inline | todo | — |
+| 1 Design system | 1.2 | Composer + whole-screen Storybook stories for every window state | inline | done | de4bc9f |
+| 1 Design system | 1.2-ds-fix | Say sessions are text once per screen (found by screenshot) | inline | done | aed0d61 |
+| 2 Data & API | 2.1 | `SessionMessage` entity + `sessions` migration | inline | done | af51f7e |
+| 2 Data & API | 2.2 | `message-create.schema.ts` validator | inline | done | 0bdf774 |
+| 2 Data & API | 2.3 | `text-session.service.ts` — window, party check, posting | inline | done | 66fb4af |
+| 2 Data & API | 2.4 | `GET /api/sessions/[bookingId]` + `POST .../messages` | inline | done | 988cd62 |
+| 2 Data & API | 2.5 | `QaSessionSeeder` + `npm run db:seed:sessions` | inline | done | 3b678c4 |
 | 3 Session screen | 3.1 | `useApiResource` gains a non-flashing `pollMs` | inline | todo | — |
 | 3 Session screen | 3.2 | `session-screen.tsx` — DS composition, read-only | inline | todo | — |
 | 3 Session screen | 3.3 | `/sessions/[bookingId]/page.tsx` + guard | inline | todo | — |
@@ -104,7 +105,7 @@ a 4000-character check; generated migration with a verified `down`.
 
 **2.2** `messageCreateSchema` — `body` trimmed, 1–4000, with the field error copy.
 
-**2.3** `SessionService`: `window(booking, now)`, `getForParty(bookingId)` (confirmed only,
+**2.3** `TextSessionService` (renamed from the spec's `SessionService`, which collides with auth's): `window(booking, now)`, `getForParty(bookingId)` (confirmed only,
 party only, returns the booking projection + messages + window), `postMessage(bookingId,
 input)` (open only, cap at 500). Registered in `container.ts` and `cradle.ts`. Tests cover
 both boundaries, the third user, the operator, every non-`confirmed` status, the two closed

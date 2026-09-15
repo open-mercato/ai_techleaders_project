@@ -21,6 +21,7 @@ import { BookingService } from '../services/bookings/booking.service';
 import { PaymentService } from '../services/payments/payment.service';
 import { NotificationService } from '../services/notifications/notification.service';
 import { PayoutService } from '../services/payments/payout.service';
+import { TextSessionService } from '../services/sessions/text-session.service';
 import { InvitationService } from '../services/invitations/invitation.service';
 import { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -324,6 +325,7 @@ async function build(): Promise<AwilixContainer<Cradle>> {
     paymentService: asClass(PaymentService).scoped(),
     notificationService: asClass(NotificationService).scoped(),
     payoutService: asClass(PayoutService).scoped(),
+    textSessionService: asClass(TextSessionService).scoped(),
     // Configuration-backed and immutable for the process lifetime. E05 may replace
     // the backing store while preserving this service contract.
     platformSettingsService: asClass(PlatformSettingsService).singleton(),

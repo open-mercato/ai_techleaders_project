@@ -4,6 +4,7 @@ import { Slot } from './availability/slot.entity';
 import { Booking } from './bookings/booking.entity';
 import { ProcessedWebhookEvent } from './payments/processed-webhook-event.entity';
 import { Notification } from './notifications/notification.entity';
+import { SessionMessage } from './sessions/session-message.entity';
 import { Payout } from './payments/payout.entity';
 import { Invitation } from './invitations/invitation.entity';
 import { MentorProfile } from './mentors/mentor-profile.entity';
@@ -27,6 +28,11 @@ export {
   type IProcessedWebhookEvent,
 } from './payments/processed-webhook-event.entity';
 export { Notification, type INotification } from './notifications/notification.entity';
+export {
+  MAX_MESSAGE_LENGTH,
+  SessionMessage,
+  type ISessionMessage,
+} from './sessions/session-message.entity';
 export { Payout, type IPayout } from './payments/payout.entity';
 export {
   PAYOUT_HELD_REASONS,
@@ -54,4 +60,5 @@ export const entities = [
   ProcessedWebhookEvent,
   Notification,
   Payout,
+  SessionMessage,
 ];

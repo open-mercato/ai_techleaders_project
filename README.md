@@ -293,6 +293,7 @@ signals (`tests/integration/environment.ts`); you do not need any of them in a l
 | `npm run db:migration:create -- --name <x>` | Generate a migration from entity diff |
 | `npm run db:migrate` / `npm run db:migrate:down` | Apply / revert migrations |
 | `npm run db:seed` | Run the default seeder |
+| `npm run db:seed:sessions` | Plant three confirmed text-session fixtures for manual QA — one before its start, one open now, one ended. Needs `db:seed` first, is safe to re-run, and is never part of `db:seed` |
 
 ## Testing and pull-request checks
 

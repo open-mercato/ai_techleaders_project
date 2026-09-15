@@ -13,6 +13,7 @@ import type { BookingService } from '../services/bookings/booking.service';
 import type { PaymentService } from '../services/payments/payment.service';
 import type { NotificationService } from '../services/notifications/notification.service';
 import type { PayoutService } from '../services/payments/payout.service';
+import type { TextSessionService } from '../services/sessions/text-session.service';
 import type { InvitationService } from '../services/invitations/invitation.service';
 import type { MentorProfileService } from '../services/mentors/mentor-profile.service';
 import type { PlatformSettingsService } from '../services/operator/platform-settings.service';
@@ -98,6 +99,16 @@ export interface Cradle {
    * operator request or by the `payouts:run` script, both of which open their own scope.
    */
   payoutService: PayoutService;
+  /**
+   * The text session of a confirmed booking (E04-S01). SCOPED because it holds `em`, and
+   * because it resolves the caller's own `session` to answer the party question — the one
+   * thing a route guard cannot ask, since both sides of one booking use the same screen.
+   *
+   * Deliberately **not** `sessionService`: that key is the auth service that issues the
+   * sign-in cookie. Two different meanings of "session" on one cradle would be a bug waiting
+   * for whoever autocompletes the wrong one.
+   */
+  textSessionService: TextSessionService;
   platformSettingsService: PlatformSettingsService;
   /**
    * Email verification (Slice 4). **SCOPED because it holds `em`** — it writes
