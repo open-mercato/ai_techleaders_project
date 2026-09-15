@@ -58,6 +58,9 @@ agents — so the first mentor a developer meets is a good one.
 
 ## 🎯 Who it's for
 
+*The journeys DevMentor is built around. For how far the build has got, jump to
+[what it does today](#-what-it-does-today).*
+
 <table>
 <tr>
 <td width="33%" valign="top">
