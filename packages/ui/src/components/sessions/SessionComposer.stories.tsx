@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
-import { SessionComposer, type SessionComposerProps } from './SessionComposer';
+import { SessionComposer, SessionComposerClosed, type SessionComposerProps } from './SessionComposer';
 
 /** The server's bound (`MAX_MESSAGE_LENGTH`), mirrored here so the count reads realistically. */
 const MAX = 4000;
@@ -49,11 +49,11 @@ export const Refused: Story = {
 export const OverTheLimit: Story = { args: { value: 'x'.repeat(MAX + 12) } };
 
 export const BeforeTheSessionStarts: Story = {
-  args: { closedReason: 'This session starts on 14 September at 16:00 Europe/Warsaw. You can write here from then.' },
+  render: () => <SessionComposerClosed reason="You can write here once the session starts." />,
 };
 
 export const AfterTheSessionEnded: Story = {
-  args: { closedReason: 'This session has ended. The transcript stays here, and the mentor’s written answer comes next.' },
+  render: () => <SessionComposerClosed reason="This session has ended. The transcript stays here, and the mentor’s written answer comes next." />,
 };
 
 export const WrittenAnswerReuse: Story = {

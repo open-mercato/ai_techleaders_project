@@ -5,7 +5,7 @@ import { expect, userEvent, within } from 'storybook/test';
 import { Button } from '../ui/button';
 import { ErrorMessage } from '../../backend/feedback/ErrorMessage';
 import { SessionHeader } from './SessionCard';
-import { SessionComposer } from './SessionComposer';
+import { SessionComposer, SessionComposerClosed } from './SessionComposer';
 import { SESSION_IS_TEXT_MESSAGE } from './SessionIsTextNotice';
 import { SessionTranscript, type SessionMessage } from './WrittenAnswer';
 
@@ -98,13 +98,7 @@ export const BeforeTheStart: Story = {
     schedule="14 September 16:00 to 16:50 Europe/Warsaw"
     messages={[]}
     emptyMessage="Your text session starts on 14 September at 16:00 Europe/Warsaw."
-    composer={<SessionComposer
-      value=""
-      maxLength={MAX}
-      onChange={() => undefined}
-      onSend={() => undefined}
-      closedReason="You can write here once the session starts."
-    />}
+    composer={<SessionComposerClosed reason="You can write here once the session starts." />}
   />,
 };
 
@@ -124,13 +118,7 @@ export const Ended: Story = {
     state="ended"
     schedule="14 September 16:00 to 16:50 Europe/Warsaw"
     messages={exchange}
-    composer={<SessionComposer
-      value=""
-      maxLength={MAX}
-      onChange={() => undefined}
-      onSend={() => undefined}
-      closedReason="This session has ended. The transcript stays here, and the mentor’s written answer comes next."
-    />}
+    composer={<SessionComposerClosed reason="This session has ended. The transcript stays here, and the mentor’s written answer comes next." />}
   />,
 };
 

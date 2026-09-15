@@ -94,6 +94,9 @@ export default defineConfig({
         'packages/app/src/app/m/\\[slug\\]/book-session-panel.tsx',
         'packages/app/src/app/m/\\[slug\\]/booking-slots.ts',
         'packages/app/src/app/mentors/page.tsx',
+        'packages/app/src/app/sessions/\\[bookingId\\]/layout.tsx',
+        'packages/app/src/app/sessions/\\[bookingId\\]/page.tsx',
+        'packages/app/src/app/sessions/\\[bookingId\\]/session-screen.tsx',
         'packages/app/src/app/mentors/mentors-directory.tsx',
         'packages/app/src/app/admin/layout.tsx',
         'packages/app/src/app/admin/page.tsx',
@@ -110,6 +113,8 @@ export default defineConfig({
         // it composes: which links a role set may see, and the name in the user block.
         'packages/app/src/components/cancel-session-action.tsx',
         'packages/app/src/components/mentee-session-actions.tsx',
+        'packages/app/src/components/mentor-session-actions.tsx',
+        'packages/app/src/components/open-session-action.tsx',
         'packages/app/src/components/payouts-list.tsx',
         'packages/app/src/components/sessions-list.tsx',
         'packages/app/src/components/unread-notifications.tsx',

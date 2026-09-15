@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { apiCall } from './apiCall';
 import { useApiResource } from './useApiResource';
@@ -9,8 +9,16 @@ vi.mock('./apiCall', () => ({ apiCall: vi.fn() }));
 
 const request = vi.mocked(apiCall);
 
-function Harness({ path }: { path: string }) {
-  const resource = useApiResource<{ name: string }>(path);
+function Harness({
+  path,
+  pollMs,
+  pollWhile,
+}: {
+  path: string;
+  pollMs?: number;
+  pollWhile?: (data: { name: string } | undefined) => boolean;
+}) {
+  const resource = useApiResource<{ name: string }>(path, { pollMs, pollWhile });
   return <div>
     <span>{resource.loading ? 'loading' : resource.error ?? resource.data?.name}</span>
     <button type="button" onClick={resource.reload}>Reload</button>
@@ -83,4 +91,102 @@ it('aborts on unmount and ignores both resolved and rejected completions', async
   reject(new Error('Too late'));
   expect(rejectedSignal?.aborted).toBe(true);
   await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+});
+
+it('polls silently, so a refresh never blanks what is on screen', async () => {
+  request
+    .mockResolvedValueOnce({ ok: true, data: { name: 'First' } })
+    .mockResolvedValueOnce({ ok: true, data: { name: 'Second' } });
+  vi.useFakeTimers();
+  try {
+    render(<Harness path="/api/session" pollMs={5_000} />);
+    await act(async () => undefined);
+    expect(screen.getByText('First')).toBeTruthy();
+
+    await act(async () => { vi.advanceTimersByTime(5_000); });
+
+    // No 'loading' in between: the poll replaced the data without a spinner.
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('Second')).toBeTruthy();
+    expect(screen.queryByText('loading')).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('keeps the loaded data when a poll fails, and still reports a first-load failure', async () => {
+  request
+    .mockResolvedValueOnce({ ok: true, data: { name: 'Still here' } })
+    .mockResolvedValueOnce({ ok: false, error: { code: 'unavailable', message: 'Gone' } })
+    .mockRejectedValueOnce(new Error('network'));
+  vi.useFakeTimers();
+  try {
+    render(<Harness path="/api/session" pollMs={5_000} />);
+    await act(async () => undefined);
+
+    await act(async () => { vi.advanceTimersByTime(5_000); });
+    expect(screen.getByText('Still here')).toBeTruthy();
+    expect(screen.queryByText('Gone')).toBeNull();
+
+    await act(async () => { vi.advanceTimersByTime(5_000); });
+    expect(screen.getByText('Still here')).toBeTruthy();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('stops polling when the consumer goes away', async () => {
+  request.mockResolvedValue({ ok: true, data: { name: 'Only once' } });
+  vi.useFakeTimers();
+  try {
+    const view = render(<Harness path="/api/session" pollMs={5_000} />);
+    await act(async () => undefined);
+    view.unmount();
+
+    await act(async () => { vi.advanceTimersByTime(60_000); });
+
+    expect(request).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('does not poll at all when no interval is given', async () => {
+  request.mockResolvedValue({ ok: true, data: { name: 'Static' } });
+  vi.useFakeTimers();
+  try {
+    render(<Harness path="/api/profile" />);
+    await act(async () => undefined);
+
+    await act(async () => { vi.advanceTimersByTime(60_000); });
+
+    expect(request).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('stops polling as soon as the data says there is nothing more to read', async () => {
+  request
+    .mockResolvedValueOnce({ ok: true, data: { name: 'live' } })
+    .mockResolvedValueOnce({ ok: true, data: { name: 'ended' } });
+  vi.useFakeTimers();
+  try {
+    render(<Harness
+      path="/api/session"
+      pollMs={5_000}
+      pollWhile={(data) => data?.name !== 'ended'}
+    />);
+    await act(async () => undefined);
+    expect(screen.getByText('live')).toBeTruthy();
+
+    // One more read, which answers "ended" — and the predicate then closes the interval.
+    await act(async () => { vi.advanceTimersByTime(5_000); });
+    expect(screen.getByText('ended')).toBeTruthy();
+
+    await act(async () => { vi.advanceTimersByTime(60_000); });
+    expect(request).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });

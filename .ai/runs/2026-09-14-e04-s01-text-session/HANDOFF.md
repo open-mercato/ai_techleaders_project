@@ -1,36 +1,44 @@
 # Handoff — 2026-09-14-e04-s01-text-session
 
-**Last updated:** 2026-09-14T09:13Z
-**Branch:** `feat/e04-s01-session-ds` (PR 1 of the stack)
-**PR:** umbrella [#54](https://github.com/open-mercato/ai_techleaders_project/pull/54)
-**Current phase/step:** Phase 1 closed; next is Phase 2 Step 2.1
-**Last commit:** `de4bc9f` — docs(sessions): show the whole session screen in Storybook
+**Last updated:** 2026-09-14T09:56Z
+**Branch:** `feat/e04-s01-session-composer` (PR 4 of the stack) — to be created
+**PRs:** umbrella [#54](https://github.com/open-mercato/ai_techleaders_project/pull/54) ·
+PR 1 [#55](https://github.com/open-mercato/ai_techleaders_project/pull/55) ·
+PR 2 [#56](https://github.com/open-mercato/ai_techleaders_project/pull/56)
+**Current phase/step:** Phase 4 Step 4.1
+**Last commit:** `61d9912` — fix(sessions): stop drawing a live session as ended
 
 ## What just happened
-- Phase 1 landed: `SessionComposer` (the one design-system part #26 was missing) with 100%
-  per-file coverage, plus composer and whole-screen stories for every window state.
-- Checkpoint 1 written. Typecheck, storybook typecheck, lint, the unit suite and the full
-  coverage gate are green; `npm run build-storybook` succeeds.
+- Phase 3 landed: silent polling in `useApiResource` (`pollMs` + `pollWhile`), the session
+  screen composed from the design system, `/sessions/[bookingId]` with its own layout and
+  guard, an "Open text session" link on both lists, and Step 3.5 — a live session is no
+  longer drawn "Ended" under *Past*, which the checkpoint-3 screenshots caught.
+- Checkpoint 3 walked all three window states plus the third-user refusal in a real browser,
+  as the mentee and as the mentor. Screenshots in `checkpoint-3-artifacts/`.
+- Chrome: the borrowed `dm-chrome` container disappeared mid-run; this run now owns
+  `dm-e04-chrome` (CDP on 9333) and must remove it at cleanup.
 
 ## Next concrete action
-- Create `feat/e04-s01-session-data` from `feat/e04-s01-session-ds` and start Step 2.1 — the
-  `SessionMessage` entity and its migration.
+- Create `feat/e04-s01-session-composer` from `feat/e04-s01-session-screen` and start Step
+  4.1 — wire `SessionComposer` to `POST /api/sessions/{id}/messages` with delivery states,
+  replacing `READ_ONLY_REASON`.
 
 ## Blockers / open questions
-- **Q18 is open** (where the text exchange lives; owner founder A). Built on its plain
-  reading, recorded as an `[ASSUMPTION]`.
-- **No browser in this environment.** `agent-browser`'s Chrome cannot start (`libnspr4.so`
-  missing) and `agent-browser install --with-deps` needs root, which is refused. So no
-  screenshots and **no local `npm run test:integration`** for any checkpoint of this run.
-  Integration tests will be written and run by CI on the PRs; local UI verification is
-  replaced by the documented manual-QA steps in each checkpoint file.
+- **Q18 is open** (owner founder A). Built on its plain reading as a recorded `[ASSUMPTION]`.
+  PR 2 is the expensive half to reverse (one table), so a confirmation is worth having before
+  it merges.
+- **No local integration suite.** Its harness launches its own `agent-browser` Chrome, which
+  cannot start here (`libnspr4.so`, root needed). Step 4.3's scenario is written and run by CI.
+  Screenshots *are* possible via the host's `dm-chrome` CDP endpoint on port 9222.
 - The stack's base is the unmerged draft PR #53.
 
 ## Environment caveats
-- Dev runtime runnable: yes for Node, Storybook and unit tests; a database is needed from
-  Phase 2 (`npm run db:up`) and has not been started yet.
-- Browser / UI checks: **skipped — no runnable Chrome** (see above).
-- Database/migration state: clean; no migration written yet.
+- Dev runtime runnable: yes. A throwaway PostgreSQL runs in Docker as `dm-e04-db` on port
+  55450, migrated and seeded (personas + the three session fixtures); a production build of
+  the app can be started against it with `/tmp/claude-1000/start-qa-app.sh` on port 3099.
+- Browser / UI checks: available through `agent-browser connect 9222` (the `dm-chrome`
+  container), not through `agent-browser`'s own bundled Chrome.
+- Database/migration state: `Migration20260914091936_sessions` applied; snapshot committed.
 
 ## Worktree
 - Path: `/home/pkarw/Projects/ai_techleaders_project/.ai/cezar/worktrees/680f1847-6cd9-4e2b-8533-22e337857fef`

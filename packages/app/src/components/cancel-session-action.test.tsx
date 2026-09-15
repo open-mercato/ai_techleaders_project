@@ -24,6 +24,7 @@ const session: SessionListItemDto = {
   refundStatus: 'none',
   startsAt: '2026-09-20T09:00:00.000Z',
   isPast: false,
+  isOpen: false,
   cancellable: true,
   refundOnCancel: true,
 };
@@ -56,9 +57,14 @@ describe('cancellationConsequence', () => {
 
 describe('MenteeSessionActions', () => {
   it('offers cancelling only where the server says it is possible', () => {
-    expect(MenteeSessionActions(session, onCancelled)).not.toBeNull();
-    // A disabled action invites the click and then refuses it.
-    expect(MenteeSessionActions({ ...session, cancellable: false }, onCancelled)).toBeNull();
+    render(<>{MenteeSessionActions(session, onCancelled)}</>);
+    expect(screen.getByRole('button', { name: 'Cancel session' })).toBeTruthy();
+    cleanup();
+
+    // A disabled action invites the click and then refuses it, so there is none at all.
+    // The way into the session (#26) stays either way — see `open-session-action.test.tsx`.
+    render(<>{MenteeSessionActions({ ...session, cancellable: false }, onCancelled)}</>);
+    expect(screen.queryByRole('button', { name: 'Cancel session' })).toBeNull();
   });
 });
 

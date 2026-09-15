@@ -1,3 +1,4 @@
+import { MentorSessionActions } from '../../../../components/mentor-session-actions';
 import { SessionsList } from '../../../../components/sessions-list';
 import { requirePageRole } from '../../../../lib/session';
 
@@ -28,6 +29,7 @@ export default async function MentorSessionsPage() {
       as="mentor"
       emptyTitle="No sessions booked yet"
       emptyDescription="A session appears here once a mentee has booked one of your times and paid for it."
+      actionsFor={MentorSessionActions}
     />
   </div>;
 }
