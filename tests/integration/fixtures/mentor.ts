@@ -53,6 +53,46 @@ export async function seedPublishedMentorProfile(
   }
 }
 
+export interface MentorProfileMissingStackFixture {
+  profileId: string;
+  publicWorkUrl: string;
+  bio: string;
+}
+
+/**
+ * Seed the signed-in mock mentor with every publish requirement met except a chosen
+ * technology, so a publish attempt fails on exactly one readiness item.
+ */
+export async function seedMentorProfileMissingStackTags(
+  databaseUrl: string,
+): Promise<MentorProfileMissingStackFixture> {
+  const orm = await MikroORM.init({ clientUrl: databaseUrl, entities });
+  await orm.connect();
+  try {
+    const em = orm.em.fork();
+    const user = await em.findOneOrFail(User, { email: 'mock-mentor@devmentor.test' });
+    const profile = await em.findOneOrFail(MentorProfile, { user: user.id });
+    const fixture = {
+      profileId: profile.id,
+      publicWorkUrl: 'https://github.com/open-mercato',
+      bio: 'I build TypeScript systems and help engineers make reliable architecture choices.',
+    };
+    profile.slug = null;
+    profile.publicWorkUrl = fixture.publicWorkUrl;
+    profile.bio = fixture.bio;
+    profile.stackTags = [];
+    profile.publishedAt = null;
+    profile.lastPublishedAvailabilityAt = null;
+    profile.price25Cents = null;
+    profile.price50Cents = null;
+    await em.nativeDelete(Slot, { mentorProfile: profile.id });
+    await em.flush();
+    return fixture;
+  } finally {
+    await orm.close(true);
+  }
+}
+
 /** Seed one future slot owned by a fixture profile. */
 export async function seedFutureMentorSlot(
   databaseUrl: string,
