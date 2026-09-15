@@ -2,7 +2,9 @@
 
 ## Highlights
 
-<!-- TODO: Highlights — auto-update-changelog leaves this blank for the human author to fill in. -->
+DevMentor 0.1.0 establishes the platform foundation and its first complete mentor
+journey. Developers can sign in, mentors can publish priced profiles and availability,
+and contributors get a one-command setup plus a shared design system and test pipeline.
 
 ## ✨ Features
 
