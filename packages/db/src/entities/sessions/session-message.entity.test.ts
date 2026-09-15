@@ -57,7 +57,9 @@ describe('SessionMessage entity', () => {
     expect(meta.checks).toEqual([
       {
         name: 'session_messages_body_length',
-        expression: 'length("body") between 1 and 4000',
+        // Two comparisons rather than `between`, so the string matches what PostgreSQL hands
+        // back and the schema comparator stops reporting drift. See the entity.
+        expression: 'length("body") >= 1 and length("body") <= 4000',
       },
     ]);
   });
