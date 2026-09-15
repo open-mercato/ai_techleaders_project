@@ -111,6 +111,21 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
     );
   }
 
+  /**
+   * Revert every migration applied after `target`.
+   *
+   * `rollbackOne` reverts whatever happens to be last, which is only a useful thing to say
+   * while the migration under test *is* last. A test about one migration being independently
+   * revertable has to name it, or it silently starts testing a later one.
+   */
+  async function rollbackTo(target: string): Promise<void> {
+    await execFileAsync(
+      npmExecutable,
+      ['run', 'migration:down', '--workspace', '@devmentor/db', '--', '--to', target],
+      { cwd: root, env: childEnvironment, maxBuffer: 20 * 1024 * 1024, timeout: 120_000 },
+    );
+  }
+
   async function query<T extends object>(sql: string): Promise<T[]> {
     return (orm as MikroORM).em.getConnection().execute<T[]>(sql);
   }
@@ -1013,7 +1028,10 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
   });
 
   it('rolls back only prices, preserves availability, and reapplies them', async () => {
-    await rollbackOne();
+    // **To a named target, not "one step back".** This test is about prices being
+    // independently revertable, and `migration:down` reverts whatever happens to be last —
+    // which stopped being `mentor_prices` the moment E03 added migrations after it.
+    await rollbackTo(AVAILABILITY_MIGRATION);
     expect(await mentorPriceColumns()).toEqual([]);
     expect(await mentorPriceConstraints()).toEqual([]);
     expect(await appliedMigrations()).toContain(AVAILABILITY_MIGRATION);
@@ -1030,9 +1048,11 @@ describe('TC-DB-001 the auth-identity and auth-password migrations', () => {
       `),
     ).toHaveLength(1);
 
-    await migrate('--to', MENTOR_PRICES_MIGRATION);
+    // All the way back up, so the next test sees a fully migrated schema.
+    await migrate();
     expect(await mentorPriceColumns()).toHaveLength(2);
     expect(await mentorPriceConstraints()).toHaveLength(2);
+    expect(await appliedMigrations()).toContain(MENTOR_PRICES_MIGRATION);
   });
 
   it('matches the complete entity model after all migrations', async () => {

@@ -5,9 +5,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@devmentor/ui";
-import { checkDbConnection, getEnv } from "@devmentor/core";
-import { requirePageRole } from "../../lib/session";
+import { checkDbConnection, getEnv, type BookingMetrics } from "@devmentor/core";
+import { requirePageRole, withPageScope } from "../../lib/session";
 import { RunPayouts } from "./run-payouts";
+import { METRICS_WINDOW_DAYS, SessionMetrics } from "./session-metrics";
 
 // Touches the DB — keep it out of the static prerender.
 export const dynamic = "force-dynamic";
@@ -23,6 +24,11 @@ export default async function AdminDashboard() {
 
   const env = getEnv();
   const db = await checkDbConnection();
+  // Read in the operator's own scope: `metricsSince` checks the role itself, so the page
+  // cannot show a number to somebody the service would have refused.
+  const metrics: BookingMetrics = await withPageScope(
+    ({ bookingService }) => bookingService.metricsForLastDays(METRICS_WINDOW_DAYS),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,6 +38,7 @@ export default async function AdminDashboard() {
           Overview of the {env.APP_NAME} instance.
         </p>
       </div>
+      <SessionMetrics metrics={metrics} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>

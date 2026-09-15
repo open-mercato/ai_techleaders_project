@@ -14,6 +14,9 @@ env:
   NEXT_TELEMETRY_DISABLED: "1"
   PLATFORM_CURRENCY: "PLN"
   PLATFORM_PRICE_BOUNDS: '{"25":{"minCents":9000,"maxCents":60000},"50":{"minCents":18000,"maxCents":120000}}'
+  # Declared here for parity with `.env.example`, not because CI needs a different one: a
+  # build that read a different fee from the app would be testing a deployment nobody runs.
+  PLATFORM_FEE_PERCENT: "20"
 
 jobs:
   build:
