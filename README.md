@@ -282,8 +282,10 @@ to push this release commit to the default branch.
 
 If publication fails after the commit and tag were pushed, rerun the workflow from
 `master` with `custom` and the same current version. Recovery proceeds only when the
-existing tag points at the checked-out commit and no GitHub Release exists; tags are
-never moved or replaced.
+existing annotated tag belongs to the current `master` history, its tagged manifests,
+lockfile, and changelog agree, and no GitHub Release exists. Recovery publishes from
+that immutable tagged commit even if newer changes have since reached `master`; tags
+are never moved or replaced.
 
 ## Testing and pull-request checks
 

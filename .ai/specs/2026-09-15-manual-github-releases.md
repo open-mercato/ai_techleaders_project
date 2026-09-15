@@ -40,7 +40,9 @@ the matching changelog entry as the GitHub Release notes.
   annotated `v<version>` tag atomically, then create the GitHub Release with
   `--verify-tag` and the extracted changelog section.
 - Permit a recovery run with `custom` set to the current version when the existing tag
-  already points at the checked-out commit but the GitHub Release was not created. Never
+  is annotated, belongs to the current default-branch history, and its tagged manifests,
+  lockfile, and changelog are self-consistent, but the GitHub Release was not created.
+  Publish from that tagged commit even when the default branch has advanced. Never
   overwrite or relocate an existing tag.
 
 ## Acceptance criteria
@@ -59,6 +61,7 @@ the matching changelog entry as the GitHub Release notes.
   body is the corresponding changelog entry.
 - Concurrent release runs cannot race. A rejected default-branch push does not leave a
   remote tag behind, and a same-version custom rerun can finish release publication
-  after a failure that happened after the atomic push.
+  after a failure that happened after the atomic push, including after later commits
+  reached the default branch.
 - Unit coverage is 100% for the release helper and includes bump, custom, manifest,
   lockfile, changelog, and recovery-relevant edge cases.

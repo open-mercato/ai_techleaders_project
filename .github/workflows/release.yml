@@ -71,30 +71,45 @@ jobs:
           version=$(node scripts/release/release.mjs resolve "$VERSION_BUMP" "$CUSTOM_VERSION")
           tag="v$version"
           notes_file="$RUNNER_TEMP/release-notes.md"
-          node scripts/release/release.mjs notes "$version" "$notes_file"
 
           remote_tags=$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}")
           recovery=false
+          tag_commit=""
           if [ -n "$remote_tags" ]; then
             if [ "$version" != "$current_version" ]; then
               echo "Tag $tag already exists and cannot be moved." >&2
               exit 1
             fi
-            tag_commit=$(printf '%s\n' "$remote_tags" | awk '$2 ~ /\^\{\}$/ { print $1; found=1 } END { if (!found && NR == 1) print $1 }')
-            if [ "$tag_commit" != "$(git rev-parse HEAD)" ]; then
-              echo "Tag $tag does not point at the current default-branch commit." >&2
+            tag_commit=$(printf '%s\n' "$remote_tags" | awk '$2 ~ /\^\{\}$/ { print $1; exit }')
+            if [ -z "$tag_commit" ]; then
+              echo "Tag $tag is not annotated and cannot be used for recovery." >&2
               exit 1
             fi
-            recovery=true
-          elif [ "$version" != "$current_version" ]; then
-            npm version "$version" --workspaces --include-workspace-root --no-git-tag-version --ignore-scripts
-            node scripts/release/release.mjs verify "$version"
-            expected_files=$(node scripts/release/release.mjs files)
-            changed_files=$(git diff --name-only | sort)
-            if [ "$changed_files" != "$expected_files" ]; then
-              echo "Versioning changed files outside the expected manifests and lockfile." >&2
-              diff -u <(printf '%s\n' "$expected_files") <(printf '%s\n' "$changed_files") || true
+            if ! git merge-base --is-ancestor "$tag_commit" HEAD; then
+              echo "Tag $tag is not part of the current default-branch history." >&2
               exit 1
+            fi
+            recovery_root="$RUNNER_TEMP/release-recovery"
+            mkdir "$recovery_root"
+            git archive "$tag_commit" | tar -x -C "$recovery_root"
+            (
+              cd "$recovery_root"
+              node "$GITHUB_WORKSPACE/scripts/release/release.mjs" verify "$version"
+              node "$GITHUB_WORKSPACE/scripts/release/release.mjs" notes "$version" "$notes_file"
+            )
+            recovery=true
+          else
+            node scripts/release/release.mjs notes "$version" "$notes_file"
+            if [ "$version" != "$current_version" ]; then
+              npm version "$version" --workspaces --include-workspace-root --no-git-tag-version --ignore-scripts
+              node scripts/release/release.mjs verify "$version"
+              expected_files=$(node scripts/release/release.mjs files)
+              changed_files=$(git diff --name-only | sort)
+              if [ "$changed_files" != "$expected_files" ]; then
+                echo "Versioning changed files outside the expected manifests and lockfile." >&2
+                diff -u <(printf '%s\n' "$expected_files") <(printf '%s\n' "$changed_files") || true
+                exit 1
+              fi
             fi
           fi
 
@@ -103,6 +118,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
           echo "recovery=$recovery" >> "$GITHUB_OUTPUT"
+          echo "tag_commit=$tag_commit" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: npm run build
@@ -153,6 +169,7 @@ jobs:
           NOTES_FILE: ${{ steps.release.outputs.notes_file }}
           RECOVERY: ${{ steps.release.outputs.recovery }}
           TAG: ${{ steps.release.outputs.tag }}
+          TAG_COMMIT: ${{ steps.release.outputs.tag_commit }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
@@ -176,10 +193,9 @@ jobs:
 
           if [ "$RECOVERY" = "true" ]; then
             remote_commit=$(git ls-remote --tags origin "refs/tags/$TAG^{}" | awk 'NR == 1 { print $1 }')
-            if [ -z "$remote_commit" ]; then
-              remote_commit=$(git ls-remote --tags origin "refs/tags/$TAG" | awk 'NR == 1 { print $1 }')
-            fi
-            test "$remote_commit" = "$(git rev-parse HEAD)"
+            test -n "$remote_commit"
+            test "$remote_commit" = "$TAG_COMMIT"
+            release_target="$TAG_COMMIT"
           else
             askpass="$RUNNER_TEMP/git-askpass.sh"
             printf '%s\n' '#!/bin/sh' 'case "$1" in' '*Username*) printf %s x-access-token ;;' '*) printf %s "$GH_TOKEN" ;;' 'esac' > "$askpass"
@@ -187,7 +203,8 @@ jobs:
             GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 git push --atomic \
               "https://github.com/$GITHUB_REPOSITORY.git" \
               HEAD:"refs/heads/$DEFAULT_BRANCH" "refs/tags/$TAG"
+            release_target=$(git rev-parse HEAD)
           fi
 
-          gh release create "$TAG" --verify-tag --target "$(git rev-parse HEAD)" \
+          gh release create "$TAG" --verify-tag --target "$release_target" \
             --title "DevMentor $VERSION" --notes-file "$NOTES_FILE"

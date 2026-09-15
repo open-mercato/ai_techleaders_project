@@ -52,10 +52,15 @@ describe('release workflow', () => {
     expect(workflow).toContain('--title "DevMentor $VERSION" --notes-file "$NOTES_FILE"');
   });
 
-  it('keeps a same-commit existing tag as an explicit recovery path', () => {
+  it('recovers only from an annotated tag in the current default-branch history', () => {
     expect(workflow).toContain('recovery=true');
     expect(workflow).toContain("if: steps.release.outputs.recovery != 'true'");
-    expect(workflow).toContain('test "$remote_commit" = "$(git rev-parse HEAD)"');
+    expect(workflow).toContain('git merge-base --is-ancestor "$tag_commit" HEAD');
+    expect(workflow).toContain('Tag $tag is not annotated and cannot be used for recovery.');
+    expect(workflow).toContain('git archive "$tag_commit"');
+    expect(workflow).toContain('test "$remote_commit" = "$TAG_COMMIT"');
+    expect(workflow).toContain('release_target="$TAG_COMMIT"');
+    expect(workflow).not.toContain('if [ -z "$remote_commit" ]');
     expect(workflow).toContain('GitHub Release $TAG already exists.');
   });
 });

@@ -47,8 +47,9 @@ Source doc: `.ai/specs/2026-09-15-manual-github-releases.md`
   release workflow must run the equivalent build, type, lint, unit-coverage, Storybook,
   prototype, and integration gates before it receives the token used to publish.
 - GitHub Release creation occurs after the atomic push and can fail independently. The
-  same-version custom recovery path completes publication only when the existing tag
-  already points at the checked-out release commit.
+  same-version custom recovery path verifies the annotated tag's manifests, lockfile,
+  and changelog, then publishes that tag without moving it even if the default branch
+  has advanced.
 - The workflow deliberately refuses to invent release notes: the changelog entry must
   already exist and contain no unresolved TODO marker.
 
