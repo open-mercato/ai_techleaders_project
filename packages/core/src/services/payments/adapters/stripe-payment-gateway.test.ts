@@ -29,13 +29,16 @@ vi.mock('stripe', () => ({
   },
 }));
 
-const { StripePaymentGateway, STRIPE_UNAVAILABLE_MESSAGE } = await import(
+const { StripePaymentGateway, STRIPE_UNAVAILABLE_MESSAGE, MIN_CHECKOUT_EXPIRY_MS } = await import(
   './stripe-payment-gateway'
 );
 
 const logger = { warn: vi.fn(), error: vi.fn() } as unknown as Logger;
 
-function gateway(overrides: Partial<AppEnv> = {}) {
+/** Well clear of Stripe's expiry floor, so an unclamped request passes through unchanged. */
+const NOW = new Date('2026-09-14T11:50:00.000Z');
+
+function gateway(overrides: Partial<AppEnv> = {}, now: Date = NOW) {
   return new StripePaymentGateway({
     env: {
       STRIPE_SECRET_KEY: 'sk_test_x',
@@ -43,6 +46,7 @@ function gateway(overrides: Partial<AppEnv> = {}) {
       ...overrides,
     } as AppEnv,
     logger,
+    clock: { now: () => now },
   });
 }
 
@@ -86,6 +90,35 @@ describe('StripePaymentGateway checkout', () => {
         },
       }],
     });
+  });
+
+  it('lifts an expiry inside Stripe floor up to it, rather than being refused', async () => {
+    // The regression. The hold is 30 minutes and starts when the slot is *reserved*, which
+    // is a whole round trip before checkout is *started*, so the deadline handed to Stripe
+    // was always a little under its 30-minute minimum and it rejected every real session
+    // with `invalid_request_error`. The mock gateway accepts any expiry, so nothing in the
+    // suite could see it.
+    const startedLate = new Date(request.expiresAt.getTime() - 29 * 60_000);
+
+    await gateway({}, startedLate).createCheckoutSession(request);
+
+    expect(stripe.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expires_at: Math.floor((startedLate.getTime() + MIN_CHECKOUT_EXPIRY_MS) / 1000),
+      }),
+    );
+  });
+
+  it('leaves an expiry outside the floor exactly where the hold put it', async () => {
+    // The two must agree about who owns the slot whenever Stripe allows it, so the clamp is
+    // a floor and never a rewrite.
+    const startedEarly = new Date(request.expiresAt.getTime() - 45 * 60_000);
+
+    await gateway({}, startedEarly).createCheckoutSession(request);
+
+    expect(stripe.create).toHaveBeenCalledWith(
+      expect.objectContaining({ expires_at: 1_789_389_000 }),
+    );
   });
 
   it('builds the client once and only when something needs it', async () => {

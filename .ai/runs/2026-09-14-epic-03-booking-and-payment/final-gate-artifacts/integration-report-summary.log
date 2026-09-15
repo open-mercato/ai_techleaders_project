@@ -1,0 +1,8 @@
+ RUN  v4.1.11 /home/pkarw/Projects/ai_techleaders_project/.ai/cezar/worktrees/d1e31d27-89a8-42c2-b92c-c8e40acd34a1
+
+
+ Test Files  17 passed (17)
+      Tests  82 passed (82)
+   Start at  09:28:10
+   Duration  76.46s (transform 430ms, setup 0ms, import 6.09s, tests 58.65s, environment 1ms)
+

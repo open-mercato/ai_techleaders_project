@@ -38,6 +38,7 @@ vi.mock('@devmentor/core', async (importOriginal) => ({
 const {
   getPageSession,
   homeFor,
+  withPageScope,
   redirectIfSignedIn,
   requirePageRole,
   requirePageSession,
@@ -119,6 +120,25 @@ describe('homeFor', () => {
     // caller could get here — but the fallback is what lets the parameter be a plain array
     // instead of a non-empty tuple, so it is asserted rather than assumed.
     expect(homeFor([])).toBe('/home');
+  });
+});
+
+describe('withPageScope', () => {
+  it('carries this request cookie into a scope a service can authorize from', async () => {
+    const run = vi.fn(() => 'read');
+
+    await expect(withPageScope(run)).resolves.toBe('read');
+    // The cookie *value*, for the same reason `getPageSession` passes one: the scope is what
+    // verifies it, and this helper only carries it there.
+    expect(core.withCookieScope).toHaveBeenCalledWith('signed.session.jwt', run);
+  });
+
+  it('opens the scope with null when the visitor has no session cookie', async () => {
+    cookieValue = undefined;
+
+    await withPageScope(() => undefined);
+
+    expect(core.withCookieScope).toHaveBeenCalledWith(null, expect.any(Function));
   });
 });
 

@@ -57,6 +57,19 @@ error does not carry them — they are never emitted as `null`.
 
 **Routes in place:**
 
+- `POST /api/payments/webhook`: **the second non-enveloped route, and the only route in the
+  product that skips the CSRF header** (`apiHandler(logic, { csrf: false })`). Both
+  exceptions have one cause: the caller is Stripe, not a browser. It cannot send a custom
+  header, it authenticates by signing the raw request body instead, and it reads a bare
+  status code — a JSON envelope here would be a body nothing parses. It answers `200` with
+  the outcome as plain text (`confirmed`, `duplicate`, `already_confirmed`,
+  `unknown_booking`, `amount_mismatch`, `not_pending`, `refund_settled`, `ignored`), `400`
+  for a body whose signature does not verify, and `500` for a verified delivery it could not
+  act on — the last deliberately, because a 5xx is what makes the provider try again while a
+  4xx must not invite it to resend a forgery forever. The body is read with `req.text()`
+  before anything parses it: the signature covers the exact bytes sent, and re-serialising a
+  parsed object produces a signature that never verifies. **No other route may use
+  `csrf: false`.**
 - `GET /api/health`: a plain JSON probe, not enveloped:
   `{ status: "ok", app, environment, database: "up" | "down", databaseError? }`, HTTP
   200 even when the database is down. `tests/integration/global-setup.ts` polls it and
@@ -344,7 +357,26 @@ the change spans several concepts; note it in the PR body.
   `years_of_experience` default 0, `last_published_availability_at` timestamptz nullable),
   plus `slots` (`id`, timestamps, `mentor_profile_id` cascading to `mentor_profiles`,
   `starts_at` timestamptz, `removed_at` timestamptz nullable) and `auth_rate_limits` (see
-  below). Active slots are uniquely keyed by mentor and start through the partial
+  below).
+
+  E03 adds four tables and two columns. `bookings` carries one mentee's reservation of one
+  slot — its `slot_id`, `mentee_id` and `mentor_profile_id` foreign keys **restrict** rather
+  than cascade, because a booking is a money record and must not vanish with the time, the
+  mentor or the person it belongs to. Its slot is arbitrated by the partial unique index
+  `bookings_active_slot_unique` on `slot_id` `WHERE status IN ('pending','confirmed')`: two
+  concurrent reservations produce one row and one `23505`, and an `expired` or `cancelled`
+  row releases the slot without being deleted. `stripe_checkout_session_id` is unique so two
+  bookings can never claim one payment. `processed_webhook_events.event_id` is unique, and
+  that uniqueness **is** the exactly-once guarantee — the confirmation handler inserts the
+  row inside the confirming transaction, so a redelivery loses the insert and the whole
+  transaction rolls back. `payouts.booking_id` is unique for the same kind of reason: the
+  payout run is triggered by hand and may be triggered twice, and a second row for one
+  session would be a second transfer. `notifications` cascades from both its user and its
+  booking, unlike `bookings` — a notification is a message *about* a record, not the record.
+  `mentor_profiles` gains `stripe_connect_account_id` and `payouts_enabled`, which are all of
+  Connect this epic adds; onboarding itself is E02-S05.
+
+  Active slots are uniquely keyed by mentor and start through the partial
   `slots_active_mentor_profile_starts_at_unique` index where `removed_at is null`; the same
   instant may therefore be republished after removal. Column names are snake_case mappings of the
   camelCase entity properties. `password_hash` is `text` on purpose — 60 is bcrypt's output
@@ -434,7 +466,8 @@ Variables, as listed in `.env.example` and documented in `README.md`'s Configura
 
 - Application: `NODE_ENV`, `APP_NAME`, `LOG_LEVEL`, `APP_URL` (absolute, `http`/`https` only),
   `TRUSTED_PROXY_HOPS`, `PLATFORM_CURRENCY` (`PLN` only), `PLATFORM_PRICE_BOUNDS`
-  (strict JSON no longer than 256 characters, parsed to `p25`/`p50` integer-cent bounds).
+  (strict JSON no longer than 256 characters, parsed to `p25`/`p50` integer-cent bounds),
+  `PLATFORM_FEE_PERCENT`.
 - Database: `DATABASE_URL` (takes precedence), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
   `DB_PASSWORD`, `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_POOL_IDLE_MS`, `DB_DEBUG`, plus the
   platform currency and bounds validated for deployment parity with the app schema.
@@ -442,6 +475,18 @@ Variables, as listed in `.env.example` and documented in `README.md`'s Configura
   32 characters when set), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `OPERATOR_EMAILS`
   (comma-separated; parsed into a trimmed, lower-cased list at parse time).
 - Mail, declared ahead of its consumer: `MAILER_ADAPTER`, `MAIL_API_KEY`, `MAIL_FROM`.
+- Payments: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, **both optional and both
+  fail-closed at the point of use** (B6) — a deployment without them builds, boots and
+  serves every page, and answers 503 from the Checkout and webhook routes rather than
+  refusing to start. Neither key selects the gateway: `PAYMENT_GATEWAY` (`stripe` | `mock`,
+  optional) does, under the same two-signal rule as `AUTH_IDENTITY_ADAPTER` and
+  `MAILER_ADAPTER` — `mock` is refused at parse time without `INTEGRATION_TEST_RUN=1`, and
+  an unset value means the mock in development and Stripe everywhere else. Selection is from
+  a flag that is present, never from a credential that is absent: a production deployment
+  missing `STRIPE_SECRET_KEY` gets the real adapter and a 503 at the pay button, not a mock
+  that gives sessions away. `PLATFORM_FEE_PERCENT` (whole percent, 0–100, default 20) is DevMentor's share
+  of a paid session (D11/R10); the fee **in force at confirmation** is snapshotted onto the
+  booking, so changing it never rewrites what an earlier session owed.
 - Test doubles: `AUTH_IDENTITY_ADAPTER`, `INTEGRATION_TEST_RUN`.
 
 Two zod schemas describe them: `packages/core/src/config/env.ts` for the app and
@@ -465,7 +510,8 @@ random `SESSION_SECRET`, `AUTH_IDENTITY_ADAPTER=mock`, `INTEGRATION_TEST_RUN=1`,
 `OPERATOR_EMAILS`, the approved platform price policy and a required `APP_URL`.
 `.github/workflows/ci.yml` sets `NEXT_TELEMETRY_DISABLED` and that same price policy
 globally, and `OPERATOR_EMAILS` on the integration job. The additive `AppEnv`/`DbEnv`
-fields and `Cradle.platformSettingsService` key are protected source contracts.
+fields and the `Cradle` keys `platformSettingsService`, `paymentGateway`, `bookingService`,
+`paymentService`, `payoutService` and `notificationService` are protected source contracts.
 
 **Breaking:** a new variable without a default; renaming or removing a variable;
 changing a default in a way that changes runtime behavior; dropping the
@@ -493,7 +539,7 @@ maintainer updates the ruleset before the PR merges, otherwise the PR blocks its
 
 ### 6. Domain events (`packages/core/src/events/event-map.ts`)
 
-Event ids follow `concept.entity.action`. Today there are three, all subscribed in
+Event ids follow `concept.entity.action`. Today there are five, all subscribed in
 `packages/core/src/container/container.ts`:
 
 - `auth.user.created`, payload `{ userId, email }`, emitted by `UserService.create` and by the
@@ -505,6 +551,17 @@ Event ids follow `concept.entity.action`. Today there are three, all subscribed 
   so a subscriber must not treat one event as one deliberate administrative act.
 - `availability.slot.published`, payload `{ mentorProfileId, slotId, startsAt }`, emitted
   only after the slot transaction commits.
+- `bookings.booking.confirmed`, payload
+  `{ bookingId, menteeId, mentorProfileId, startsAt, lengthMinutes }`, emitted **only from
+  the payment webhook** after the confirming transaction commits — never from the browser's
+  return to `success_url`, which proves nothing. Nothing subscribes to a pending or expired
+  booking, so an unconfirmed reservation notifies nobody.
+- `bookings.booking.cancelled`, payload
+  `{ bookingId, menteeId, mentorProfileId, startsAt, refunded }`, emitted after the
+  cancelling transaction commits and **before** the refund settles: the slot is free either
+  way, and the mentor needs to know that now rather than when a provider answers.
+  `refunded` says whether one was owed at all — inside 24 hours the fee is forfeit (R09),
+  which is a decision and not a failure.
 
 **Breaking:** renaming an event id; removing or retyping a payload field.
 

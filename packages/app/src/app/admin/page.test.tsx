@@ -12,10 +12,13 @@ import { text } from '../../test/element-tree';
 
 class RedirectSentinel extends Error {}
 
-const session = vi.hoisted(() => ({ requirePageRole: vi.fn() }));
+const session = vi.hoisted(() => ({ requirePageRole: vi.fn(), withPageScope: vi.fn(), metricsForLastDays: vi.fn() }));
 const core = vi.hoisted(() => ({ getEnv: vi.fn(), checkDbConnection: vi.fn() }));
 
-vi.mock('../../lib/session', () => ({ requirePageRole: session.requirePageRole }));
+vi.mock('../../lib/session', () => ({
+  requirePageRole: session.requirePageRole,
+  withPageScope: session.withPageScope,
+}));
 vi.mock('@devmentor/core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@devmentor/core')>()),
   getEnv: core.getEnv,
@@ -27,6 +30,9 @@ const { default: AdminDashboard } = await import('./page');
 beforeEach(() => {
   vi.clearAllMocks();
   session.requirePageRole.mockResolvedValue({ userId: 'u-3', roles: ['operator'] });
+  session.metricsForLastDays.mockResolvedValue({ weeks: [], medianBookingToStartMinutes: null });
+  session.withPageScope.mockImplementation((run: (cradle: unknown) => unknown) =>
+    run({ bookingService: { metricsForLastDays: session.metricsForLastDays } }));
   core.getEnv.mockReturnValue({ APP_NAME: 'DevMentor', NODE_ENV: 'test' });
   core.checkDbConnection.mockResolvedValue({ ok: true });
 });
