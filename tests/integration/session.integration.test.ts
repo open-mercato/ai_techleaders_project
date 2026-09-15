@@ -164,8 +164,12 @@ describe('TC-SESSION-002 the session screen says sessions are text and offers no
           snapshot,
           { role: 'link', text: pattern },
           {
+            // The control for "no *link* opens a call" has to be a link that really is on
+            // this screen. Sign out is a `WorkflowAction` button, here and everywhere else
+            // (`SignOutAction`), so naming it a link made the positive control unsatisfiable
+            // and the assertion threw before it ever looked for a call link.
             tree: 'the open text session screen',
-            provenBy: [{ role: 'link', text: 'Sign out' }],
+            provenBy: [{ role: 'link', text: 'My sessions' }],
           },
         );
       }
@@ -188,7 +192,7 @@ describe('TC-SESSION-002 the session screen says sessions are text and offers no
         { role: 'textbox' },
         {
           tree: 'the ended text session screen',
-          provenBy: [{ role: 'link', text: 'Sign out' }],
+          provenBy: [{ role: 'button', text: 'Sign out' }],
         },
       );
       await runAgentBrowser(
