@@ -218,6 +218,7 @@ export default defineConfig({
         'packages/ui/src/time/formatInstant.ts',
         'packages/ui/src/time/LocalTime.tsx',
         'scripts/invite.ts',
+        'scripts/release/release.mjs',
         'scripts/setup/effects.mjs',
         'scripts/setup/index.mjs',
         'scripts/setup/run.mjs',
