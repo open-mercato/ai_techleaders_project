@@ -19,8 +19,9 @@ per-pull-request preview environments.
   proxy setting.
 - Added a generated production session secret and configured the existing Resend
   credential without writing either secret to this record.
-- Configured `DB_MIGRATIONS_SNAPSHOT=false npm run db:migrate` as the pre-deploy
-  command and `/api/health` as the deployment health check.
+- Configured `npm run db:migrate` as the pre-deploy command, with
+  `DB_MIGRATIONS_SNAPSHOT=false` supplied as a service variable, and `/api/health` as
+  the deployment health check.
 - Created a dedicated `staging` base environment for PR previews. It uses its own
   session secret and intentionally nonfunctional mail credentials so pull-request
   code cannot access the production Resend key.
@@ -33,16 +34,23 @@ per-pull-request preview environments.
   copied or recorded.
 - Triggered a documentation-only pull request to exercise Railway's GitHub PR hook and
   ephemeral environment lifecycle end to end.
+- Corrected the deployment guide after the probe established that Railway rejects a
+  leading shell-style environment assignment in its pre-deploy command.
 
 ## Files touched
 
 - `.ai/runs/2026-09-15-railway-deployment.md`
+- `.ai/lessons.md`
+- `docs/DEVELOPMENT.md`
 
 ## Outcome
 
 Production and the staging preview base deployed successfully from `master` and each
-returned `/api/health` with `status: "ok"` and `database: "up"`. Final PR-environment
-verification is recorded before this run is closed.
+returned `/api/health` with `status: "ok"` and `database: "up"`. Probe PR #63 created
+the ephemeral `ai_techleaders_project-pr-63` environment from `staging`, provisioned
+its own PostgreSQL service and volume, selected the PR branch, applied all eight
+migrations on the fresh database, generated a unique domain, and returned the same
+healthy response.
 
 ## Follow-ups
 

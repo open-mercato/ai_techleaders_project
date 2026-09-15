@@ -359,9 +359,11 @@ not committed in that format. Configure the service in Railway as follows:
    `SESSION_SECRET`, `MAIL_API_KEY`, and `MAIL_FROM`. Add GitHub credentials and
    `OPERATOR_EMAILS` when those features should be available. Never copy local test
    adapter flags.
-3. Set the app's **Pre-deploy Command** to
-   `DB_MIGRATIONS_SNAPSHOT=false npm run db:migrate`. A failed migration then stops
-   the release before the web container changes.
+3. Set the app's **Pre-deploy Command** to `npm run db:migrate`. Keep
+   `DB_MIGRATIONS_SNAPSHOT=false` as the service variable from step 2; Railway's
+   pre-deploy executor does not treat a leading shell-style assignment as an
+   environment override. A failed migration then stops the release before the web
+   container changes.
 4. Leave the start command unset so Railway uses the image `CMD`. Generate or attach
    the public domain, update `APP_URL` to that exact HTTPS origin, and set the health
    path to `/api/health`.
