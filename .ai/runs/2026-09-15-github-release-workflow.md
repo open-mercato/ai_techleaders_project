@@ -63,8 +63,8 @@ Source doc: `.ai/specs/2026-09-15-manual-github-releases.md`
 
 ### Phase 2: GitHub workflow
 
-- [ ] 2.1 Add the safe manual GitHub release workflow
-- [ ] 2.2 Add static workflow regression coverage
+- [x] 2.1 Add the safe manual GitHub release workflow — 53371be
+- [x] 2.2 Add static workflow regression coverage — 53371be
 
 ### Phase 3: Verification
 
