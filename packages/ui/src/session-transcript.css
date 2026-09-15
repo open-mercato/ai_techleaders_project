@@ -39,3 +39,14 @@
   .dm-transcript-bubble { padding: var(--dm-space-16); }
   .dm-transcript-composer { padding: var(--dm-space-24) var(--dm-space-16); }
 }
+
+/* The composer (#26). Its footer follows the confirmed form-footer rule: the action sits at
+   the trailing edge, after the metadata the party reads before pressing it. */
+.dm-session-composer { display: grid; gap: var(--dm-space-8); }
+.dm-session-composer-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--dm-space-8) var(--dm-space-16); }
+.dm-session-composer-footer .dm-button { margin-inline-start: auto; }
+.dm-session-composer-count[data-over="true"] { color: var(--dm-state-error-dark); }
+.dm-session-composer-error { color: var(--dm-state-error-dark); font-size: 12px; line-height: 18px; }
+@media (max-width: 600px) {
+  .dm-session-composer-footer .dm-button { margin-inline-start: 0; width: 100%; }
+}

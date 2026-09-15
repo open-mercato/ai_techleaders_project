@@ -30,3 +30,33 @@
 - A manual QA seeder (`npm run db:seed:sessions`) is part of PR 2 because a booking needs two
   hours of lead time, so no manually booked session can ever be *open now*: without seeded
   fixtures the open and ended states are unreachable by hand.
+
+## 2026-09-14T09:13Z — checkpoint 1 (Phase 1 / PR 1 closed)
+- `SessionComposer` + composer and whole-screen stories landed. Typecheck, storybook
+  typecheck, lint, unit suite (193 files / 2161 tests) and the full coverage gate (100% on
+  all four metrics) are green; `npm run build-storybook` succeeds.
+- Disclosed flake: one unit test failed on the first run, executed while the Storybook dev
+  server was building on the same machine; three later clean runs were green and the failing
+  test's name was not captured. Recorded as contention, not as a result.
+
+## 2026-09-14T09:13Z — blocker: no browser in this environment (UI verification skipped)
+- `agent-browser`'s bundled Chrome fails to start for every installed version:
+  `error while loading shared libraries: libnspr4.so`. The documented fix
+  (`npm run test:browser:install:ci` → `agent-browser install --with-deps`) installs system
+  packages and needs root; `sudo` is refused here.
+- Consequence: **no screenshots and no local `npm run test:integration` for this whole run.**
+  Per the run's rules UI verification must not block development, so each checkpoint records
+  the skip with this reason and carries explicit manual-QA steps instead. The integration
+  scenario of Step 4.3 is still written; CI runs it on the PR.
+
+## 2026-09-14T09:20Z — correction: a browser IS available (CDP), and it caught a defect
+- Supersedes the 09:13Z blocker entry for screenshots only. `agent-browser`'s bundled Chrome
+  still cannot start (`libnspr4.so`), but a `chromedp/headless-shell` container (`dm-chrome`)
+  is running on this host with CDP on 9222, and `agent-browser connect 9222` drives it. All of
+  checkpoint 1's screenshots were captured that way.
+- The screenshots immediately caught a defect no unit test could: R03's sentence rendered
+  **twice**, one line apart, in the composed screen. Fixed by removing the standalone notice
+  from the composition and keeping the header's notice slot as the single rendering. The same
+  class of defect was already corrected once in E03 (`say the cancellation consequence once`).
+- Still open: `npm run test:integration` launches its own browser and is expected to fail
+  locally; Step 4.3's scenario will be written here and executed by CI.
