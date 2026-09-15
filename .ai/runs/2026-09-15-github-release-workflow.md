@@ -55,6 +55,8 @@ Source doc: `.ai/specs/2026-09-15-manual-github-releases.md`
 
 ## Progress
 
+PR: #60
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Release contract
@@ -69,4 +71,5 @@ Source doc: `.ai/specs/2026-09-15-manual-github-releases.md`
 
 ### Phase 3: Verification
 
-- [ ] 3.1 Pass the full validation and authoritative review gates
+- [x] 3.1 Pass the full validation and authoritative review gates — 508a6a1
+- [x] Post-review fix: recover from verified annotated ancestor tags — 508a6a1
