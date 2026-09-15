@@ -166,12 +166,19 @@ describe('command interface', () => {
     expect(output.mock.calls).toEqual([['1.3.0\n'], ['repository versions are 1.2.3\n']]);
     expect(await readFile(notesPath, 'utf8')).toBe('## Features\n\n- Shipped.\n');
   });
+  it('lists every versioned repository file', async () => {
+    const root = await repositoryFixture();
+    const output = vi.fn();
+    await main(['files'], { repositoryRoot: root, output });
+    expect(output).toHaveBeenCalledWith('package-lock.json\npackage.json\npackages/app/package.json\n');
+  });
   it('rejects missing or extra command arguments and unknown commands', async () => {
     const root = await repositoryFixture();
+    await expect(main(['files', 'extra'], { repositoryRoot: root })).rejects.toThrow('release.mjs files');
     await expect(main(['resolve', 'patch'], { repositoryRoot: root })).rejects.toThrow('release.mjs resolve');
     await expect(main(['verify', '1.2.3', 'extra'], { repositoryRoot: root })).rejects.toThrow('release.mjs verify');
     await expect(main(['notes', '1.2.3'], { repositoryRoot: root })).rejects.toThrow('release.mjs notes');
-    await expect(main(['unknown'], { repositoryRoot: root })).rejects.toThrow('release.mjs <resolve|verify|notes>');
+    await expect(main(['unknown'], { repositoryRoot: root })).rejects.toThrow('release.mjs <files|resolve|verify|notes>');
   });
   it('covers direct CLI success, failure, and a missing argv path', async () => {
     const originalArgv = process.argv;

@@ -141,6 +141,13 @@ export async function main(args = process.argv.slice(2), options = {}) {
   const repositoryRoot = options.repositoryRoot ?? process.cwd();
   const output = options.output ?? ((value) => process.stdout.write(value));
   const command = args[0];
+  if (command === 'files') {
+    requireArguments(args, 1, 'release.mjs files');
+    const manifests = await findManifestPaths(repositoryRoot);
+    const files = manifests.map(({ lockKey }) => lockKey === '' ? 'package.json' : `${lockKey}/package.json`);
+    output(`${[...files, 'package-lock.json'].sort().join('\n')}\n`);
+    return;
+  }
   if (command === 'resolve') {
     requireArguments(args, 3, 'release.mjs resolve <major|minor|patch|custom> <custom-version-or-empty>');
     const state = await readRepositoryVersions(repositoryRoot);
@@ -160,7 +167,7 @@ export async function main(args = process.argv.slice(2), options = {}) {
     await writeFile(args[2], extractReleaseNotes(changelog, args[1]), 'utf8');
     return;
   }
-  throw new Error('usage: release.mjs <resolve|verify|notes> ...');
+  throw new Error('usage: release.mjs <files|resolve|verify|notes> ...');
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
