@@ -29,7 +29,9 @@ import {
   NOT_CANCELLABLE_MESSAGE,
   SESSION_STARTED_MESSAGE,
   SLOT_TAKEN_MESSAGE,
+  medianOf,
   toBookingDto,
+  weekStartOf,
 } from './booking.service';
 
 const NOW = new Date('2026-09-14T12:00:00.000Z');
@@ -781,5 +783,119 @@ describe('BookingService.cancelByMentee', () => {
       run({ findOne: async () => null, flush: async () => undefined }));
 
     await expect(h.service.cancelByMentee(BOOKING_ID)).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe('booking metrics', () => {
+  const OPERATOR: Session = { userId: 'operator-1', roles: ['operator'] };
+
+  function paid(bookedAt: string, startsAt: string, overrides: Partial<IBooking> = {}): IBooking {
+    return {
+      id: `booking-${bookedAt}`,
+      status: 'confirmed',
+      bookedAt: new Date(bookedAt),
+      startsAt: new Date(startsAt),
+      ...overrides,
+    } as unknown as IBooking;
+  }
+
+  function metricsHarness(session: Session | null, bookings: IBooking[]) {
+    const em = { find: vi.fn(async () => bookings) };
+    const service = new BookingService({
+      em: em as unknown as EntityManager,
+      clock: { now: () => NOW },
+      eventBus: { emit: vi.fn(async () => undefined) } as never,
+      logger: { error: vi.fn() } as never,
+      paymentGateway: new MockPaymentGateway(),
+      session: Promise.resolve(session),
+      platformSettingsService: { get: (): PlatformSettings => SETTINGS },
+    });
+    return { service, em };
+  }
+
+  it('starts every week on its Monday, including for a Sunday booking', () => {
+    // Sunday 2026-09-20 belongs to the week that started on Monday the 14th.
+    expect(weekStartOf(new Date('2026-09-20T23:59:59.000Z')).toISOString())
+      .toBe('2026-09-14T00:00:00.000Z');
+    expect(weekStartOf(new Date('2026-09-14T00:00:00.000Z')).toISOString())
+      .toBe('2026-09-14T00:00:00.000Z');
+    expect(weekStartOf(new Date('2026-09-21T08:00:00.000Z')).toISOString())
+      .toBe('2026-09-21T00:00:00.000Z');
+  });
+
+  it('takes the middle value, averaging the two middles on an even count', () => {
+    // A mean would be pulled by one mentee who booked three months ahead.
+    expect(medianOf([5, 1, 3])).toBe(3);
+    expect(medianOf([1, 2, 3, 4])).toBe(3);
+    expect(medianOf([7])).toBe(7);
+  });
+
+  it('answers nothing rather than zero for an empty set', () => {
+    // "No data" and "booked at the last moment" are different answers.
+    expect(medianOf([])).toBeNull();
+  });
+
+  it('counts paid sessions by the week they were booked in (D16)', async () => {
+    const h = metricsHarness(OPERATOR, [
+      paid('2026-09-14T09:00:00.000Z', '2026-09-16T09:00:00.000Z'),
+      paid('2026-09-20T09:00:00.000Z', '2026-09-22T09:00:00.000Z'),
+      paid('2026-09-21T09:00:00.000Z', '2026-09-23T09:00:00.000Z'),
+    ]);
+
+    await expect(h.service.metricsForLastDays(28)).resolves
+      .toMatchObject({
+        weeks: [
+          { weekStart: '2026-09-14', count: 2 },
+          { weekStart: '2026-09-21', count: 1 },
+        ],
+      });
+  });
+
+  it('reports the median booking-to-start in whole minutes (D22, R15)', async () => {
+    const h = metricsHarness(OPERATOR, [
+      paid('2026-09-14T09:00:00.000Z', '2026-09-14T11:00:00.000Z'),
+      paid('2026-09-15T09:00:00.000Z', '2026-09-16T09:00:00.000Z'),
+      paid('2026-09-16T09:00:00.000Z', '2026-09-16T13:00:00.000Z'),
+    ]);
+
+    // 120, 1440 and 240 minutes: the middle is 240.
+    await expect(h.service.metricsForLastDays(28)).resolves
+      .toMatchObject({ medianBookingToStartMinutes: 240 });
+  });
+
+  it('measures the window from the server clock, not from an instant a caller sent', async () => {
+    const h = metricsHarness(OPERATOR, []);
+
+    await expect(h.service.metricsForLastDays(28)).resolves.toEqual({
+      weeks: [],
+      medianBookingToStartMinutes: null,
+    });
+    expect(h.em.find).toHaveBeenCalledExactlyOnceWith(
+      Booking,
+      // A cancelled session was paid and then refunded or forfeited: a different question.
+      {
+        status: 'confirmed',
+        bookedAt: { $gte: new Date(NOW.getTime() - 28 * 24 * 60 * 60 * 1000) },
+      },
+      { orderBy: { bookedAt: 'asc' } },
+    );
+  });
+
+  it('skips a confirmed row with no booked-at rather than counting it as epoch', async () => {
+    const h = metricsHarness(OPERATOR, [
+      paid('2026-09-14T09:00:00.000Z', '2026-09-16T09:00:00.000Z'),
+      { id: 'odd', status: 'confirmed', bookedAt: null, startsAt: NOW } as unknown as IBooking,
+    ]);
+
+    await expect(h.service.metricsForLastDays(28)).resolves
+      .toMatchObject({ weeks: [{ weekStart: '2026-09-14', count: 1 }] });
+  });
+
+  it('refuses a caller who is not an operator, and one with no session', async () => {
+    await expect(
+      metricsHarness({ userId: 'u-1', roles: ['mentor'] }, []).service.metricsForLastDays(28),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(metricsHarness(null, []).service.metricsForLastDays(28)).rejects
+      .toThrow(UnauthorizedError);
   });
 });

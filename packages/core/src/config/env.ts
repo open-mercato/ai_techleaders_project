@@ -147,6 +147,7 @@ const appEnvSchema = z
     // --- Test-double selection (guarded by the superRefine below) ---
     AUTH_IDENTITY_ADAPTER: z.enum(['github', 'mock']).optional(),
     MAILER_ADAPTER: z.enum(['resend', 'log']).optional(),
+    PAYMENT_GATEWAY: z.enum(['stripe', 'mock']).optional(),
     // The integration harness runs the app as a child process, so "this is a test
     // run" has to cross the boundary as configuration. Only the literal `1` counts;
     // anything else (including `0`, `true` and an empty value) reads as "not a test
@@ -163,8 +164,10 @@ const appEnvSchema = z
     // --- Payments (D04, R05) ---
     // Optional for the same reason as the GitHub pair (B6): a deployment without them
     // must still build, boot and serve every page. The Checkout and webhook routes fail
-    // closed at the point of use instead. Their *presence* is also what selects the real
-    // gateway in `container.ts` — selection is never made from a credential being absent.
+    // closed at the point of use instead. Note that these keys do **not** select the
+    // gateway — `PAYMENT_GATEWAY` above does, so an unconfigured production deployment
+    // gets the real adapter and a 503, never the mock. Selection is never made from a
+    // credential being absent.
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
   })
@@ -199,6 +202,18 @@ const appEnvSchema = z
           'delivering it, so verification links would never reach a real inbox. It is ' +
           'only allowed in an integration-test run: set INTEGRATION_TEST_RUN=1 as well, ' +
           'or unset MAILER_ADAPTER (development picks the log mailer on its own).',
+      });
+    }
+
+    if (env.PAYMENT_GATEWAY === 'mock') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_GATEWAY'],
+        message:
+          'PAYMENT_GATEWAY=mock takes no money and confirms bookings from a webhook signed ' +
+          'with a secret published in this repository, so every session would be free. It ' +
+          'is only allowed in an integration-test run: set INTEGRATION_TEST_RUN=1 as well, ' +
+          'or unset PAYMENT_GATEWAY (development picks the mock gateway on its own).',
       });
     }
   });

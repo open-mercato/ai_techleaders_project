@@ -60,7 +60,7 @@ describe('heldExplanation', () => {
       ...payout,
       status: 'held',
       heldReason: 'connect_onboarding_incomplete',
-    })).toContain('payout account to be set up');
+    })).toBe('Waiting for your payout account. Set it up to receive this and later payouts.');
   });
 
   it('falls back to plain waiting when a hold has no reason on it', () => {
@@ -84,7 +84,7 @@ describe('PayoutsList', () => {
     render(<PayoutsList />);
 
     // Money owed and not yet sent is exactly what a mentor wants to see.
-    expect(screen.getByText(/payout account to be set up/)).toBeTruthy();
+    expect(screen.getByText(/Set it up to receive this and later payouts/)).toBeTruthy();
     expect(screen.getByText('Held')).toBeTruthy();
   });
 

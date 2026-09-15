@@ -179,32 +179,62 @@ function selectMailer({ env, logger }: Cradle): Mailer {
 }
 
 /**
- * Choose the payment gateway (D04, R05). **Stripe when it is configured, the mock
- * otherwise, and the decision is made from a flag that is present — never from a
- * credential that is absent.**
+ * Choose the payment gateway (D04, R05). **The same two-signal rule as `selectMailer`,
+ * plus the same single development convenience.**
  *
- * That rule is why this reads `STRIPE_SECRET_KEY` rather than, say, `NODE_ENV`: a
- * deployment that has the key gets Stripe even in development, and a deployment that does
- * not gets a gateway that cannot take money by construction. The mock is loud, once,
- * because "payments appear to work and charge nobody" is exactly the state an operator
- * must not have to infer from a bank statement.
+ * Three branches, in priority order:
  *
- * Unlike the identity and mail seams this needs no second signal. A mock mailer or a mock
- * identity in a real deployment is a security hole — sign in as anyone, verification links
- * that never arrive. A mock payment gateway takes no money and confirms no booking without
- * a signed webhook nobody else can produce, so the failure mode is a product that visibly
- * cannot be paid, not one that is quietly unsafe.
+ * 1. `PAYMENT_GATEWAY=mock` **and** `INTEGRATION_TEST_RUN=1` — the harness.
+ * 2. `development` with `PAYMENT_GATEWAY` unset — the mock, with a boot warning.
+ * 3. Anything else — Stripe, which fails closed at the point of use (B6).
+ *
+ * **This seam needs the second signal at least as badly as identity and mail do.** An
+ * earlier revision selected the mock from `STRIPE_SECRET_KEY` being *absent*, which is the
+ * one thing the comment on `selectGithubIdentity` says never to do, and the consequences
+ * were worse here than at either other seam. A production deployment that had
+ * `SESSION_SECRET` and `MAIL_API_KEY` but had not yet been given its Stripe key — the
+ * ordinary shape of a first deploy, since the key is the newest variable in `.env.example`
+ * — would boot green and silently install the mock. `MockPaymentGateway.createCheckoutSession`
+ * returns the caller's own `successUrl`, so every mentee who pressed "Pay" would land on
+ * the success page having paid nothing; and `MOCK_WEBHOOK_SECRET` is a constant in this
+ * repository, so anyone at all could sign a `checkout.session.completed` and confirm their
+ * own booking. "Takes no money" is not a safe failure when the product's entire purpose at
+ * that route is to take money.
+ *
+ * So the rule is the one the other two seams already state: selection is from flags that
+ * are **present**, never from credentials that are **absent**. A deployment missing
+ * `STRIPE_SECRET_KEY` now gets the real adapter and a visible 503 at the pay button, which
+ * is a bug report; the old behaviour was free sessions, which is a bank statement.
  */
-function selectPaymentGateway({ env, logger }: Cradle): PaymentGateway {
-  if (env.STRIPE_SECRET_KEY !== undefined) {
-    return new StripePaymentGateway({ env, logger });
+function selectPaymentGateway({ env, logger, clock }: Cradle): PaymentGateway {
+  if (env.PAYMENT_GATEWAY === 'mock' && env.INTEGRATION_TEST_RUN) {
+    // Loud, once, on first resolution — the same reason the mock identity adapter and the
+    // log mailer are loud.
+    logger.warn(
+      { adapter: 'mock' },
+      'the mock payment gateway is active: no money is taken, and a booking is confirmed ' +
+        'by a webhook signed with a secret published in this repository',
+    );
+    return new MockPaymentGateway();
   }
-  logger.warn(
-    { adapter: 'mock' },
-    'no STRIPE_SECRET_KEY is set, so the mock payment gateway is active: no money can be '
-      + 'taken and no booking can be confirmed without a signed webhook from this process',
-  );
-  return new MockPaymentGateway();
+
+  if (env.PAYMENT_GATEWAY === undefined && env.NODE_ENV === 'development') {
+    // The same narrow development convenience the mailer gets, for the same reason: the
+    // Stripe adapter fails closed at the point of use (B6), so `npm run dev` without a key
+    // would render a booking panel whose pay button always 503s. The condition is on
+    // `PAYMENT_GATEWAY` being **unset**, never on `STRIPE_SECRET_KEY` being absent, so a
+    // developer who sets `PAYMENT_GATEWAY=stripe` gets Stripe and finds out about a missing
+    // key at the route rather than by silently paying nobody.
+    logger.warn(
+      { adapter: 'mock' },
+      'no PAYMENT_GATEWAY is set, so the mock payment gateway is active: sessions are ' +
+        'booked without taking any money; set PAYMENT_GATEWAY=stripe with ' +
+        'STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET to take real payments',
+    );
+    return new MockPaymentGateway();
+  }
+
+  return new StripePaymentGateway({ env, logger, clock });
 }
 
 async function build(): Promise<AwilixContainer<Cradle>> {

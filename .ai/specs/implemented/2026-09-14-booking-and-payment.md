@@ -1,6 +1,7 @@
 # Booking and payment (E03)
 
-Status: active, 2026-09-14. Epic [#9](https://github.com/open-mercato/ai_techleaders_project/issues/9);
+Status: implemented 2026-09-14 on PR #53. Never edited after this move; a change of
+requirements gets a new spec. Epic [#9](https://github.com/open-mercato/ai_techleaders_project/issues/9);
 stories [#20](https://github.com/open-mercato/ai_techleaders_project/issues/20),
 [#21](https://github.com/open-mercato/ai_techleaders_project/issues/21),
 [#22](https://github.com/open-mercato/ai_techleaders_project/issues/22),
