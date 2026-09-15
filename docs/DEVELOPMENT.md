@@ -24,6 +24,7 @@ Everything you need to run, configure, test and understand DevMentor locally. Th
   - [Creating a GitHub OAuth app](#creating-a-github-oauth-app)
 - [Scripts](#scripts)
 - [Testing and pull-request checks](#testing-and-pull-request-checks)
+- [Releases](#releases)
 - [Architecture](#architecture)
 
 ## Setup
@@ -327,6 +328,26 @@ pinned `agent-browser` CLI. Screenshots and app logs go to `test-results/integra
 the browser, app process, and container are stopped in teardown. POSIX and native
 PowerShell launchers are also available at `tests/integration/run.sh` and
 `tests/integration/run.ps1`.
+
+## Releases
+
+Prepare a complete `# <version> (YYYY-MM-DD)` section in `CHANGELOG.md`, merge it to
+`master`, then run **Actions → Release DevMentor → Run workflow** from `master`. Choose
+`patch`, `minor`, or `major`, or choose `custom` and enter an exact stable version such
+as `1.4.0`. The custom field must stay empty for the three automatic bumps.
+
+The workflow validates the repository, updates the root and all workspace package
+versions plus `package-lock.json`, commits the bump, and atomically pushes that commit
+with an annotated `v<version>` tag. It then publishes a GitHub Release using only that
+version's changelog section. Repository rules must allow the workflow's `GITHUB_TOKEN`
+to push this release commit to the default branch.
+
+If publication fails after the commit and tag were pushed, rerun the workflow from
+`master` with `custom` and the same current version. Recovery proceeds only when the
+existing annotated tag belongs to the current `master` history, its tagged manifests,
+lockfile, and changelog agree, and no GitHub Release exists. Recovery publishes from
+that immutable tagged commit even if newer changes have since reached `master`; tags
+are never moved or replaced.
 
 ## Architecture
 
