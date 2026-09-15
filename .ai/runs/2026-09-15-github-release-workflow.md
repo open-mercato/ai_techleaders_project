@@ -58,8 +58,8 @@ Source doc: `.ai/specs/2026-09-15-manual-github-releases.md`
 
 ### Phase 1: Release contract
 
-- [ ] 1.1 Add and test release version, manifest, lockfile, and changelog rules
-- [ ] 1.2 Add coverage enforcement and release-manager documentation
+- [x] 1.1 Add and test release version, manifest, lockfile, and changelog rules — 944e57e
+- [x] 1.2 Add coverage enforcement and release-manager documentation — 944e57e
 
 ### Phase 2: GitHub workflow
 
