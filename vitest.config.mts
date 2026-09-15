@@ -98,6 +98,7 @@ export default defineConfig({
         'packages/app/src/app/admin/layout.tsx',
         'packages/app/src/app/admin/page.tsx',
         'packages/app/src/app/admin/run-payouts.tsx',
+        'packages/app/src/app/admin/session-metrics.tsx',
         'packages/app/src/app/admin/users/page.tsx',
         'packages/app/src/app/admin/users/users-list.tsx',
         // The email half of the two `(auth)` screens: a Client Component, so it is rendered
@@ -284,6 +285,12 @@ export default defineConfig({
         // something it is not. The suite it serves cannot cover it — it needs Docker and a
         // browser runtime — so the unit gate is the only thing that can.
         'tests/integration/mail.ts',
+        // The accessibility-driven click helper, on the same terms: choosing between
+        // same-named controls is a decision, and getting it wrong makes a scenario fail for
+        // the wrong reason in a job that needs Docker and a browser. `fixtures/booking.ts`
+        // is deliberately *not* here, like `fixtures/mentor.ts`: it is straight-line
+        // orchestration over the app's own API, and every scenario that uses it proves it.
+        'tests/integration/browser-actions.ts',
       ],
       reportsDirectory: 'coverage/unit',
       reporter: ['text', 'json', 'html', 'lcov'],

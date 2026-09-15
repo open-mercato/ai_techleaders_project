@@ -12,7 +12,9 @@ export function heldExplanation(payout: PayoutDto): string {
     return 'The transfer did not go through. DevMentor will try again on the next run.';
   }
   if (payout.heldReason === 'connect_onboarding_incomplete') {
-    return 'Waiting for your payout account to be set up. Nothing else is needed from you here.';
+    // Setting the account up *is* the thing needed, and it is needed from them: saying
+    // otherwise would leave a mentor waiting on DevMentor for money DevMentor cannot send.
+    return 'Waiting for your payout account. Set it up to receive this and later payouts.';
   }
   return 'Waiting to be sent.';
 }

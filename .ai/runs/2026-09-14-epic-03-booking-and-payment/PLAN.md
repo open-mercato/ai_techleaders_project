@@ -4,7 +4,7 @@
 **Skill:** `om-auto-create-pr-loop`
 **Branch:** `feat/epic-03-booking-and-payment`
 **Base:** `master`
-**Source spec:** `.ai/specs/2026-09-14-booking-and-payment.md`
+**Source spec:** `.ai/specs/implemented/2026-09-14-booking-and-payment.md`
 **Subject issues:** #9 (epic) — #20, #21, #22, #23, #24, #25, #34
 
 ## Tasks
@@ -52,21 +52,24 @@
 | 5 | 5.4 | Serve the booking cancellation route | inline | done | d576da1 |
 | 5 | 5.5 | Confirm a cancellation and its refund outcome | inline | done | 0e5f966 |
 | 5 | 5.5-review-fix | Say the consequence once, not twice | inline | done | f5f0795 |
-| 6 | 6.1 | Make the platform fee configurable | inline | done | pending |
-| 6 | 6.2 | Add the fee snapshot, payout and Connect columns | inline | done | pending |
-| 6 | 6.3 | Snapshot the fee split at confirmation | inline | done | pending |
-| 6 | 6.4 | Add the Connect transfer to the payment gateway | inline | done | pending |
-| 6 | 6.5 | Pay out or hold a completed session | inline | done | pending |
-| 6 | 6.5-review-fix | Tell a mentor their payout is held | inline | done | pending |
-| 6 | 6.6 | Let the operator run payouts | inline | done | pending |
-| 6 | 6.7 | Show a mentor their payouts | inline | done | pending |
-| 7 | 7.1 | Report paid sessions and booking-to-start | inline | todo | — |
-| 7 | 7.2 | Prove discovery and reservation in the browser | inline | todo | — |
-| 7 | 7.3 | Prove payment confirmation and idempotency | inline | todo | — |
-| 7 | 7.4 | Prove session-list scoping and notification | inline | todo | — |
-| 7 | 7.5 | Prove cancellation on both sides of the window | inline | todo | — |
-| 7 | 7.6 | Prove the payout hold and transfer | inline | todo | — |
-| 7 | 7.7 | Record the contract, configuration and run | inline | todo | — |
+| 6 | 6.1 | Make the platform fee configurable | inline | done | f05752d |
+| 6 | 6.2 | Add the fee snapshot, payout and Connect columns | inline | done | 4e8ef47 |
+| 6 | 6.3 | Snapshot the fee split at confirmation | inline | done | f1b92fd |
+| 6 | 6.4 | Add the Connect transfer to the payment gateway | inline | done | f33f852 |
+| 6 | 6.5 | Pay out or hold a completed session | inline | done | 94ea852 |
+| 6 | 6.5-review-fix | Tell a mentor their payout is held | inline | done | 324ccb4 |
+| 6 | 6.6 | Let the operator run payouts | inline | done | e80f3dc |
+| 6 | 6.7 | Show a mentor their payouts | inline | done | 33e4043 |
+| 6 | 6.7-review-fix | Say what a held payout is waiting for | inline | done | 92102b0 |
+| 7 | 7.1 | Report paid sessions and booking-to-start | inline | done | c5a71f8 |
+| 7 | 7.2 | Prove discovery and reservation in the browser | inline | done | c74a227 |
+| 7 | 7.3 | Prove payment confirmation and idempotency | inline | done | c74a227 |
+| 7 | 7.4 | Prove session-list scoping and notification | inline | done | c74a227 |
+| 7 | 7.5 | Prove cancellation on both sides of the window | inline | done | c74a227 |
+| 7 | 7.6 | Prove the payout hold and transfer | inline | done | c74a227 |
+| 7 | 7.7 | Record the contract, configuration and run | inline | done | ebbc7c5 |
+| 7 | 7.8-review-fix | Select the payment gateway from a present flag | inline | done | 0537cba |
+| 7 | 7.9-review-fix | Honor Stripe Checkout expiry floor | inline | done | 9b6d19d |
 
 ## Goal
 
@@ -431,6 +434,12 @@ lines for the files the Step adds or changes.
 - `packages/app/src/app/(mentor)/mentor/payouts/page.tsx`: `PayoutStatus` per session with
   gross, fee and share, plus the held explanation; nav entry.
 - Tests: each status, the empty state, the redirect when signed out.
+
+**6.7-review-fix Say what a held payout is waiting for**
+- The checkpoint-7 screenshot read "Waiting for your payout account to be set up. Nothing
+  else is needed from you here." Setting the account up *is* the thing needed, and it is
+  needed from the mentor; the copy would have left them waiting on DevMentor for money
+  DevMentor cannot send.
 
 ### Phase 7 — Reporting, integration proof and records
 
