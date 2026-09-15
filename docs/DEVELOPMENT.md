@@ -122,9 +122,8 @@ wait for you.
 ### What to open
 
 - <http://localhost:3000> — public landing page (Tailwind).
-- <http://localhost:3000/m/mock-mentor> — the seeded public mentor page, as a mentee
-  sees it.
-- <http://localhost:3000/mentor> — the mentor workspace (profile, prices, times).
+- <http://localhost:3000/mentor> — the mentor workspace (profile, prices, times); a
+  mentor's public page appears at `/m/<slug>` once they publish it.
 - <http://localhost:3000/home> — the signed-in mentee home.
 - <http://localhost:3000/admin> — admin dashboard (shadcn-ui).
 - <http://localhost:3000/admin/users> — users list, read through the DI container.
@@ -193,10 +192,14 @@ automatically and the link is written to the app's own output as a `mail.sent` l
 carrying `to`, `subject` and `text`. So: register in the browser, find that line in the
 `npm run dev` output, and open the URL in it.
 
-The seeded personas (`mock-mentee@`, `mock-mentor@` and `mock-operator@devmentor.test`)
-carry a password as well as a GitHub identity. It is `SEED_PASSWORD` in
+Two seeded personas carry a password as well as a GitHub identity —
+`mock-mentee@devmentor.test` and `mock-operator@devmentor.test`, one unprivileged and one
+privileged, so the form-based sign-in scenarios can reach both a mentee surface and
+`/admin` without GitHub. It is `SEED_PASSWORD` in
 `packages/db/src/seeders/seed-password.ts` — published, obviously fake, and useless
-anywhere real.
+anywhere real. `mock-mentor@devmentor.test` is deliberately password-less: it is the
+account a *mock GitHub* sign-in resolves to, and it keeps a live example of the
+GitHub-only row shape that `registerWithPassword` must answer with a 409.
 
 Sign-in and registration are rate-limited per IP and per email address (10 and 5 per 15
 minutes for sign-in, 5 per hour for registration). Tripping a limit answers `429` with
