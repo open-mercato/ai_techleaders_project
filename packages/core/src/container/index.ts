@@ -1,4 +1,5 @@
 export {
+  assertProductionSecrets,
   getContainer,
   withScope,
   withRequestScope,
