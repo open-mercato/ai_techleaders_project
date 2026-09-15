@@ -73,3 +73,6 @@ packages/ui/.storybook/public/prototypes/
 .ai/qa/test-env-app.log
 .ai/qa/test-env-build-cache.json
 .ai/qa/test-env.json
+
+# agent scratch space: worktrees, PR body drafts and other session material
+.ai/tmp/
