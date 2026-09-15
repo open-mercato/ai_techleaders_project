@@ -299,17 +299,28 @@ Use [`docker-compose.deploy.yml`](../docker-compose.deploy.yml), not the local
 data in a named volume, runs migrations as a one-shot service after PostgreSQL is
 healthy, and starts the app only after migrations succeed.
 
-1. Create a Dokploy **Docker Compose** service from this repository and set **Compose
-   Path** to `./docker-compose.deploy.yml`.
-2. Copy the keys from [`deploy.env.example`](../deploy.env.example) into Dokploy's
+1. In the target Dokploy project and environment, create a **Docker Compose** service,
+   choose the repository provider and production branch, and set **Compose Path** to
+   `./docker-compose.deploy.yml`.
+2. Copy the keys from [`deploy.env.example`](../deploy.env.example) into the service's
    Environment editor. Supply strong, unique values for every blank required setting.
    `APP_URL` must be the final HTTPS origin and `SESSION_SECRET` must contain at least
-   32 random characters.
+   32 random characters. Dokploy writes these values to the Compose project's `.env`;
+   the deployment file explicitly passes only the variables each container needs.
 3. Enable **Isolated Deployments**. In Dokploy's Domains tab, route the public domain
    to service `app` on container port `3000`; Dokploy will add the Traefik routing and
    TLS configuration.
-4. Deploy, then confirm that `/api/health` returns `status: "ok"` and
-   `database: "up"` before exercising registration and sign-in.
+4. Preview the resolved Compose definition and confirm that only `app` is routed
+   publicly. Deploy, then check that `postgres` is healthy, `migrate` exited with code
+   0, and `app` is healthy in Dokploy.
+5. Open `<APP_URL>/api/health` and confirm that the JSON contains `status: "ok"` and
+   `database: "up"` before exercising registration and sign-in. HTTP 200 alone is not
+   enough: the route remains reachable while reporting a database outage in its body.
+
+Dokploy's native Domains feature and Isolated Deployments are the intended network
+setup; do not add host port mappings or fixed `container_name` values. Dokploy injects
+the Traefik routing for service `app`, while `postgres` remains reachable only inside
+the Compose network.
 
 For a direct Traefik-to-app path, `TRUSTED_PROXY_HOPS=1` is the expected starting
 value. Add one for each additional trusted proxy, such as Cloudflare, only after
@@ -327,6 +338,12 @@ docker compose --env-file deploy.env -f docker-compose.deploy.yml ps
 The named volume makes database storage persistent; it is not a backup. Configure and
 test scheduled PostgreSQL backups in Dokploy before storing production data, and plan
 major PostgreSQL upgrades separately rather than changing the image tag in place.
+
+To rotate the session signing key without immediately invalidating live sessions,
+move the current `SESSION_SECRET` value to `SESSION_SECRET_PREVIOUS`, set a new random
+`SESSION_SECRET`, and redeploy. Remove `SESSION_SECRET_PREVIOUS` after the old sessions
+have expired. Do not define it as an empty string: when no rotation is in progress,
+leave the variable absent.
 
 ### Railway
 

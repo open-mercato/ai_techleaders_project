@@ -41,8 +41,9 @@ all credentials outside the image and repository.
    managed PostgreSQL service, and a provider pre-deploy migration command. Do not add
    legacy `railway.json`/`railway.toml` Config-as-Code because Railway has deprecated
    that format; document the current dashboard/CLI settings instead.
-5. Document required variables, migration behavior, health checks, and first-deploy
-   verification for both targets.
+5. Add a concise Dokploy quick-start to `README.md` and document required variables,
+   migration behavior, health checks, secret rotation, and first-deploy verification
+   in `docs/DEVELOPMENT.md`.
 
 ## Acceptance criteria
 
@@ -59,4 +60,8 @@ all credentials outside the image and repository.
   web replica, and set `DB_MIGRATIONS_SNAPSHOT=false` for the immutable container.
 - Dokploy instructions identify the production Compose path, service name, internal
   port, domain setup, required variables, and health endpoint.
+- The root README contains a self-contained Dokploy quick-start and links to the
+  detailed production guide.
+- `SESSION_SECRET_PREVIOUS` can be passed through for a rotation without injecting an
+  invalid empty value when no rotation is in progress.
 - Existing build, lint, typecheck, and unit-coverage gates remain green.

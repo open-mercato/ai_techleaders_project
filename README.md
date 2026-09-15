@@ -15,7 +15,7 @@ you with a written answer you keep.
 [![Node 24+](https://img.shields.io/badge/Node-24%2B-5FA04E?logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![Unit coverage 100%](https://img.shields.io/badge/unit%20coverage-100%25-brightgreen)](./docs/DEVELOPMENT.md#testing-and-pull-request-checks)
 
-[**💡 Why**](#-why-devmentor) &nbsp;&nbsp; [**🎯 Who it's for**](#-who-its-for) &nbsp;&nbsp; [**✨ Features**](#-what-it-does-today) &nbsp;&nbsp; [**🚀 Getting started**](#-getting-started) &nbsp;&nbsp; [**📚 Docs**](#-documentation) &nbsp;&nbsp; [**🤝 Contributing**](#-contributing)
+[**💡 Why**](#-why-devmentor) &nbsp;&nbsp; [**🎯 Who it's for**](#-who-its-for) &nbsp;&nbsp; [**✨ Features**](#-what-it-does-today) &nbsp;&nbsp; [**🚀 Getting started**](#-getting-started) &nbsp;&nbsp; [**🚢 Deploy**](#-deploy-with-dokploy) &nbsp;&nbsp; [**📚 Docs**](#-documentation) &nbsp;&nbsp; [**🤝 Contributing**](#-contributing)
 
 <img src="./docs/screenshots/public-mentor-page.png" width="760" alt="A public DevMentor mentor page showing the mentor's name, a link to their public work, a short description, technology chips, prices for 25- and 50-minute sessions, and an available start time">
 
@@ -187,11 +187,34 @@ npm run setup
 npm run dev
 ```
 
+## 🚢 Deploy with Dokploy
+
+DevMentor ships with a production image and a separate Compose definition for
+Dokploy. The local [`docker-compose.yml`](./docker-compose.yml) intentionally starts
+only the development database; deploy [`docker-compose.deploy.yml`](./docker-compose.deploy.yml)
+so production credentials are required without breaking `npm run setup`.
+
+1. Create a **Docker Compose** service in Dokploy from this repository and set its
+   Compose Path to `./docker-compose.deploy.yml`.
+2. Copy [`deploy.env.example`](./deploy.env.example) into Dokploy's Environment
+   editor, replace every blank required value, and set `APP_URL` to the final HTTPS
+   origin. Generate `SESSION_SECRET` with `openssl rand -base64 32`.
+3. Enable **Isolated Deployments**, then add a domain for service `app` and container
+   port `3000` in Dokploy's Domains tab.
+4. Deploy and verify that `/api/health` returns JSON containing
+   `"status": "ok"` and `"database": "up"`.
+
+PostgreSQL is private, migrations run before the app starts, and its data lives in a
+named volume. A volume is not a backup: configure and test scheduled backups before
+storing production data. The [production deployment guide](./docs/DEVELOPMENT.md#dokploy-with-docker-compose)
+covers secret rotation, proxy hops, mail and OAuth settings, local smoke testing, and
+operational checks.
+
 ## 📚 Documentation
 
 | Document | What's in it |
 | --- | --- |
-| [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) | Setup, configuration, scripts, testing, architecture |
+| [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) | Setup, configuration, Dokploy deployment, scripts, testing, architecture |
 | [AGENTS.md](./AGENTS.md) | The stack, the conventions, and the gotchas that cost us time |
 | [SDLC.md](./SDLC.md) | How a change travels from ticket to merge |
 | [CODE_REVIEW.md](./CODE_REVIEW.md) | The checklist every pull request is read against |

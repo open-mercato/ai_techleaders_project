@@ -49,6 +49,10 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET to at least 32 random characters}
+      # A value-less entry passes the variable through only when Dokploy (or the
+      # invoking shell) defines it. Leaving it absent keeps Zod's optional value
+      # undefined; mapping it to an empty default would make every normal boot fail.
+      SESSION_SECRET_PREVIOUS:
       MAILER_ADAPTER: resend
       MAIL_API_KEY: ${MAIL_API_KEY:?Set MAIL_API_KEY to the Resend API key}
       MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM to a verified sender}

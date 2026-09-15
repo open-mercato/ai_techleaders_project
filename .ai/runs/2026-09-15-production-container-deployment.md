@@ -19,17 +19,21 @@ Docker Compose file and supporting deployment artifacts.
 - Added a dedicated Dokploy Compose stack with private PostgreSQL, a persistent named
   volume, a healthy-database dependency, a one-shot migration service, an app readiness
   check, and required secret interpolation.
+- Added optional `SESSION_SECRET_PREVIOUS` pass-through so signing keys can be rotated
+  without injecting an invalid empty value outside a rotation.
 - Added a deployment environment template and ignored its filled local copy.
-- Documented exact Dokploy and Railway setup, migrations, proxy hops, health semantics,
-  resource sizing, and backup responsibility. Deliberately omitted Railway's deprecated
-  `railway.json`/`railway.toml` format.
+- Added a self-contained Dokploy quick-start to the root README and documented exact
+  Dokploy and Railway setup, migrations, proxy hops, health semantics, secret rotation,
+  resource sizing, and backup responsibility in the development guide. Deliberately
+  omitted Railway's deprecated `railway.json`/`railway.toml` format.
 
 ## Files touched
 
-- `.ai/specs/2026-09-15-production-container-deployment.md`
+- `.ai/specs/implemented/2026-09-15-production-container-deployment.md`
 - `.dockerignore`
 - `.gitignore`
 - `Dockerfile`
+- `README.md`
 - `docs/DEVELOPMENT.md`
 - `deploy.env.example`
 - `docker-compose.deploy.yml`
@@ -47,7 +51,8 @@ Docker Compose file and supporting deployment artifacts.
   `{"status":"ok","environment":"production","database":"up"}` from `/api/health`.
   The disposable containers, network, and volume were removed afterward.
 - `docker compose -f docker-compose.deploy.yml config --quiet` passed with placeholder
-  required values.
+  required values, rejected a missing PostgreSQL password, and resolved the optional
+  previous session secret only when supplied.
 - The production preflight passed with valid placeholder secrets and failed as expected
   when `SESSION_SECRET` was absent.
 - `npm run typecheck` passed.
