@@ -22,6 +22,9 @@ Everything you need to run, configure, test and understand DevMentor locally. Th
   - [Integration-test doubles](#integration-test-doubles)
   - [Missing, dangerous, and required-in-production](#missing-dangerous-and-required-in-production)
   - [Creating a GitHub OAuth app](#creating-a-github-oauth-app)
+- [Production deployment](#production-deployment)
+  - [Dokploy with Docker Compose](#dokploy-with-docker-compose)
+  - [Railway](#railway)
 - [Scripts](#scripts)
 - [Testing and pull-request checks](#testing-and-pull-request-checks)
 - [Releases](#releases)
@@ -271,6 +274,92 @@ signals (`tests/integration/environment.ts`); you do not need any of them in a l
 4. Put both in `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, and set
    `SESSION_SECRET` alongside them. Use a separate OAuth app per environment; the
    callback URL is per-app, so local and production cannot share one.
+
+## Production deployment
+
+The root [`Dockerfile`](../Dockerfile) is the production image for both Dokploy and
+Railway. It installs from `package-lock.json`, builds the complete npm workspace, runs
+as the unprivileged `node` user, and starts Next on `0.0.0.0`. After the build it
+prunes development dependencies, retaining only the MikroORM CLI, `tsx`, `dotenv`, and
+TypeScript migration sources needed to run migrations from the same release image.
+
+The container runs `npm run deploy:preflight` before Next. This validates the
+production session and mail secrets without connecting to PostgreSQL, preventing a
+misconfigured release from passing the HTTP health check and failing only on its first
+authentication request.
+
+Do not set `AUTH_IDENTITY_ADAPTER=mock`, `MAILER_ADAPTER=log`, or
+`INTEGRATION_TEST_RUN=1` on a real deployment. Do not run `npm run db:seed` in
+production.
+
+### Dokploy with Docker Compose
+
+Use [`docker-compose.deploy.yml`](../docker-compose.deploy.yml), not the local
+`docker-compose.yml`. The deployment definition keeps PostgreSQL private, stores its
+data in a named volume, runs migrations as a one-shot service after PostgreSQL is
+healthy, and starts the app only after migrations succeed.
+
+1. Create a Dokploy **Docker Compose** service from this repository and set **Compose
+   Path** to `./docker-compose.deploy.yml`.
+2. Copy the keys from [`deploy.env.example`](../deploy.env.example) into Dokploy's
+   Environment editor. Supply strong, unique values for every blank required setting.
+   `APP_URL` must be the final HTTPS origin and `SESSION_SECRET` must contain at least
+   32 random characters.
+3. Enable **Isolated Deployments**. In Dokploy's Domains tab, route the public domain
+   to service `app` on container port `3000`; Dokploy will add the Traefik routing and
+   TLS configuration.
+4. Deploy, then confirm that `/api/health` returns `status: "ok"` and
+   `database: "up"` before exercising registration and sign-in.
+
+For a direct Traefik-to-app path, `TRUSTED_PROXY_HOPS=1` is the expected starting
+value. Add one for each additional trusted proxy, such as Cloudflare, only after
+checking the actual `x-forwarded-for` chain. The value is a security boundary, not a
+generic "behind a proxy" switch.
+
+For a local smoke test of the same stack, copy the example to the git-ignored
+`deploy.env`, fill it, and run:
+
+```sh
+docker compose --env-file deploy.env -f docker-compose.deploy.yml up --build -d
+docker compose --env-file deploy.env -f docker-compose.deploy.yml ps
+```
+
+The named volume makes database storage persistent; it is not a backup. Configure and
+test scheduled PostgreSQL backups in Dokploy before storing production data, and plan
+major PostgreSQL upgrades separately rather than changing the image tag in place.
+
+### Railway
+
+Railway detects the root `Dockerfile` automatically. Its legacy
+`railway.json`/`railway.toml` Config-as-Code format is deprecated, so provider state is
+not committed in that format. Configure the service in Railway as follows:
+
+1. Create a project with a managed PostgreSQL service and an application service from
+   this repository. Keep the application root at the repository root so Railway finds
+   the Dockerfile and every workspace.
+2. Set `DATABASE_URL` on the app to `${{Postgres.DATABASE_URL}}`. Also set
+   `NODE_ENV=production`, `DB_MIGRATIONS_SNAPSHOT=false`, `APP_URL`,
+   `SESSION_SECRET`, `MAIL_API_KEY`, and `MAIL_FROM`. Add GitHub credentials and
+   `OPERATOR_EMAILS` when those features should be available. Never copy local test
+   adapter flags.
+3. Set the app's **Pre-deploy Command** to
+   `DB_MIGRATIONS_SNAPSHOT=false npm run db:migrate`. A failed migration then stops
+   the release before the web container changes.
+4. Leave the start command unset so Railway uses the image `CMD`. Generate or attach
+   the public domain, update `APP_URL` to that exact HTTPS origin, and set the health
+   path to `/api/health`.
+
+Railway injects `PORT`; Next honors it automatically. Railway treats `/api/health` as
+a rollout liveness check because it only considers the HTTP status; the route returns
+HTTP 200 even when its JSON reports `database: "down"`. The Dokploy Compose healthcheck
+is stricter and also requires that JSON field to be `"up"`. Railway does not use its
+health path as continuous monitoring after deployment. The pre-deploy migration proves
+database access during rollout; configure separate uptime and database monitoring for
+ongoing operations.
+
+Password hashing uses about 128 MiB per in-flight hash. With the default
+`PASSWORD_HASH_CONCURRENCY=2`, give the app substantially more than 256 MiB of memory
+for Next, the ORM, and request headroom, or deliberately lower the concurrency setting.
 
 ## Scripts
 

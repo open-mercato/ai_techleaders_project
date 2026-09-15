@@ -1,6 +1,7 @@
 export { getEnv, type AppEnv } from './config/env';
 export { createLogger, type Logger } from './logger';
 export {
+  assertProductionSecrets,
   getContainer,
   withScope,
   withRequestScope,

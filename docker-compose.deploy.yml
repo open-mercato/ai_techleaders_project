@@ -1,0 +1,76 @@
+x-database-environment: &database-environment
+  NODE_ENV: production
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: ${POSTGRES_DB:-devmentor}
+  DB_USER: ${POSTGRES_USER:-devmentor}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Dokploy}
+  DB_MIGRATIONS_SNAPSHOT: "false"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-devmentor}
+      POSTGRES_USER: ${POSTGRES_USER:-devmentor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Dokploy}
+    volumes:
+      - devmentor_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    environment:
+      <<: *database-environment
+    command: ["npm", "run", "db:migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      <<: *database-environment
+      APP_NAME: ${APP_NAME:-DevMentor}
+      APP_URL: ${APP_URL:?Set APP_URL to the public HTTPS origin}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET to at least 32 random characters}
+      MAILER_ADAPTER: resend
+      MAIL_API_KEY: ${MAIL_API_KEY:?Set MAIL_API_KEY to the Resend API key}
+      MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM to a verified sender}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      OPERATOR_EMAILS: ${OPERATOR_EMAILS:-}
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(async r => { const body = await r.json(); if (!r.ok || body.database !== 'up') process.exit(1) }).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 20s
+
+volumes:
+  devmentor_pgdata:
