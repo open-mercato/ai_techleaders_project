@@ -246,15 +246,30 @@ describe('getEnv', () => {
     expect(message).toContain('INTEGRATION_TEST_RUN=1');
   });
 
-  it('reports both fake adapters at once', async () => {
+  it('refuses the mock payment gateway without the integration-run signal', async () => {
+    const message = await expectRejected({ ...PRODUCTION_ENV, PAYMENT_GATEWAY: 'mock' });
+
+    expect(message).toContain('PAYMENT_GATEWAY');
+    expect(message).toContain('INTEGRATION_TEST_RUN=1');
+  });
+
+  it('reports every fake adapter at once', async () => {
     const message = await expectRejected({
       ...PRODUCTION_ENV,
       AUTH_IDENTITY_ADAPTER: 'mock',
       MAILER_ADAPTER: 'log',
+      PAYMENT_GATEWAY: 'mock',
     });
 
     expect(message).toContain('AUTH_IDENTITY_ADAPTER');
     expect(message).toContain('MAILER_ADAPTER');
+    expect(message).toContain('PAYMENT_GATEWAY');
+  });
+
+  it('accepts PAYMENT_GATEWAY=stripe anywhere, since it selects the real adapter', async () => {
+    const env = await parseEnv({ ...PRODUCTION_ENV, PAYMENT_GATEWAY: 'stripe' });
+
+    expect(env.PAYMENT_GATEWAY).toBe('stripe');
   });
 
   it('is not fooled by a non-1 integration-run value', async () => {
@@ -273,11 +288,13 @@ describe('getEnv', () => {
       ...PRODUCTION_ENV,
       AUTH_IDENTITY_ADAPTER: 'mock',
       MAILER_ADAPTER: 'log',
+      PAYMENT_GATEWAY: 'mock',
       INTEGRATION_TEST_RUN: '1',
     });
 
     expect(env.AUTH_IDENTITY_ADAPTER).toBe('mock');
     expect(env.MAILER_ADAPTER).toBe('log');
+    expect(env.PAYMENT_GATEWAY).toBe('mock');
     expect(env.INTEGRATION_TEST_RUN).toBe(true);
   });
 

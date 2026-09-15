@@ -5,6 +5,7 @@ import {
   SESSION_COOKIE_NAME,
   safeReturnTo,
   withCookieScope,
+  type Cradle,
   type Role,
   type Session,
 } from '@devmentor/core';
@@ -64,6 +65,21 @@ export { homeFor };
  * Note this costs one indexed lookup **per scope**, and a layout, a nested layout and the
  * page each open their own. That repetition is the accepted price of the live check (B3).
  */
+/**
+ * Run `fn` in a scope carrying this request's cookie, so a service it calls can resolve the
+ * caller and authorize for itself.
+ *
+ * The page-side twin of `withRequestScope`, and the reason a page never imports
+ * `next/headers` itself: this file is the one place the cookie is read, so a page that needs
+ * a scoped service asks for one here rather than opening its own. A service reached this way
+ * makes its own authorization decision — `metricsSince` refuses a non-operator — so a page
+ * cannot show a number to somebody the service would have refused.
+ */
+export async function withPageScope<T>(fn: (cradle: Cradle) => Promise<T> | T): Promise<T> {
+  const cookieStore = await cookies();
+  return withCookieScope(cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null, fn);
+}
+
 export async function getPageSession(): Promise<Session | null> {
   const cookieStore = await cookies();
   return withCookieScope(

@@ -154,3 +154,59 @@
   before the mentee confirmed (R09) in both cases.
 - One finding fixed inside the checkpoint (`5.5-review-fix`): the consequence sentence
   appeared twice on the confirmation dialog.
+
+## 2026-09-14T08:59:30Z — checkpoint 7
+- Steps 6.1 through 6.7-review-fix (`f05752d..92102b0`): Phase 6, the fee split and payouts
+  (#25), complete. Five of six stories in the epic are now done.
+- Typecheck, lint and the 100% per-file coverage gate pass; both migrations proved up/down/up
+  with entity-schema parity.
+- The payout run was proved in a real browser against a real paid session: held without
+  Connect onboarding with the reason recorded, visible to the mentor with the price, the fee
+  and the share side by side, transferred once onboarding completed, and "Nothing was due"
+  on a third run.
+- Two findings fixed inside the checkpoint: the run told nobody about a held payout
+  (`6.5-review-fix`), and the held copy said nothing was needed from the mentor while
+  waiting on the one thing only they can do (`6.7-review-fix`).
+
+## 2026-09-14T09:30:00Z — final gate
+- All 55 rows of the Tasks table are `done`. Steps 7.1 through 7.7 landed
+  (`c5a71f8..ebbc7c5`): the D16/D22 reporting queries, five permanent integration scenarios
+  replacing the temporary checkpoint ones, and the contract, configuration and run records.
+- Full validation gate green in order: typecheck, lint (0 errors), unit tests (194 files,
+  2176 tests), build. Per-file coverage 100% on all four metrics.
+- Full integration suite green: 17 files, 82 tests, against the production build with
+  ephemeral PostgreSQL and real Chrome.
+- Design-system pass: no DS lint exists in this repo, so `typecheck:storybook`,
+  `build-storybook` and the dot-separator rule were run over the diff. All clean; no
+  auto-fixable violations, so no `X.Y-ds-fix` Steps were appended.
+
+## 2026-09-14T09:46:00Z — code review, and two blockers it caught
+- `om-auto-review-pr 53 --autofix` ran as the single authoritative review pass. Verdict
+  after autofix: **approved**, 2 blockers found and fixed, 0 remaining.
+- **Blocker 1 (`0537cba`)** — `selectPaymentGateway` chose `MockPaymentGateway` from
+  `STRIPE_SECRET_KEY` being *absent*. A production deploy missing only that key (the
+  ordinary first deploy) booted green and gave sessions away: the mock returns the caller's
+  own `successUrl`, and `MOCK_WEBHOOK_SECRET` is a repository constant. Replaced with a
+  `PAYMENT_GATEWAY` flag under the same two-signal rule as the identity and mail seams.
+  The rule was already written in this repo, on `selectGithubIdentity`, and `env.ts` even
+  documented the correct behaviour while the code did the inverse.
+- **Blocker 2 (`9b6d19d`)** — `expires_at` was passed to Stripe below its 30-minute floor,
+  because the hold starts at reservation and checkout starts a round trip later. Every real
+  Checkout would have been rejected. Invisible to the whole suite, because the mock accepts
+  any expiry.
+- **Both blockers are in the money path, and neither was reachable without Stripe or a
+  production-shaped environment.** They are the strongest evidence yet for the manual QA
+  pass this run has been recording as owed, and they are the reason the review comment now
+  says so directly rather than in passing.
+- Self-review: GitHub refuses to let the author approve their own PR, so the verdict is a
+  comment. The second reviewer `SDLC.md` requires on the money stories is still outstanding.
+- **CI is not a signal on this PR.** All four checks report failure after 3s because the
+  GitHub account's payments have failed and the jobs never started. Unrelated to this branch
+  and unfixable from it; disclosed in the review comment and the summary.
+
+## 2026-09-14T09:50:00Z — run closed
+- PR #53 flipped from draft to ready, `Status: complete`, labelled
+  `merge-queue` / `feature` / `security` / `needs-qa` / `priority-high` / `risk-high`.
+- 57 Steps, 63 commits, 184 files. Final gate and integration suite green.
+- Owed to a human: a real Stripe pass in test mode, a second reviewer, and a fix to the
+  repository's GitHub Actions billing so CI can run at all.

@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import type { AppEnv } from '../../../config/env';
 import type { Logger } from '../../../logger';
+import type { Clock } from '../../../time/clock';
 import { BadRequestError, ServiceUnavailableError } from '../../../http/errors';
 import type {
   CheckoutSession,
@@ -15,6 +16,20 @@ import type {
 
 export const STRIPE_UNAVAILABLE_MESSAGE =
   'Payments are temporarily unavailable. Please try again.';
+
+/**
+ * Stripe refuses a Checkout Session whose `expires_at` is less than 30 minutes away, so
+ * this is the earliest instant it will accept. One extra minute absorbs the round trip and
+ * any clock skew between this process and Stripe's.
+ *
+ * The booking hold is itself 30 minutes (`BOOKING_HOLD_MINUTES`) and starts when the slot
+ * is *reserved*, which is a whole HTTP round trip before checkout is *started*. Passing the
+ * hold's deadline through unclamped therefore asked Stripe for an expiry a few hundred
+ * milliseconds inside its floor, and it rejected **every** real session with
+ * `invalid_request_error` — a failure no test could see, because the mock gateway accepts
+ * any expiry at all.
+ */
+export const MIN_CHECKOUT_EXPIRY_MS = 31 * 60_000;
 
 /** What a caller sees when a key this route needs was never configured. */
 function missingKey(name: 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET'): ServiceUnavailableError {
@@ -39,11 +54,13 @@ function missingKey(name: 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET'): Servic
 export class StripePaymentGateway implements PaymentGateway {
   private readonly env: AppEnv;
   private readonly logger: Logger;
+  private readonly clock: Clock;
   private client: Stripe | undefined;
 
-  constructor({ env, logger }: { env: AppEnv; logger: Logger }) {
+  constructor({ env, logger, clock }: { env: AppEnv; logger: Logger; clock: Clock }) {
     this.env = env;
     this.logger = logger;
+    this.clock = clock;
   }
 
   /** Built on first use, so an unconfigured deployment pays nothing for this adapter. */
@@ -51,6 +68,11 @@ export class StripePaymentGateway implements PaymentGateway {
     if (this.env.STRIPE_SECRET_KEY === undefined) throw missingKey('STRIPE_SECRET_KEY');
     this.client ??= new Stripe(this.env.STRIPE_SECRET_KEY);
     return this.client;
+  }
+
+  /** The requested expiry, or Stripe's floor when the requested one is inside it. */
+  private earliestAcceptableExpiry(requested: Date): number {
+    return Math.max(requested.getTime(), this.clock.now().getTime() + MIN_CHECKOUT_EXPIRY_MS);
   }
 
   private unavailable(operation: string, error: unknown): never {
@@ -67,9 +89,14 @@ export class StripePaymentGateway implements PaymentGateway {
         mode: 'payment',
         success_url: request.successUrl,
         cancel_url: request.cancelUrl,
-        // Seconds since the epoch, and the same instant as the booking's own hold, so the
-        // two cannot disagree about who owns the slot.
-        expires_at: Math.floor(request.expiresAt.getTime() / 1000),
+        // Seconds since the epoch: the booking's own hold where Stripe will accept it, so
+        // the two agree about who owns the slot, and Stripe's floor where it will not.
+        //
+        // When they differ the session outlives the hold by under a minute, and the
+        // database stays the authority either way: a payment that arrives after the hold
+        // lapsed finds a booking that is no longer `pending` and is answered
+        // `not_pending` rather than confirmed.
+        expires_at: Math.floor(this.earliestAcceptableExpiry(request.expiresAt) / 1000),
         client_reference_id: request.bookingId,
         metadata: { bookingId: request.bookingId },
         line_items: [{

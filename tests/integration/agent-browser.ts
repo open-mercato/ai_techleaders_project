@@ -9,10 +9,53 @@ const cliPath = resolve('node_modules/agent-browser/bin/agent-browser.js');
 
 export const integrationArtifactsDirectory = resolve('test-results/integration');
 
+/**
+ * A CDP endpoint to attach to instead of launching the bundled Chrome.
+ *
+ * `agent-browser` ships its own Chrome and launches it, which is right on a machine that
+ * can run it. Some cannot: a workstation missing the browser's system libraries, with no
+ * `sudo` to install them, cannot start it at all — and the failure is a cryptic
+ * `DevToolsActivePort` error rather than anything about libraries. Setting
+ * `AGENT_BROWSER_CDP` to a port or ws:// URL points the suite at a Chrome somebody else
+ * started, e.g.
+ *
+ * ```
+ * docker run -d --rm --network host chromedp/headless-shell
+ * AGENT_BROWSER_CDP=9222 npm run test:integration
+ * ```
+ *
+ * Unset — which is CI, where `test:browser:install:ci` installs the dependencies as root —
+ * nothing changes and the bundled Chrome launches as before.
+ *
+ * **One caveat, handled below.** Named sessions attached to one CDP endpoint share that
+ * browser's cookie jar, where a launched session gets its own. A jar carried from a previous
+ * scenario file is how `TC-AUTH-004`'s "and no session cookie" assertion starts failing for
+ * a reason that has nothing to do with the product, so the first attach for a session clears
+ * cookies. Within a file the jar still persists, which is what a scenario switching persona
+ * expects.
+ */
+const cdpEndpoint = process.env.AGENT_BROWSER_CDP;
+
+/** Sessions already attached this process, so the connect happens once per session. */
+const connected = new Set<string>();
+
+async function ensureConnected(session: string): Promise<void> {
+  if (cdpEndpoint === undefined || connected.has(session)) return;
+  connected.add(session);
+  const run = (...args: string[]) => execFileAsync(
+    process.execPath,
+    [cliPath, '--session', session, ...args],
+    { cwd: process.cwd(), timeout: 60_000 },
+  );
+  await run('connect', cdpEndpoint);
+  await run('cookies', 'clear');
+}
+
 export async function runAgentBrowser(
   session: string,
   ...args: string[]
 ): Promise<string> {
+  if (args[0] !== 'connect') await ensureConnected(session);
   const { stdout } = await execFileAsync(
     process.execPath,
     [cliPath, '--session', session, ...args],
@@ -26,6 +69,7 @@ export async function runAgentBrowser(
 }
 
 export async function closeAgentBrowser(session: string): Promise<void> {
+  connected.delete(session);
   try {
     await runAgentBrowser(session, 'close');
   } catch {

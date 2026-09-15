@@ -1,0 +1,25 @@
+├ ƒ /api/mentors/me/onboarding
+├ ƒ /api/mentors/me/prices
+├ ƒ /api/mentors/me/publish
+├ ƒ /api/mentors/me/unpublish
+├ ƒ /api/notifications
+├ ƒ /api/operator/payouts/run
+├ ƒ /api/payments/webhook
+├ ƒ /api/users
+├ ƒ /home
+├ ƒ /invitation/[token]
+├ ƒ /m/[slug]
+├ ƒ /mentor
+├ ƒ /mentor/payouts
+├ ƒ /mentor/prices
+├ ƒ /mentor/profile
+├ ƒ /mentor/sessions
+├ ƒ /mentor/slots
+├ ƒ /mentors
+├ ƒ /register
+└ ƒ /sign-in
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

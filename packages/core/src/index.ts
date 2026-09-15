@@ -93,9 +93,13 @@ export {
   MENTOR_NOT_BOOKABLE_MESSAGE,
   MIN_LEAD_MINUTES,
   SLOT_TAKEN_MESSAGE,
+  medianOf,
   toBookingDto,
+  weekStartOf,
   type BookingDto,
+  type BookingMetrics,
   type CancelledBookingDto,
+  type PaidSessionWeek,
   type SessionListItemDto,
 } from './services/bookings/booking.service';
 export {
