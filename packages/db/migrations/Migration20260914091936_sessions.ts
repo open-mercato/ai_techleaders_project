@@ -10,7 +10,7 @@ export class Migration20260914091936_sessions extends Migration {
 
     this.addSql(`alter table "session_messages" add constraint "session_messages_booking_id_foreign" foreign key ("booking_id") references "bookings" ("id") on delete cascade;`);
     this.addSql(`alter table "session_messages" add constraint "session_messages_author_id_foreign" foreign key ("author_id") references "users" ("id") on delete restrict;`);
-    this.addSql(`alter table "session_messages" add constraint "session_messages_body_length" check (length("body") between 1 and 4000);`);
+    this.addSql(`alter table "session_messages" add constraint "session_messages_body_length" check (length("body") >= 1 and length("body") <= 4000);`);
   }
 
   override down(): void | Promise<void> {
