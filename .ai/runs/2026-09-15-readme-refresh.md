@@ -79,6 +79,8 @@ one click away.
 
 ## Progress
 
+PR: #61
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Source material
@@ -94,4 +96,39 @@ one click away.
 
 ### Phase 3: Verification
 
-- [x] 3.1 Link/path check, diff re-read, validation gate — 26c951a
+- [x] 3.1 Link/path check, diff re-read, validation gate — 26c951a, bd873cc (review fix)
+
+## Outcome
+
+Shipped on PR #61 as five documentation commits plus two Progress updates.
+
+- `README.md` — rewritten as a product-first page: title and badges, the
+  blocked-developer and unpaid-mentor problems, the 20%-fee model, a use case per
+  persona, five shipped features each with a screenshot from the QA and final-gate
+  runs, a one-paragraph Getting Started, a documentation index, contributing, and
+  license.
+- `docs/DEVELOPMENT.md` — new; carries every technical section the README held, plus
+  the release-workflow section added by #60.
+- `docs/screenshots/` — six captures copied out of `.ai/qa/` and `.ai/runs/` with a
+  provenance table.
+
+Validation: `npm run typecheck`, `npm run lint`, `npm run test` (152 files, 1775 tests)
+and `npm run build` all exit 0 on the branch. Every relative link and image path was
+resolved against the worktree, and the old README's 51 backticked variables/scripts and
+21 headings were checked to have survived the move.
+
+Three claims the old README made were contradicted by the code and were corrected
+rather than carried forward: `mock-mentor@devmentor.test` is password-less by design,
+the seeded mentor profile has no slug or `published_at` (so `/m/mock-mentor` is not
+seeded), and `/mentors` does not exist on `master`.
+
+## Follow-ups
+
+- **License.** No `LICENSE` file exists and the root `package.json` is `private`, so the
+  README states the current position (default copyright) rather than inventing a
+  license. The owner picks one — MIT or Apache-2.0 being the obvious candidates — and
+  adding the file is a two-minute change.
+- **Human approval.** GitHub refuses a self-approval, so the review verdict was posted
+  as a review comment and the PR keeps the `review` pipeline label.
+- **Booking, payment and the text session** land on their own PRs; the README's
+  "In review right now" section should shrink as they merge.
