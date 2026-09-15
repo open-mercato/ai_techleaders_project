@@ -128,7 +128,11 @@ it('associates a server technology error with the group and preserves its select
   fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
   await screen.findByText('Choose a supported technology.');
   const group = screen.getByRole('group', { name: 'Technologies and topics' });
-  expect(document.activeElement).toBe(group);
+  // The error text and the focus arrive in two different steps: React renders the message at
+  // commit, and `CrudForm` moves focus from a passive effect afterwards. `findByText` is
+  // satisfied by the commit, so asserting focus straight after it is a race the effect loses
+  // roughly one run in ten — which is exactly how this failed in CI while passing locally.
+  await waitFor(() => expect(document.activeElement).toBe(group));
   expect(group.getAttribute('aria-describedby')).toContain(screen.getByRole('alert').id);
   expect(screen.getByRole<HTMLInputElement>('checkbox', { name: 'TypeScript' }).checked).toBe(true);
 });
