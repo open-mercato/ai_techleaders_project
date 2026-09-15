@@ -56,8 +56,15 @@ export const SessionMessage = defineSingletonEntity('SessionMessage', () =>
         // `length` on an empty string is 0, so this rejects the blank message as well as the
         // over-long one. The validator refuses both first; this is what holds if it is ever
         // bypassed.
+        //
+        // **Spelled as two comparisons, not `between`.** PostgreSQL rewrites `between` at parse
+        // time and hands the constraint back as `(length(body) >= 1) AND (length(body) <= 4000)`,
+        // and MikroORM compares that text against this string to decide whether the schema
+        // matches the model. `between` therefore never compares equal to what the database
+        // stores, and `getUpdateSchemaSQL()` reports permanent drift on a schema that is in fact
+        // correct — which is exactly what it did.
         name: 'session_messages_body_length',
-        expression: `length("body") between 1 and ${MAX_MESSAGE_LENGTH}`,
+        expression: `length("body") >= 1 and length("body") <= ${MAX_MESSAGE_LENGTH}`,
       },
     ],
   }),
