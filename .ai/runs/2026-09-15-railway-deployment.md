@@ -10,6 +10,9 @@ per-pull-request preview environments.
 - Created the Railway project `DevMentor` in the configured workspace.
 - Added the GitHub-backed `app` service from the repository root and a managed
   PostgreSQL service with a persistent volume.
+- Connected the app source to the repository's canonical
+  `open-mercato/ai_techleaders_project` identity so GitHub PR webhooks target the
+  same repository Railway tracks.
 - Generated Railway domains for the production and staging app instances.
 - Configured the app to use the managed database, production mode, immutable
   migration snapshots, the Railway deployment domain, and the repository's safe
