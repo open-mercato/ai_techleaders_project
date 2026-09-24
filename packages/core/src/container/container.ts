@@ -59,7 +59,7 @@ const globalForContainer = globalThis as unknown as {
  * `.ai/specs/2026-09-04-platform-primitives.md` and the 2026-09-08 entry in
  * `.ai/lessons.md`.
  */
-function assertProductionSecrets(env: AppEnv): void {
+export function assertProductionSecrets(env: AppEnv): void {
   if (env.NODE_ENV !== 'production') {
     return;
   }

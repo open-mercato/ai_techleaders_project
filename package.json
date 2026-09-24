@@ -19,6 +19,7 @@
     "typecheck:storybook": "npm run typecheck:storybook --workspace @devmentor/ui",
     "dev": "npm run dev --workspace @devmentor/app --",
     "build": "npm run build --workspace @devmentor/app",
+    "deploy:preflight": "tsx -e \"import('@devmentor/core').then(({ assertProductionSecrets, getEnv }) => assertProductionSecrets(getEnv()))\"",
     "start": "npm run start --workspace @devmentor/app --",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
