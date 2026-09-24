@@ -1,15 +1,12 @@
 
 > @devmentor/app@0.1.0 start
-> NODE_ENV=production next start --hostname 127.0.0.1 --port 40339
+> NODE_ENV=production next start --hostname 127.0.0.1 --port 42263
 
 ▲ Next.js 16.3.3
-- Local:         http://127.0.0.1:40339
-- Network:       http://127.0.0.1:40339
-✓ Ready in 102ms
-✓ Running next.config.ts took 25ms
-{"level":40,"time":1790252333012,"app":"DevMentor","adapter":"log","msg":"the log mailer is active: every email is written to this log instead of being delivered, and the log therefore contains live verification links"}
-{"level":40,"time":1790252333012,"app":"DevMentor","reason":"no-trusted-proxy-hops","msg":"no client IP could be derived from x-forwarded-for: per-IP rate limiting is disabled for this process and only the per-email limits apply. Set TRUSTED_PROXY_HOPS to the number of reverse proxies in front of this app."}
-{"level":30,"time":1790252333396,"app":"DevMentor","userId":"569226a9-e1d3-45aa-8201-478a4ce36418","msg":"signed in with a password"}
-{"level":40,"time":1790252342632,"app":"DevMentor","adapter":"mock","msg":"the mock GitHub identity adapter is active: sign-in accepts any login without contacting GitHub"}
-{"level":30,"time":1790252342675,"app":"DevMentor","userId":"8b55e188-a223-4f93-b2e2-a437c45374a5","githubId":"mock-mock-operator","msg":"linked a GitHub identity to a verified account"}
-{"level":30,"time":1790252412107,"app":"DevMentor","userId":"569226a9-e1d3-45aa-8201-478a4ce36418","githubId":"mock-mock-mentee","msg":"linked a GitHub identity to a verified account"}
+- Local:         http://127.0.0.1:42263
+- Network:       http://127.0.0.1:42263
+✓ Ready in 99ms
+✓ Running next.config.ts took 24ms
+{"level":40,"time":1790253143615,"app":"DevMentor","adapter":"log","msg":"the log mailer is active: every email is written to this log instead of being delivered, and the log therefore contains live verification links"}
+{"level":40,"time":1790253143615,"app":"DevMentor","reason":"no-trusted-proxy-hops","msg":"no client IP could be derived from x-forwarded-for: per-IP rate limiting is disabled for this process and only the per-email limits apply. Set TRUSTED_PROXY_HOPS to the number of reverse proxies in front of this app."}
+{"level":30,"time":1790253144007,"app":"DevMentor","userId":"0c87a3b4-c6cf-4411-adb4-4c7c37ff16a6","msg":"signed in with a password"}

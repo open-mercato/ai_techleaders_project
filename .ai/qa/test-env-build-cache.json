@@ -1,6 +1,6 @@
 {
-  "builtAt": "2026-09-24T12:18:45.141Z",
-  "sourceFingerprint": "2223130718-190819",
+  "builtAt": "2026-09-24T12:31:51.772Z",
+  "sourceFingerprint": "3546130599-190526",
   "projectRoot": "/workspace",
   "artifactPaths": "node_modules/.package-lock.json packages/app/.next/BUILD_ID"
 }

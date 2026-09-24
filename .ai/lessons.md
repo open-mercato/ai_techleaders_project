@@ -9,6 +9,8 @@ Omit the link for lessons short enough to state inline.
 
 <!-- Add new entries below this line, most recent first. -->
 
+- 2026-09-24 — **In the hosted workspace, port 3000 belongs to the supervised preview process; prepare its dependencies instead of replacing its server.** The preview is automatically restarted by `workspace-agent-cli` and inherits `DATABASE_URL` for PostgreSQL on `127.0.0.1:5432`, database `open-mercato`. A separate healthy app on a random port does not repair that preview. Start the disposable PostgreSQL fixture on the preview's expected address, migrate and seed that database, then restart only the preview child after an earlier failed ORM connection so its module graph no longer replays the cached rejection.
+
 - 2026-09-24 — **Read the hydration diff before changing a component.** The apparent admin hydration failure named only `data-new-gr-c-s-check-loaded` and `data-gr-ext-installed` on `<body>` — attributes injected by Grammarly before React starts — while clean-browser production navigation hydrated without errors. Put `suppressHydrationWarning` on that single host node, not on the whole tree or on admin components, so extension noise is ignored while real descendant mismatches remain visible.
 
 - 2026-09-24 — **Before implementing a capability that appears missing on the current branch, inspect open PRs and reuse the existing implementation when one already owns it.** For recording and integration setup in particular, switch to or branch from the relevant open PR rather than rewriting its domain code locally; keep any recording-only fixture or planted defect clearly isolated from that implementation.

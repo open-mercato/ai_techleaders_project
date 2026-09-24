@@ -6,6 +6,13 @@ The working Linux command is:
 sh .ai/scripts/test-env-up.sh
 ```
 
+The workspace supervisor owns port 3000 and expects PostgreSQL on port 5432 with the
+`open-mercato` database. Prepare that preview without replacing its process:
+
+```sh
+TEST_ENV_PREVIEW=1 sh .ai/scripts/test-env-up.sh --force
+```
+
 This sandbox has PostgreSQL 17 server binaries under `/usr/lib/postgresql/17/bin`, but
 no Docker daemon and no `jq`. The generated launcher therefore starts a disposable local
 cluster on a random loopback port, runs migrations, runs the idempotent seed twice, builds

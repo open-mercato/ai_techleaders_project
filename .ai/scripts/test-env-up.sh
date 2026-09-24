@@ -6,6 +6,8 @@
 #   2026-09-24 repair: regenerate for Linux without jq, Docker, or launchd; use the installed PostgreSQL 17 server and production Next.js
 #   2026-09-24 repair: keep the PostgreSQL Unix socket inside its disposable data directory when /var/run/postgresql is not writable
 #   2026-09-24 repair: do not reorganize node_modules for an application-only rebuild while another local dev server may be running
+#   2026-09-24 repair: accept TEST_ENV_APP_PORT so a workspace preview can use its expected port
+#   2026-09-24 repair: support the supervised workspace preview's PostgreSQL address and database name
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
@@ -30,6 +32,8 @@ BROWSER_INSTALLED=0
 BROWSER_NOTES="Chrome downloaded, but this sandbox lacks Linux shared libraries and passwordless package installation. Use a host browser for recording."
 FORCE=0
 FORCE_REBUILD=0
+PREVIEW_MODE=${TEST_ENV_PREVIEW:-0}
+case "$PREVIEW_MODE" in 0|1) ;; *) echo 'TEST_ENV_PREVIEW must be 0 or 1.' >&2; exit 2 ;; esac
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
@@ -121,6 +125,7 @@ if [ -f "$DESCRIPTOR" ]; then
     [ $((now_epoch - started_epoch)) -le "$CACHE_TTL" ] && fresh=1
     changed=$(find packages scripts package.json package-lock.json tsconfig.json tsconfig.base.json vitest.integration.config.mts -type f \
       ! -path '*/node_modules/*' ! -path '*/.next/*' ! -path '*/coverage/*' ! -path '*/storybook-static/*' \
+      ! -name '*.tsbuildinfo' ! -name 'next-env.d.ts' \
       -newer "$DESCRIPTOR" 2>/dev/null | head -n 1 || true)
     case "$old_pid" in ''|*[!0-9]*) old_pid=0 ;; esac
     if [ "$status" = running ] && [ "$fresh" -eq 1 ] && [ -z "$changed" ] \
@@ -153,7 +158,8 @@ fingerprint() {
       if [ -d "$path" ]; then
         find "$path" -type f \
           ! -path '*/node_modules/*' ! -path '*/.git/*' ! -path '*/.next/*' \
-          ! -path '*/coverage/*' ! -path '*/storybook-static/*'
+          ! -path '*/coverage/*' ! -path '*/storybook-static/*' \
+          ! -name '*.tsbuildinfo' ! -name 'next-env.d.ts'
       elif [ -f "$path" ]; then
         echo "$path"
       fi
@@ -186,10 +192,23 @@ build_needed() {
 }
 
 run_id="$(date -u +%Y%m%d-%H%M%S)-$$"
-db_port=$(free_port)
-app_port=$(free_port)
+app_port=${TEST_ENV_APP_PORT:-}
+case "$app_port" in
+  '') app_port=$(free_port) ;;
+  *[!0-9]*|0) echo 'TEST_ENV_APP_PORT must be a positive integer.' >&2; exit 2 ;;
+esac
+if [ "$PREVIEW_MODE" -eq 1 ]; then db_port=5432; else db_port=$(free_port); fi
+while [ "$db_port" = "$app_port" ]; do db_port=$(free_port); done
 base_url="http://127.0.0.1:$app_port"
-database_url="postgres://devmentor:devmentor@127.0.0.1:$db_port/devmentor_qa"
+if [ "$PREVIEW_MODE" -eq 1 ]; then
+  database_name=open-mercato
+  database_owner=postgres
+  database_url="postgres://postgres@127.0.0.1:$db_port/$database_name"
+else
+  database_name=devmentor_qa
+  database_owner=devmentor
+  database_url="postgres://devmentor:devmentor@127.0.0.1:$db_port/$database_name"
+fi
 session_secret=$(openssl rand -hex 32)
 pg_data=$(mktemp -d "${TMPDIR:-/tmp}/devmentor-qa-postgres.XXXXXX")
 
@@ -205,9 +224,11 @@ fi
 
 "$pg_bindir/initdb" -D "$pg_data" --username=postgres --auth-local=trust --auth-host=trust --no-locale --encoding=UTF8 >/dev/null
 "$pg_bindir/pg_ctl" -D "$pg_data" -l "$PG_LOG" -o "-h 127.0.0.1 -p $db_port -k $pg_data" -w start >/dev/null
-"$pg_bindir/psql" -h 127.0.0.1 -p "$db_port" -U postgres -d postgres -v ON_ERROR_STOP=1 \
-  -c "CREATE ROLE devmentor LOGIN PASSWORD 'devmentor' CREATEDB" >/dev/null
-"$pg_bindir/createdb" -h 127.0.0.1 -p "$db_port" -U postgres -O devmentor devmentor_qa
+if [ "$database_owner" = devmentor ]; then
+  "$pg_bindir/psql" -h 127.0.0.1 -p "$db_port" -U postgres -d postgres -v ON_ERROR_STOP=1 \
+    -c "CREATE ROLE devmentor LOGIN PASSWORD 'devmentor' CREATEDB" >/dev/null
+fi
+"$pg_bindir/createdb" -h 127.0.0.1 -p "$db_port" -U postgres -O "$database_owner" "$database_name"
 
 printf '%s\n' \
   "DATABASE_URL=$database_url" \
@@ -275,7 +296,7 @@ pg_pid=$(head -n 1 "$pg_data/postmaster.pid")
 node -e '
   const fs=require("node:fs");
   const [path,runId,baseUrl,databaseUrl,pgData,browserCommand,browserVersion,browserInstalled,browserNotes,startedAt,root,appPort,dbPort,appPid,pgPid,coldSeconds]=process.argv.slice(1);
-  const redactedDatabaseUrl=`postgres://<redacted>@127.0.0.1:${dbPort}/devmentor_qa`;
+  const redactedDatabaseUrl=databaseUrl.replace(/^postgres:\/\/[^@]+@/,"postgres://<redacted>@");
   const value={version:1,runId,status:"running",mode:"prod",baseUrl,startedByThisRepo:true,startScript:".ai/scripts/test-env-up.sh",stopScript:".ai/scripts/test-env-down.sh",projectRoot:root,app:{startCommand:"npm run start --workspace @devmentor/app",port:Number(appPort),healthPath:"/api/health",pid:Number(appPid),processGroup:Number(appPid)},services:[{type:"postgres",host:"127.0.0.1",port:Number(dbPort),pid:Number(pgPid),dataDir:pgData,url:redactedDatabaseUrl,env:{DATABASE_URL:redactedDatabaseUrl}}],credentials:[{role:"mentee",username:"mock-mentee@devmentor.test",passwordEnv:"TEST_MENTEE_PASSWORD"}],credentialsFile:".ai/qa/test-env.env",browser:{provider:"agent-browser",installed:browserInstalled==="1",command:browserCommand,version:browserVersion,descriptor:".ai/browsers/agent-browser.md",notes:browserNotes},testRunner:{name:"other",config:"vitest.integration.config.mts"},platform:"linux",startedAt,notes:`Local disposable PostgreSQL 17; migrations and idempotent seed applied twice; production Next.js; mock identity/mail adapters; cold: ${coldSeconds}s`};
   fs.writeFileSync(path,JSON.stringify(value,null,2)+"\n");
 ' "$DESCRIPTOR" "$run_id" "$base_url" "$database_url" "$pg_data" "$BROWSER_COMMAND" "$BROWSER_VERSION" "$BROWSER_INSTALLED" "$BROWSER_NOTES" "$started_at" "$ROOT" "$app_port" "$db_port" "$app_pid" "$pg_pid" "$cold_seconds"

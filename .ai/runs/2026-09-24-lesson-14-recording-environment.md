@@ -50,6 +50,12 @@ scenarios described in the lesson can be reproduced.
   admin markup. The root layout now suppresses only that body host-node mismatch; clean
   browser runs of `/admin` and client navigation to `/admin/users` had no console or page
   errors.
+- The workspace-managed preview at `http://127.0.0.1:3000` originally used its configured
+  PostgreSQL address (`127.0.0.1:5432`, database `open-mercato`) while the recording launcher
+  had provisioned an unrelated random port. `TEST_ENV_PREVIEW=1` now prepares that exact
+  disposable database without fighting the preview supervisor. After restarting its child
+  app to clear the earlier failed ORM module graph, `/api/health` reported `database: up`,
+  mock-operator sign-in reached `/admin`, and browser console/page errors were empty.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed with one pre-existing Next.js `<img>` warning and no errors.
 - `npm run test:unit:coverage`: 195 files and 2,184 tests passed; statements, branches,
@@ -86,9 +92,12 @@ scenarios described in the lesson can be reproduced.
 
 ## Outcome
 
-The local recording branch and disposable production environment are ready. Re-run
-`sh .ai/scripts/test-env-up.sh` to reuse it, or source `.ai/qa/test-env.env` and run
-`npm run lesson:14:seed` between takes to clear holds and refresh the relative slot times.
+The local recording branch and workspace preview are ready at `http://127.0.0.1:3000`.
+Recreate the preview-compatible disposable database with
+`TEST_ENV_PREVIEW=1 sh .ai/scripts/test-env-up.sh --force`, or source
+`.ai/qa/test-env.env` and run `npm run lesson:14:seed` between takes to clear holds and
+refresh the relative slot times. The launcher also keeps a companion production process at
+the `baseUrl` in `.ai/qa/test-env.json` for production-mode readiness checks.
 
 The complete GitHub issue/PR automation cannot be recorded from this workspace yet:
 `gh auth status` reports no authenticated account, and the lesson's #41/#45 examples are
