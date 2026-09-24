@@ -305,18 +305,18 @@ describe('SlotService removal', () => {
 });
 
 describe('SlotService public reads', () => {
-  it('returns active future slots in start order', async () => {
-    const first = slot(new Date('2026-09-10T15:00:00.000Z'));
-    const second = slot(new Date('2026-09-10T16:00:00.000Z'), {
+  it('returns active future slots and applies the exact inclusive two-hour boundary', async () => {
+    const beforeBoundary = slot(new Date('2026-09-10T13:59:59.999Z'));
+    const exactBoundary = slot(new Date('2026-09-10T14:00:00.000Z'), {
       id: `${SLOT_ID.slice(0, -1)}2`,
     });
-    const h = makeHarness({ slots: [first, second] });
+    const h = makeHarness({ slots: [beforeBoundary, exactBoundary] });
 
     await expect(h.service.listPublic(PROFILE_ID)).resolves.toEqual([
-      { id: SLOT_ID, startsAt: '2026-09-10T15:00:00.000Z', meetsLeadTime: true },
+      { id: SLOT_ID, startsAt: '2026-09-10T13:59:59.999Z', meetsLeadTime: false },
       {
         id: `${SLOT_ID.slice(0, -1)}2`,
-        startsAt: '2026-09-10T16:00:00.000Z',
+        startsAt: '2026-09-10T14:00:00.000Z',
         meetsLeadTime: true,
       },
     ]);
@@ -325,5 +325,17 @@ describe('SlotService public reads', () => {
       { mentorProfile: PROFILE_ID, removedAt: null, startsAt: { $gte: NOW } },
       { orderBy: { startsAt: 'asc' }, limit: MAX_ACTIVE_SLOTS },
     );
+  });
+
+  it('agrees with BookingService.assertLeadTime: a true 90-minute lead time does not meet the two-hour rule', async () => {
+    // Regression for #65: a wall-clock timezone re-interpretation once inflated this
+    // gap by the Warsaw UTC offset, so a slot inside the true 2-hour window read as
+    // meeting it. The comparison must diff true UTC instants only.
+    const ninetyMinutesOut = slot(new Date(NOW.getTime() + 90 * 60_000));
+    const h = makeHarness({ slots: [ninetyMinutesOut] });
+
+    await expect(h.service.listPublic(PROFILE_ID)).resolves.toEqual([
+      { id: SLOT_ID, startsAt: ninetyMinutesOut.startsAt.toISOString(), meetsLeadTime: false },
+    ]);
   });
 });

@@ -25,6 +25,7 @@ import {
   BookingService,
   LEAD_TIME_MESSAGE,
   MENTOR_NOT_BOOKABLE_MESSAGE,
+  MIN_LEAD_MINUTES,
   NOT_CANCELLABLE_MESSAGE,
   SESSION_STARTED_MESSAGE,
   SLOT_TAKEN_MESSAGE,
@@ -286,6 +287,36 @@ describe('BookingService.start reservation rules', () => {
     await expect(h.service.start({ slotId: SLOT_ID, lengthMinutes: 25 })).rejects.toThrow(
       ValidationError,
     );
+  });
+
+  it(`accepts a start exactly ${MIN_LEAD_MINUTES} minutes away`, async () => {
+    const h = makeHarness({
+      storedSlot: slot({ startsAt: new Date(NOW.getTime() + MIN_LEAD_MINUTES * 60_000) }),
+    });
+
+    await expect(h.service.start({ slotId: SLOT_ID, lengthMinutes: 25 })).resolves
+      .toMatchObject({ status: 'pending' });
+  });
+
+  it('refuses a start one millisecond inside the two-hour rule', async () => {
+    const h = makeHarness({
+      storedSlot: slot({ startsAt: new Date(NOW.getTime() + MIN_LEAD_MINUTES * 60_000 - 1) }),
+    });
+
+    await expect(h.service.start({ slotId: SLOT_ID, lengthMinutes: 25 })).rejects
+      .toMatchObject({ code: 'validation_failed', fieldErrors: { slotId: [LEAD_TIME_MESSAGE] } });
+  });
+
+  it('refuses a true 90-minute lead time regardless of the server or slot timezone', async () => {
+    // Regression for #65: a wall-clock timezone re-interpretation once inflated this
+    // gap by the Warsaw UTC offset, so a slot inside the true 2-hour window read as
+    // outside it. The comparison must diff true UTC instants only.
+    const h = makeHarness({
+      storedSlot: slot({ startsAt: new Date(NOW.getTime() + 90 * 60_000) }),
+    });
+
+    await expect(h.service.start({ slotId: SLOT_ID, lengthMinutes: 25 })).rejects
+      .toMatchObject({ code: 'validation_failed', fieldErrors: { slotId: [LEAD_TIME_MESSAGE] } });
   });
 
   it.each([
