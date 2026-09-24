@@ -1,7 +1,7 @@
 {
   "version": 1,
   "runId": "20260924-123134-75641",
-  "status": "running",
+  "status": "stopped",
   "mode": "prod",
   "baseUrl": "http://127.0.0.1:42263",
   "startedByThisRepo": true,

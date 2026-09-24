@@ -56,6 +56,12 @@ scenarios described in the lesson can be reproduced.
   disposable database without fighting the preview supervisor. After restarting its child
   app to clear the earlier failed ORM module graph, `/api/health` reported `database: up`,
   mock-operator sign-in reached `/admin`, and browser console/page errors were empty.
+- The supervised preview now owns that database preparation itself. `scripts/preview.sh`
+  invokes a guarded bootstrap which starts or reuses the persistent workspace-local cluster,
+  migrates it, seeds it, and refreshes Lesson 14 fixtures before Next starts. A true cold start
+  with the earlier test database stopped exposed and fixed one relative Unix-socket path bug.
+  A subsequent full preview process-group restart produced a new Next server process and
+  returned `database: up` without any terminal-owned helper or manual repair.
 - `npm run typecheck`: passed.
 - `npm run lint`: passed with one pre-existing Next.js `<img>` warning and no errors.
 - `npm run test:unit:coverage`: 195 files and 2,184 tests passed; statements, branches,
@@ -88,16 +94,18 @@ scenarios described in the lesson can be reproduced.
 - `.ai/qa/test-env-postgres.log`
 - `.ai/qa/lesson-14-recording/missing-bio.png`
 - `.ai/qa/lesson-14-recording/wrong-price-summary.png`
+- `.gitignore`
+- `scripts/preview.sh`
+- `scripts/preview-postgres.sh`
 - `vitest.config.mts`
 
 ## Outcome
 
 The local recording branch and workspace preview are ready at `http://127.0.0.1:3000`.
-Recreate the preview-compatible disposable database with
-`TEST_ENV_PREVIEW=1 sh .ai/scripts/test-env-up.sh --force`, or source
-`.ai/qa/test-env.env` and run `npm run lesson:14:seed` between takes to clear holds and
-refresh the relative slot times. The launcher also keeps a companion production process at
-the `baseUrl` in `.ai/qa/test-env.json` for production-mode readiness checks.
+Starting or restarting the workspace preview now prepares the database and refreshes the
+relative Lesson 14 fixtures automatically; no agent terminal or manual database command is
+required. The separate production-mode test environment was stopped after verification, as
+recorded in `.ai/qa/test-env.json`.
 
 The complete GitHub issue/PR automation cannot be recorded from this workspace yet:
 `gh auth status` reports no authenticated account, and the lesson's #41/#45 examples are

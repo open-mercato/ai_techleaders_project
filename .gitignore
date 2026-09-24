@@ -62,6 +62,9 @@ packages/app/next-env.d.ts
 # agent pipeline: commit durable `.ai` records, but never generated credentials
 .ai/qa/test-env.env
 .ai/qa/test-env-postgres.log
+.ai/qa/preview-postgres/
+.ai/qa/preview-postgres.log
+.ai/qa/preview-postgres.lock
 
 # skills installer staging copy (unrendered upstream download of .agents/skills)
 /agent/

@@ -25,6 +25,8 @@ issue and PR numbers (#41 and #45) are also unrelated closed pull requests in th
 2. Repair the reusable Linux test-environment scripts so they can provision a disposable
    PostgreSQL 17 cluster without Docker or `jq`, build/start production Next.js, and prove
    shell, database-health, and seeded-auth readiness.
+   Make the supervised workspace preview call its own guarded PostgreSQL bootstrap before
+   Next starts, so port 3000 remains healthy after a fresh workspace or preview restart.
 3. Add a recording-only seed command that resets bookings/slots and prepares:
    - a published legacy mentor with no bio;
    - a fully bookable mentor with visibly different 25/50-minute prices;
@@ -40,6 +42,9 @@ issue and PR numbers (#41 and #45) are also unrelated closed pull requests in th
 
 - `sh .ai/scripts/test-env-up.sh` cold-starts a healthy production app with a disposable
   database, and an immediate second invocation reports reuse.
+- A fresh supervised preview start provisions or reuses its guarded loopback database,
+  applies migrations and fixtures, and serves `/api/health` with `database: up` on port 3000
+  without an agent-owned terminal process.
 - `/m/ada-legacy` visibly contains `undefined` in the About section.
 - Choosing 50 minutes on `/m/mock-mentor` displays the 25-minute price in the summary.
 - The slot seeded about 30 minutes ahead is selectable and `POST /api/bookings` accepts it.
