@@ -75,6 +75,7 @@ export default defineConfig({
         'packages/app/src/app/\\(auth\\)/register/page.tsx',
         'packages/app/src/app/\\(auth\\)/return-to-href.ts',
         'packages/app/src/app/\\(auth\\)/sign-in/page.tsx',
+        'packages/app/src/app/layout.tsx',
         'packages/app/src/app/\\(mentee\\)/layout.tsx',
         'packages/app/src/app/\\(mentee\\)/home/page.tsx',
         'packages/app/src/app/\\(mentee\\)/home/booked-banner.tsx',

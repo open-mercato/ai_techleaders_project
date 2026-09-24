@@ -11,6 +11,7 @@
   },
   "scripts": {
     "setup": "node scripts/setup/index.mjs",
+    "lesson:14:seed": "tsx scripts/lesson-14/seed.mts",
     "invite": "tsx -e \"import('./scripts/invite.ts').then(({ evalArguments, main }) => main(evalArguments(process.argv)))\" --",
     "payouts:run": "tsx -e \"import('./scripts/payouts-run.ts').then(({ main }) => main())\"",
     "storybook": "npm run prototype && npm run storybook --workspace @devmentor/ui --",

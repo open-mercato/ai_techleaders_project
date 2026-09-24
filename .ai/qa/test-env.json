@@ -1,52 +1,54 @@
 {
   "version": 1,
-  "runId": "20260910-154106-60109",
-  "status": "stopped",
-  "mode": "dev",
-  "baseUrl": "http://127.0.0.1:60112",
+  "runId": "20260924-121827-46013",
+  "status": "running",
+  "mode": "prod",
+  "baseUrl": "http://127.0.0.1:40339",
   "startedByThisRepo": true,
   "startScript": ".ai/scripts/test-env-up.sh",
   "stopScript": ".ai/scripts/test-env-down.sh",
+  "projectRoot": "/workspace",
   "app": {
-    "startCommand": "npm run dev --workspace @devmentor/app -- --webpack",
-    "port": 60112,
+    "startCommand": "npm run start --workspace @devmentor/app",
+    "port": 40339,
     "healthPath": "/api/health",
-    "pid": 64010,
-    "launchLabel": "devmentor-qa-20260910-154106-60109"
+    "pid": 50452,
+    "processGroup": 50452
   },
   "services": [
     {
       "type": "postgres",
       "host": "127.0.0.1",
-      "port": 60111,
-      "container": "devmentor-qa-20260910-154106-60109",
-      "url": "postgres://<redacted>@127.0.0.1:60111/devmentor_qa",
+      "port": 33787,
+      "pid": 46163,
+      "dataDir": "/tmp/devmentor-qa-postgres.hT2lG4",
+      "url": "postgres://<redacted>@127.0.0.1:33787/devmentor_qa",
       "env": {
-        "DATABASE_URL": "postgres://<redacted>@127.0.0.1:60111/devmentor_qa"
+        "DATABASE_URL": "postgres://<redacted>@127.0.0.1:33787/devmentor_qa"
       }
     }
   ],
   "credentials": [
     {
-      "role": "mentor",
-      "username": "mock-mentor",
-      "passwordEnv": "TEST_MENTOR_PASSWORD"
+      "role": "mentee",
+      "username": "mock-mentee@devmentor.test",
+      "passwordEnv": "TEST_MENTEE_PASSWORD"
     }
   ],
   "credentialsFile": ".ai/qa/test-env.env",
   "browser": {
     "provider": "agent-browser",
-    "installed": true,
-    "command": "<worktree>/node_modules/.bin/agent-browser",
+    "installed": false,
+    "command": "/workspace/node_modules/.bin/agent-browser",
     "version": "0.36.0",
     "descriptor": ".ai/browsers/agent-browser.md",
-    "notes": "Repository-pinned agent-browser passed doctor."
+    "notes": "Chrome downloaded, but this sandbox lacks Linux shared libraries and passwordless package installation. Use a host browser for recording."
   },
   "testRunner": {
-    "name": "vitest+agent-browser",
+    "name": "other",
     "config": "vitest.integration.config.mts"
   },
-  "platform": "darwin",
-  "startedAt": "2026-09-10T15:41:31Z",
-  "notes": "Ephemeral PostgreSQL; migrations and idempotent seed applied. Webpack dev mode avoids the current Next.js Turbopack nested-worktree root bug. launchd keeps the app alive across command sessions. Mock GitHub identity is enabled only for this disposable integration run."
+  "platform": "linux",
+  "startedAt": "2026-09-24T12:18:49Z",
+  "notes": "Local disposable PostgreSQL 17; migrations and idempotent seed applied twice; production Next.js; mock identity/mail adapters; cold: 23s; warm: 1s (reused)"
 }

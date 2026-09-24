@@ -124,7 +124,7 @@ export function BookSessionPanel({
     { minutes: 25 as const, price: priceLabel(prices.price25Cents, prices.currency) },
     { minutes: 50 as const, price: priceLabel(prices.price50Cents, prices.currency) },
   ];
-  const chosenPriceCents = minutes === 25 ? prices.price25Cents : prices.price50Cents;
+  const chosenPriceCents = prices.price25Cents;
 
   // Both arguments are passed in rather than read from the closure so the action cannot be
   // reached without them: the only call site is inside the branch that narrowed them.

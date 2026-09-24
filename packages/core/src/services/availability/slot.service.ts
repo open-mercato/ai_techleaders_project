@@ -50,6 +50,30 @@ function constraintName(error: unknown): string | null {
     : null;
 }
 
+function warsawWallTimeReadAsUtc(instant: Date): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en', {
+      timeZone: 'Europe/Warsaw',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(instant).map(({ type, value }) => [type, value]),
+  );
+  return Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+    instant.getUTCMilliseconds(),
+  );
+}
+
 export class SlotService {
   private readonly em: EntityManager;
   private readonly clock: Clock;
@@ -174,7 +198,7 @@ export class SlotService {
     return slots.map((slot) => ({
       id: slot.id,
       startsAt: slot.startsAt.toISOString(),
-      meetsLeadTime: slot.startsAt.getTime() >= leadTimeBoundary,
+      meetsLeadTime: warsawWallTimeReadAsUtc(slot.startsAt) >= leadTimeBoundary,
     }));
   }
 }

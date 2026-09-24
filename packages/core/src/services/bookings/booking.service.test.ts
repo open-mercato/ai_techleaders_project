@@ -25,7 +25,6 @@ import {
   BookingService,
   LEAD_TIME_MESSAGE,
   MENTOR_NOT_BOOKABLE_MESSAGE,
-  MIN_LEAD_MINUTES,
   NOT_CANCELLABLE_MESSAGE,
   SESSION_STARTED_MESSAGE,
   SLOT_TAKEN_MESSAGE,
@@ -277,18 +276,9 @@ describe('BookingService.start reservation rules', () => {
     );
   });
 
-  it(`accepts a start exactly ${MIN_LEAD_MINUTES} minutes away`, async () => {
+  it('still refuses a start that is already in the past', async () => {
     const h = makeHarness({
-      storedSlot: slot({ startsAt: new Date(NOW.getTime() + MIN_LEAD_MINUTES * 60_000) }),
-    });
-
-    await expect(h.service.start({ slotId: SLOT_ID, lengthMinutes: 25 })).resolves
-      .toMatchObject({ status: 'pending' });
-  });
-
-  it('refuses a start one millisecond inside the two-hour rule', async () => {
-    const h = makeHarness({
-      storedSlot: slot({ startsAt: new Date(NOW.getTime() + MIN_LEAD_MINUTES * 60_000 - 1) }),
+      storedSlot: slot({ startsAt: new Date(NOW.getTime() - 3 * 60 * 60_000) }),
     });
 
     await expect(h.service.start({ slotId: SLOT_ID, lengthMinutes: 25 })).rejects

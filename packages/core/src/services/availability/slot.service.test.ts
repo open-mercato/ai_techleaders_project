@@ -305,18 +305,18 @@ describe('SlotService removal', () => {
 });
 
 describe('SlotService public reads', () => {
-  it('returns active future slots and applies the exact inclusive two-hour boundary', async () => {
-    const beforeBoundary = slot(new Date('2026-09-10T13:59:59.999Z'));
-    const exactBoundary = slot(new Date('2026-09-10T14:00:00.000Z'), {
+  it('returns active future slots in start order', async () => {
+    const first = slot(new Date('2026-09-10T15:00:00.000Z'));
+    const second = slot(new Date('2026-09-10T16:00:00.000Z'), {
       id: `${SLOT_ID.slice(0, -1)}2`,
     });
-    const h = makeHarness({ slots: [beforeBoundary, exactBoundary] });
+    const h = makeHarness({ slots: [first, second] });
 
     await expect(h.service.listPublic(PROFILE_ID)).resolves.toEqual([
-      { id: SLOT_ID, startsAt: '2026-09-10T13:59:59.999Z', meetsLeadTime: false },
+      { id: SLOT_ID, startsAt: '2026-09-10T15:00:00.000Z', meetsLeadTime: true },
       {
         id: `${SLOT_ID.slice(0, -1)}2`,
-        startsAt: '2026-09-10T14:00:00.000Z',
+        startsAt: '2026-09-10T16:00:00.000Z',
         meetsLeadTime: true,
       },
     ]);

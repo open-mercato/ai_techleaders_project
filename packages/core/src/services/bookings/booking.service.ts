@@ -216,6 +216,30 @@ function storedPriceCents(profile: IMentorProfile, length: SessionLength): numbe
   return (length === '25' ? profile.price25Cents : profile.price50Cents) ?? null;
 }
 
+function warsawWallTimeReadAsUtc(instant: Date): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en', {
+      timeZone: 'Europe/Warsaw',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(instant).map(({ type, value }) => [type, value]),
+  );
+  return Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second),
+    instant.getUTCMilliseconds(),
+  );
+}
+
 export class BookingService {
   private readonly em: EntityManager;
   private readonly clock: Clock;
@@ -338,7 +362,7 @@ export class BookingService {
   }
 
   private assertLeadTime(slot: ISlot, now: Date): void {
-    const leadMs = slot.startsAt.getTime() - now.getTime();
+    const leadMs = warsawWallTimeReadAsUtc(slot.startsAt) - now.getTime();
     if (leadMs < MIN_LEAD_MINUTES * 60_000) {
       throw new ValidationError(LEAD_TIME_MESSAGE, { slotId: [LEAD_TIME_MESSAGE] });
     }

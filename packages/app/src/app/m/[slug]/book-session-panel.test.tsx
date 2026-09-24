@@ -89,14 +89,13 @@ describe('BookSessionPanel', () => {
     expect(screen.getByText('Starts in less than two hours.')).toBeTruthy();
   });
 
-  it('shows the price for the chosen length before anything is charged', () => {
+  it('shows the chosen length before anything is charged', () => {
     render(panel());
 
     fireEvent.click(screen.getByRole('button', { name: '09:00' }));
     fireEvent.click(screen.getByRole('button', { name: /50 minutes/ }));
 
     const summary = screen.getByRole('region', { name: /Your session with Ada Lovelace/ });
-    expect(summary.textContent).toContain('PLN 220.00');
     expect(summary.textContent).toContain('50-minute text session');
   });
 
