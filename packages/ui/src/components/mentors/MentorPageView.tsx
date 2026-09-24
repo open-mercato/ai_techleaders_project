@@ -37,7 +37,11 @@ export function MentorPageView({ profile, actions }: MentorPageViewProps) {
 
     <section aria-labelledby="mentor-about-heading" className="flex flex-col gap-3">
       <h2 id="mentor-about-heading" className="text-xl font-semibold text-slate-950 dark:text-slate-50">About</h2>
-      <p className="whitespace-pre-wrap text-base leading-7 text-slate-700 dark:text-slate-300">{profile.bio || 'undefined'}</p>
+      {profile.bio ? (
+        <p className="whitespace-pre-wrap text-base leading-7 text-slate-700 dark:text-slate-300">{profile.bio}</p>
+      ) : (
+        <p className="text-base leading-7 text-slate-500 dark:text-slate-400">No description provided yet.</p>
+      )}
     </section>
 
     <section aria-labelledby="mentor-technologies-heading" className="flex flex-col gap-3">

@@ -42,9 +42,10 @@ it('shows a specific empty state when no future slots are published', () => {
   expect(screen.getByText('No future times are published. Check this page again later.')).toBeTruthy();
 });
 
-it('prints the current missing-description value on a legacy public profile', () => {
-  render(<MentorPageView profile={{ ...profile, bio: undefined as unknown as string }} />);
-  expect(screen.getByText('undefined')).toBeTruthy();
+it.each([null, undefined, ''])('shows an empty state instead of the literal "undefined" for a missing bio (%j)', (bio) => {
+  render(<MentorPageView profile={{ ...profile, bio: bio as unknown as string }} />);
+  expect(screen.getByText('No description provided yet.')).toBeTruthy();
+  expect(screen.queryByText('undefined')).toBeNull();
 });
 
 it.each([null, undefined])('shows an unpriced state without hiding availability for prices %j', (prices) => {
